@@ -14,7 +14,7 @@ prio: high
 |---|---|---|---|
 | D-02 | X data via twitterapi.io. not official X API, not Grok | 08-23 | provider dies/degrades, or budget cap lifts |
 | D-03 | v1 ships WITHOUT tiktok + instagram | 08-23 | a compliant affordable source appears, or operators accept ToS/ban risk in writing |
-| D-04 | timeseries in free-tier postgres; syncthing for markdown ONLY | 08-23 | free-tier terms change |
+
 | D-05 | proto-model hard-locked until n>=50 resolved forecasts | 08-23 | ! nothing. n>=50 IS the trigger. this row protects real money. |
 | D-06 | electron. contextIsolation on / nodeIntegration off / sandbox on | 08-23 | blocking platform issue |
 | D-07 | LLM work routes through claude CLI subscription, not metered API | 08-23 | CLI bridge proves technically unworkable |
@@ -26,6 +26,10 @@ prio: high
 | D-21 | NO deployer-history build. operators use J7Tracker manually for it. | 08-26 | they notice they aren't actually checking it, OR a free indexed API for wallet>launches appears |
 
 ## SUPERSEDED  (never delete — the reasoning is the value)
+- **D-04** postgres for timeseries + syncthing for markdown. > superseded by D-40 (2026-08-27).
+  trigger: building it. postgres is storage but not compute — GHA was needed regardless, making postgres a second service for no gain.
+  and syncthing requires simultaneous connections, which two people who trade at different hours will rarely have.
+  ! lesson: I designed the sync layer on day one from first principles and it survived four days before contact with the actual runner requirement.
 - **D-34** don't schedule the screener until discovery is fixed. > superseded by D-37 next day.
   trigger: realised the dependency ran the other way. a growth rate needs two observations, so storage must come FIRST.
   ! lesson: I blocked a build on a prerequisite that was actually downstream of it. check direction of dependency before gating work.
@@ -61,3 +65,5 @@ prio: high
 | D-37 | scanner scheduled 5min + EVERY scan stored. supersedes D-34: storage is a prerequisite for non-lagging discovery, not blocked by it. | 08-27 | — |
 | D-38 | "accumulating" = holders+liq growing while price flat. ranks on arrivals-per-price-move. a token that already ran must score ZERO. | 08-27 | ! never rank on price change |
 | D-39 | ! background processes die on sleep and announce nothing. need supervision or off-laptop collection. | 08-27 | P2 cloud collector lands |
+| D-40 | git repo (GitHub) is the shared store AND the runner. no postgres, no syncthing. supersedes D-04. | 08-27 | volume outgrows git, or concurrent writers appear |
+| D-41 | cloud cron hourly. cadence set by GHA free minutes; exhausting them stops collection entirely. | 08-27 | repo made public (unlimited minutes) or budget changes |
