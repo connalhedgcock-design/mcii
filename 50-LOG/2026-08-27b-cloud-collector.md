@@ -39,3 +39,22 @@ v: 1
 ## BLOCKED ON OPERATOR (cannot be done for them — needs their github login)
 1. `gh auth login`  2. create private repo + push  3. add TWITTERAPI_KEY as an Actions secret
 - ! austin's OS still unknown. electron is cross-platform but WINDOWS IS UNTESTED. flag before promising it works for him.
+
+## !! BUDGET GUARD DEFEATED BY DUPLICATION — caught during verification, fixed
+- after the cloud collector went live, TWO social collectors were running: local (40min) + cloud (60min).
+- ! they keep SEPARATE spend counters. each enforced $12 independently ∴ the guard permitted $24 total.
+- measured combined run rate: $16.15/month against a $12 cap. would have surfaced as a surprise bill, not an error.
+- ✓ local collector STOPPED + header comment marks it superseded + npm script renamed `collect:local` with a warning.
+- ✓ cloud only = $7.56/month = 63% of budget. headroom restored.
+- ! GENERAL LESSON: a per-process budget guard is not a budget guard. the cap must be enforced on SHARED state, or
+  enforced by there being exactly one collector. chose the latter — simpler and verifiable by `pgrep`.
+- ! this is the second time adding a component silently broke an invariant held by an existing one
+  (first: geckoterminal rate limits shared across app+collector+screener > shared throttle).
+  ∴ when adding any component that consumes a capped resource, check every existing consumer of that cap.
+
+## FIRST CLOUD RUN VERIFIED ON GITHUB'S INFRASTRUCTURE
+- run 33076357614, conclusion SUCCESS.
+- CATE $0.06081 liq $4.20M exit $151,802 | NEEGY $0.0006406 liq $142,693 exit $3,170
+- social CATE 32 posts/21 people | NEEGY 38/17. scan 60 > 13 tradeable > 10 passed.
+- committed back as 203b556 "data: collection 2026-08-27 13:22 UTC". data/ files grew. pull works.
+- repo: github.com/connalhedgcock-design/mcii (private). secret uploaded, absent from all commits.

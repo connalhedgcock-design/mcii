@@ -1,5 +1,13 @@
 #!/usr/bin/env node
-// Standalone social collector. Runs independently of the app window so data keeps accruing.
+// Standalone social collector.
+//
+// !! SUPERSEDED 2026-08-27 by the hourly GitHub Actions collector (main/cloud-collect.js).
+// Do not run both. They keep SEPARATE spend counters, so each enforcing the $12 cap
+// independently permits $24 of total spend -- measured at a $16/month combined run rate before
+// this was caught. The cloud collector also survives the laptop sleeping, which this does not.
+//
+// Kept for offline use or if the cloud collector is ever disabled. If you start it, stop the
+// workflow first.
 //
 // Cadence is set by budget, not by preference. At ~$0.00015/post, two tokens searched by
 // contract address every 40 minutes costs roughly $8.60/month, leaving headroom under the $12

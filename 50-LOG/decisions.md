@@ -67,3 +67,4 @@ prio: high
 | D-39 | ! background processes die on sleep and announce nothing. need supervision or off-laptop collection. | 08-27 | P2 cloud collector lands |
 | D-40 | git repo (GitHub) is the shared store AND the runner. no postgres, no syncthing. supersedes D-04. | 08-27 | volume outgrows git, or concurrent writers appear |
 | D-41 | cloud cron hourly. cadence set by GHA free minutes; exhausting them stops collection entirely. | 08-27 | repo made public (unlimited minutes) or budget changes |
+| D-42 | exactly ONE social collector may run. cloud is it; local is superseded. per-process budget guards do not compose. | 08-27 | cloud collector disabled |
