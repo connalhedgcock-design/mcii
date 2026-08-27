@@ -26,7 +26,9 @@ try { store = { ...store, ...JSON.parse(fs.readFileSync(SIDECAR, 'utf8')) }; } c
 if (!Array.isArray(store.watchlist)) store.watchlist = SEED_WATCHLIST.slice();
 const save = () => { try { fs.writeFileSync(SIDECAR + '.tmp', JSON.stringify(store)); fs.renameSync(SIDECAR + '.tmp', SIDECAR); } catch {} };
 
-history.init(app.getPath('userData'));
+// Second argument points at the repo, so the app opens with the shared cloud history rather
+// than only what this particular machine happened to observe.
+history.init(app.getPath('userData'), path.join(__dirname, '..', '..'));
 
 let win;
 function createWindow() {

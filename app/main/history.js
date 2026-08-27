@@ -12,10 +12,25 @@ const path = require('path');
 // GeckoTerminal at any time; what a token's exitable value or holder count was on a given day
 // exists only if we wrote it down as it happened.
 
-let dir;
-function init(userDataPath) {
+let dir, sharedDir;
+function init(userDataPath, repoRoot) {
   dir = path.join(userDataPath, 'history');
   fs.mkdirSync(dir, { recursive: true });
+  // The repo's data/ directory, written hourly by the cloud collector and shared through git.
+  // Reading it means a freshly cloned machine opens with the full history rather than nothing,
+  // and both operators see the same record even when only one of them has been at their desk.
+  if (repoRoot) sharedDir = path.join(repoRoot, 'data');
+}
+
+// Rows the cloud collected for one token. Read-only here: nothing local ever writes to data/,
+// so there is no conflict to resolve -- the cron is the only writer.
+function readShared(file, ca) {
+  if (!sharedDir) return [];
+  try {
+    return fs.readFileSync(path.join(sharedDir, file), 'utf8').trim().split('\n')
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((r) => r && (!ca || r.ca === ca));
+  } catch { return []; }
 }
 const file = (ca) => path.join(dir, `${ca}.jsonl`);
 const socialFile = (ca) => path.join(dir, `${ca}.social.jsonl`);
@@ -33,14 +48,18 @@ function recordSocial(ca, bucket, src = 'live') {
 }
 
 function readSocial(ca, { sinceMs, src } = {}) {
+  const cutoff = sinceMs ? Date.now() - sinceMs : 0;
+  let local = [];
   try {
-    const cutoff = sinceMs ? Date.now() - sinceMs : 0;
-    let rows = fs.readFileSync(socialFile(ca), 'utf8').trim().split('\n')
+    local = fs.readFileSync(socialFile(ca), 'utf8').trim().split('\n')
       .map((l) => { try { return JSON.parse(l); } catch { return null; } })
       .filter((r) => r && r.ts >= cutoff);
-    if (src) rows = rows.filter((r) => r.src === src);
-    return rows.sort((a, b) => a.ts - b.ts);
-  } catch { return []; }
+  } catch {}
+  const shared = readShared('social.jsonl', ca).filter((r) => r.ts >= cutoff);
+  const seen = new Set(local.map((r) => r.ts));
+  let rows = local.concat(shared.filter((r) => !seen.has(r.ts)));
+  if (src) rows = rows.filter((r) => (r.src || 'live') === src);
+  return rows.sort((a, b) => a.ts - b.ts);
 }
 
 // Which windows already have a bucket, so a backfill never pays twice for the same hour.
@@ -73,12 +92,19 @@ function record(ca, token) {
 }
 
 function read(ca, sinceMs) {
+  const cutoff = sinceMs ? Date.now() - sinceMs : 0;
+  let local = [];
   try {
-    const cutoff = sinceMs ? Date.now() - sinceMs : 0;
-    return fs.readFileSync(file(ca), 'utf8').trim().split('\n')
+    local = fs.readFileSync(file(ca), 'utf8').trim().split('\n')
       .map((l) => { try { return JSON.parse(l); } catch { return null; } })
       .filter((r) => r && r.ts >= cutoff);
-  } catch { return []; }
+  } catch {}
+  // Merge the shared cloud record with whatever this machine observed itself. Deduped on
+  // timestamp so a machine that was awake during a cloud run does not double-count that moment.
+  const shared = readShared('market.jsonl', ca).filter((r) => r.ts >= cutoff);
+  const seen = new Set(local.map((r) => r.ts));
+  const merged = local.concat(shared.filter((r) => !seen.has(r.ts)));
+  return merged.sort((a, b) => a.ts - b.ts);
 }
 
 // Change over a window, using the oldest reading inside it. Returns null rather than a
