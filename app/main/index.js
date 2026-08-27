@@ -8,6 +8,9 @@ const { fetchHistory } = require('./adapters/geckoterminal');
 const history = require('./history');
 const alerts = require('./alerts');
 const { LiveMonitor } = require('./live');
+const scanstore = require('./scanstore');
+const hype = require('../shared/hype');
+const journal = require('./journal');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 
@@ -29,6 +32,8 @@ const save = () => { try { fs.writeFileSync(SIDECAR + '.tmp', JSON.stringify(sto
 // Second argument points at the repo, so the app opens with the shared cloud history rather
 // than only what this particular machine happened to observe.
 history.init(app.getPath('userData'), path.join(__dirname, '..', '..'));
+scanstore.init(app.getPath('userData'));
+journal.init(path.join(__dirname, '..', '..'));
 
 let win;
 function createWindow() {
@@ -151,6 +156,65 @@ ipcMain.handle('alerts:all', () => {
   const rank = { CRITICAL: 0, HIGH: 1, MED: 2 };
   return all.sort((a, b) => rank[a.severity] - rank[b.severity]);
 });
+// Everything the market scanner has found. The app previously showed only the watchlist, which
+// made the scanner invisible -- it had been running for hours with nowhere to display results.
+ipcMain.handle('screen:latest', () => {
+  const REPO = path.join(__dirname, '..', '..');
+  const readJsonl = (f) => {
+    try {
+      return fs.readFileSync(f, 'utf8').trim().split('\n')
+        .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    } catch { return []; }
+  };
+  // Local scans and cloud scans are the same record collected from two places.
+  const local = scanstore.readObs(7 * 864e5);
+  const cloud = readJsonl(path.join(REPO, 'data', 'candidates.jsonl'));
+  const all = local.concat(cloud).sort((a, b) => a.ts - b.ts);
+
+  // Latest observation per token, so the list shows current state rather than a history dump.
+  const latest = new Map();
+  for (const o of all) latest.set(o.ca, o);
+
+  const risers = scanstore.risers({ minScans: 3, windowMs: 12 * 36e5 });
+  const riserBy = new Map(risers.map((r) => [r.ca, r]));
+
+  const rows = [...latest.values()].map((o) => {
+    const r = riserBy.get(o.ca);
+    const seen = all.filter((x) => x.ca === o.ca);
+    return { ...o, scans: seen.length,
+      firstSeen: seen[0]?.ts ?? o.ts,
+      accumulating: r?.accumulating ?? false,
+      holderGrowth: r?.holderGrowth ?? null,
+      liqGrowth: r?.liqGrowth ?? null,
+      priceGrowth: r?.priceGrowth ?? null,
+      onWatchlist: store.watchlist.some((w) => w.ca === o.ca) };
+  });
+
+  const scans = readJsonl(path.join(REPO, 'data', 'scans.jsonl'));
+  return {
+    tokens: rows.sort((a, b) => (b.accumulating - a.accumulating) || (b.scans - a.scans) || (b.liq - a.liq)),
+    scanCount: scans.length + (scanstore.readObs(7 * 864e5).length ? 1 : 0),
+    lastScan: Math.max(0, ...all.map((o) => o.ts)),
+  };
+});
+
+// Social readings for one token: local live buckets merged with the hourly cloud record.
+ipcMain.handle('social:token', (_e, ca) => {
+  const rows = history.readSocial(ca, { sinceMs: 7 * 864e5 });
+  if (!rows.length) return { rows: [], latest: null, breadth: null };
+  const latest = rows[rows.length - 1];
+  const rel = hype.reliability(latest);
+  const breadth = hype.breadthIndex(latest, rows.slice(0, -1));
+  return { rows, latest, reliability: rel, breadth };
+});
+
+ipcMain.handle('journal:theses', () => journal.listTheses());
+ipcMain.handle('journal:saveThesis', (_e, t) => journal.saveThesis(t));
+ipcMain.handle('journal:forecasts', () => journal.readForecasts());
+ipcMain.handle('journal:addForecast', (_e, f) => journal.addForecast(f));
+ipcMain.handle('journal:resolve', (_e, { id, outcome, lesson }) => journal.resolveForecast(id, outcome, lesson));
+ipcMain.handle('journal:calibration', () => journal.calibration());
+
 ipcMain.handle('history:series', (_e, { ca, field, days }) =>
   history.series(ca, field, (days || 30) * 864e5));
 ipcMain.handle('tokens:setPosition', (_e, { ca, tokens }) => {

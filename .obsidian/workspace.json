@@ -210,6 +210,9 @@
   },
   "active": "cc861da4c5940d23",
   "lastOpenFiles": [
+    "app/test/journal.test.js",
+    "app/main/journal.js",
+    "SETUP.md",
     "50-LOG/2026-08-26i-live.md",
     "app/main/live.js",
     "50-LOG/2026-08-26h-screener.md",
@@ -225,7 +228,6 @@
     "50-LOG/2026-08-26d-social-engine.md",
     "app/test/sentiment.test.js",
     "app/main/adapters/twitterapi.js",
-    "app/test/hype.test.js",
     "50-LOG/2026-08-26c-alerts.md",
     "50-LOG/2026-08-26b-memory-layer.md",
     "50-LOG/2026-08-26-p1-shipped.md",
@@ -243,8 +245,6 @@
     "app/node_modules/undici/docs/docs/best-practices/proxy.md",
     "app/node_modules/undici/docs/docs/best-practices/mocking-request.md",
     "app/node_modules/undici/docs/docs/best-practices/crawling.md",
-    "app/node_modules/undici/docs/docs/best-practices/client-certificate.md",
-    "app/node_modules/undici/docs/docs/api/api-lifecycle.md",
-    "app/node_modules/undici/docs/docs/api/WebSocket.md"
+    "app/node_modules/undici/docs/docs/best-practices/client-certificate.md"
   ]
 }

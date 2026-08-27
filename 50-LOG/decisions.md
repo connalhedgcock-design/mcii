@@ -68,3 +68,6 @@ prio: high
 | D-40 | git repo (GitHub) is the shared store AND the runner. no postgres, no syncthing. supersedes D-04. | 08-27 | volume outgrows git, or concurrent writers appear |
 | D-41 | cloud cron hourly. cadence set by GHA free minutes; exhausting them stops collection entirely. | 08-27 | repo made public (unlimited minutes) or budget changes |
 | D-42 | exactly ONE social collector may run. cloud is it; local is superseded. per-process budget guards do not compose. | 08-27 | cloud collector disabled |
+| D-43 | market view sorts by accumulation then persistence. NEVER by price change — that rebuilds a trending list. | 08-27 | ! never |
+| D-44 | theses are markdown in 40-POS/, forecasts JSONL in 50-LOG/. both in the repo ∴ shared + readable without the app. | 08-27 | — |
+| D-45 | calibration verdict must be blunt. n<50 = "too few"; brier>0.25 = "no demonstrated edge". no softening words. tested. | 08-27 | ! never soften |

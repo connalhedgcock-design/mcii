@@ -97,6 +97,7 @@ function card(t) {
         <span class="v">${fmtNum(t.safety?.totalHolders)}</span>
         <div class="s">top wallet ${t.safety?.top1Pct != null ? t.safety.top1Pct.toFixed(1) + '%' : '—'}</div></div>
     </div>
+    <div class="social"><span class="lab">Social</span></div>
     <div class="chartwrap">
       ${priceChart((t.history && t.history.days) || [])}
     </div>
@@ -148,12 +149,203 @@ function render(tokens) {
       load();
     });
   });
+  tokens.forEach((t) => loadSocial(t.ca));
   document.querySelectorAll('.rm').forEach((b) => {
     b.addEventListener('click', async () => {
       await window.mcii.removeToken(b.closest('.card').dataset.ca);
       load();
     });
   });
+}
+
+
+// --- market view -------------------------------------------------------------
+// Everything the scanner has found, not just the watchlist. Ordered by whether a coin is
+// accumulating, then by how many scans it has survived -- deliberately NOT by price change,
+// which would just rank whatever already moved.
+function ageStr(h) {
+  if (h == null) return '—';
+  return h < 48 ? Math.round(h) + 'h' : Math.round(h / 24) + 'd';
+}
+
+function marketRow(t) {
+  const cls = t.accumulating ? 'accum' : t.onWatchlist ? 'own' : '';
+  const badge = t.accumulating ? '<span class="badge accum">accumulating</span>'
+              : t.onWatchlist ? '<span class="badge own">yours</span>' : '';
+  const growth = t.accumulating
+    ? `holders ${t.holderGrowth >= 0 ? '+' : ''}${t.holderGrowth}% · liquidity ${t.liqGrowth >= 0 ? '+' : ''}${t.liqGrowth}% · price ${t.priceGrowth >= 0 ? '+' : ''}${t.priceGrowth}%`
+    : `seen in ${t.scans} scan${t.scans === 1 ? '' : 's'}`;
+  return `<div class="mktrow ${cls}" data-ca="${t.ca}" data-sym="${esc(t.sym || '')}">
+    <span class="msym">${esc(t.sym || '?')}</span>
+    <span class="mname">${esc(t.name || '')}<span class="mk">${esc(growth)}</span></span>
+    <span class="mn">${fmtUsd(t.liq)}<span class="mk">liquidity</span></span>
+    <span class="mn">${fmtUsd(t.mcap)}<span class="mk">market cap</span></span>
+    <span class="mn ${t.chg24 >= 0 ? 'up' : 'down'}">${t.chg24 != null ? (t.chg24 >= 0 ? '+' : '') + Number(t.chg24).toFixed(0) + '%' : '—'}<span class="mk">24h</span></span>
+    <span class="mn">${t.holders != null ? Number(t.holders).toLocaleString() : '—'}<span class="mk">holders</span></span>
+    <span class="mn">${ageStr(t.ageH)}<span class="mk">age</span></span>
+    ${badge}${t.onWatchlist ? '' : '<button class="btn sm addmkt">Track</button>'}
+  </div>`;
+}
+
+async function loadMarket() {
+  const box = $('#market');
+  box.innerHTML = '<div class="skel">LOADING SCAN RESULTS…</div>';
+  const d = await window.mcii.screenLatest();
+  $('#mktcount').textContent = d.tokens.length ? `(${d.tokens.length})` : '';
+  if (!d.tokens.length) {
+    box.innerHTML = '<div class="skel">No scans recorded yet. The scanner runs every few minutes — check back shortly.</div>';
+    return;
+  }
+  const acc = d.tokens.filter((t) => t.accumulating).length;
+  const when = d.lastScan ? ago(d.lastScan) : 'unknown';
+
+  box.innerHTML =
+    `<div class="mktnote">These are coins that passed every filter: enough liquidity to actually exit,
+      real two-sided trading, and no failed safety check. <b>Passing is not a recommendation</b> —
+      most launchpad coins now revoke minting automatically, so a clean safety check is the
+      starting point rather than a verdict.
+      ${acc ? `<br><br><b>${acc} marked "accumulating"</b> — holders and liquidity growing while price
+      has stayed flat. That is the only genuinely early signal here, and it is measured across
+      repeated scans rather than guessed from one.`
+      : `<br><br>None are accumulating right now. That condition needs several scans of the same
+      coin to compute, so it fills in as the record deepens.`}</div>` +
+    `<div class="mkthead"><span>${d.tokens.length} coins tracked · last scan ${when}</span>
+      <span>sorted by accumulation, then persistence — never by price</span></div>` +
+    d.tokens.map(marketRow).join('');
+
+  box.querySelectorAll('.addmkt').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const row = b.closest('.mktrow');
+      b.textContent = 'adding…'; b.disabled = true;
+      await window.mcii.addToken(row.dataset.ca, row.dataset.sym);
+      switchView('watch'); load();
+    });
+  });
+}
+
+// --- social panel ------------------------------------------------------------
+async function loadSocial(ca) {
+  let d;
+  try { d = await window.mcii.socialFor(ca); } catch { return; }
+  const card = document.querySelector(`.card[data-ca="${ca}"] .social`);
+  if (!card) return;
+  if (!d || !d.latest) {
+    card.innerHTML = '<span class="lab">Social</span><p class="socverdict" style="margin-top:8px">No social readings collected yet.</p>';
+    return;
+  }
+  const b = d.latest, rel = d.reliability || {}, br = d.breadth || {};
+  const sent = b.sentiment == null ? '—'
+    : (b.sentiment > 0.2 ? 'positive' : b.sentiment < -0.2 ? 'negative' : 'mixed');
+
+  // The verdict leads. A manufactured conversation is reported as a warning, not as enthusiasm.
+  const verdict = rel.manipulated
+    ? `<b style="color:var(--crit)">This conversation looks manufactured.</b> ${esc((rel.manipReasons || []).join('; '))}. Treat the enthusiasm as a warning rather than as interest.`
+    : rel.thin
+    ? `Too few people are posting to read anything into it yet${b.uniqueAuthors ? ` — only ${b.uniqueAuthors} in the last reading` : ''}.`
+    : `${b.uniqueAuthors} different people posted in the last reading, tone mostly ${sent}.${br.reading ? ' ' + esc(br.reading) + '.' : ''}`;
+
+  card.innerHTML = `<span class="lab">Social — ${d.rows.length} readings</span>
+    <div class="socgrid" style="margin-top:10px">
+      <div class="socstat"><span class="k">People posting</span><span class="v">${b.uniqueAuthors ?? '—'}</span></div>
+      <div class="socstat"><span class="k">Tone</span><span class="v">${b.sentiment == null ? '—' : (b.sentiment >= 0 ? '+' : '') + b.sentiment}</span></div>
+      <div class="socstat"><span class="k">vs usual</span><span class="v">${br.value != null ? (br.value >= 0 ? '+' : '') + br.value : '—'}</span></div>
+      <div class="socstat"><span class="k">Bot-looking</span><span class="v">${b.botRatio != null ? Math.round(b.botRatio * 100) + '%' : '—'}</span></div>
+      <div class="socstat"><span class="k">Spam filtered</span><span class="v">${b.noiseFiltered ?? 0}</span></div>
+      <div class="socstat"><span class="k">Confidence</span><span class="v"><span class="conf ${rel.confidence || 'none'}">${rel.confidence || 'none'}</span></span></div>
+    </div>
+    <p class="socverdict">${verdict}</p>`;
+}
+
+
+// --- journal -----------------------------------------------------------------
+// The forecast log is the only evidence that any of the reasoning works. Memecoins never give
+// clean feedback -- luck dominates over short samples, so you can be right for stupid reasons
+// and never learn it. A dated, resolvable prediction is the cheapest honest test available.
+async function loadJournal() {
+  const box = $('#journal');
+  const [cal, fx, th] = await Promise.all([
+    window.mcii.calibration(), window.mcii.forecasts(), window.mcii.theses(),
+  ]);
+  $('#jcount').textContent = fx.length ? `(${fx.length})` : '';
+
+  const cls = cal.brier == null ? 'none' : cal.brier <= cal.baseline ? 'good' : 'bad';
+  const cal_html = `<div class="jbox">
+    <h3>Calibration</h3>
+    <div class="calnum ${cls}">${cal.brier != null ? cal.brier.toFixed(3) : '—'}</div>
+    <p class="calverdict">${esc(cal.verdict)}</p>
+    <div class="calbar">
+      <div><span class="k">Resolved</span><span class="v">${cal.n}</span></div>
+      <div><span class="k">Still open</span><span class="v">${cal.open}</span></div>
+      <div><span class="k">Coin-flip score</span><span class="v">0.250</span></div>
+      <div><span class="k">vs market</span><span class="v">${cal.marketBrier != null ? cal.marketBrier.toFixed(3) : '—'}</span></div>
+    </div>
+  </div>`;
+
+  const open = fx.filter((f) => !f.resolved);
+  const done = fx.filter((f) => f.resolved).sort((a, b) => b.resolved - a.resolved);
+
+  const frow = (f) => `<div class="frow ${f.resolved ? 'resolved' : ''}" data-id="${f.id}">
+      <div class="fq">${esc(f.question)}
+        <span class="fmeta">by ${esc(f.resolveBy)}${f.marketImplied != null ? ` · market says ${f.marketImplied}%` : ''}${f.lesson ? ` · ${esc(f.lesson)}` : ''}</span></div>
+      <span class="fn">${f.prob}%</span>
+      <span class="fn">${f.resolved ? (f.outcome ? 'happened' : 'did not') : 'open'}</span>
+      <span class="fn">${f.brier != null ? f.brier.toFixed(3) : '—'}</span>
+      ${f.resolved ? '' : `<div class="yn"><button data-o="1">Happened</button><button data-o="0">Didn't</button></div>`}
+    </div>`;
+
+  box.innerHTML = cal_html + `
+    <div class="jbox">
+      <h3>Record a forecast</h3>
+      <div class="fform">
+        <div><label for="fq">Question — must be answerable yes or no on a date</label>
+          <input id="fq" placeholder="CATE liquidity still above $2M on 15 Sept?"></div>
+        <div><label for="fp">Your odds</label><input id="fp" type="number" min="1" max="99" placeholder="65"></div>
+        <div><label for="fd">Resolves</label><input id="fd" type="date"></div>
+        <button class="btn" id="fadd">Add</button>
+      </div>
+      <p class="socverdict" style="color:var(--muted);font-size:12.5px">Write it so future-you cannot argue about whether it came true. "Does well" is not a forecast; "above $2M on 15 Sept" is.</p>
+    </div>
+    <div class="jbox"><h3>Open forecasts — ${open.length}</h3>
+      ${open.length ? open.map(frow).join('') : '<p class="socverdict" style="color:var(--muted)">None yet.</p>'}</div>
+    <div class="jbox"><h3>Resolved — ${done.length}</h3>
+      ${done.length ? done.map(frow).join('') : '<p class="socverdict" style="color:var(--muted)">None resolved yet.</p>'}</div>
+    <div class="jbox"><h3>Positions — ${th.length}</h3>
+      ${th.length ? th.map((t) => `<div class="thesis">
+        <h4>${esc(t.id ? t.id.replace('pos.', '').toUpperCase() : t.file)}</h4>
+        <dl>
+          <dt>Why it goes up</dt><dd>${esc(t.claim || '—')}</dd>
+          <dt>Mechanism</dt><dd>${esc(t.mechanism || '—')}</dd>
+          <dt>Confidence</dt><dd>${esc(t.confidence || '—')}%</dd>
+          <dt>Exit trigger</dt><dd>${esc(t.invalidation || 'NOT SET')}</dd>
+          <dt>Time stop</dt><dd>${esc(t.timeStop || 'NOT SET')}</dd>
+        </dl></div>`).join('')
+      : '<p class="socverdict" style="color:var(--muted)">No positions written up yet. These live as files in the project folder and travel with it.</p>'}</div>`;
+
+  $('#fadd').addEventListener('click', async () => {
+    const q = $('#fq').value.trim(), p = Number($('#fp').value), d = $('#fd').value;
+    if (!q || !p || !d) return;
+    await window.mcii.addForecast({ question: q, prob: p, resolveBy: d });
+    loadJournal();
+  });
+  box.querySelectorAll('.yn button').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const id = b.closest('.frow').dataset.id;
+      const lesson = prompt('What would you have needed to see to get this right?') || '';
+      await window.mcii.resolveForecast(id, b.dataset.o === '1', lesson);
+      loadJournal();
+    });
+  });
+}
+
+function switchView(v) {
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === v));
+  $('#grid').hidden = v !== 'watch';
+  $('#market').hidden = v !== 'market';
+  $('#journal').hidden = v !== 'journal';
+  $('.search').style.display = v === 'watch' ? 'flex' : 'none';
+  $('#alerts').style.display = v === 'watch' ? '' : 'none';
+  if (v === 'market') loadMarket();
+  if (v === 'journal') loadJournal();
 }
 
 function renderAlerts(tokens) {
@@ -252,7 +444,13 @@ window.mcii.onLiveAlert((a) => {
   el.innerHTML = `<span class="as">${a.severity}</span><div><b>${esc(a.title)}</b><span>${esc(a.detail)}</span></div>`;
   box.insertBefore(el, box.firstChild);
 });
-$('#refresh').addEventListener('click', load);
+document.querySelectorAll('.tab').forEach((t) =>
+  t.addEventListener('click', () => switchView(t.dataset.view)));
+window.mcii.forecasts().then((f) => { if (f.length) $('#jcount').textContent = `(${f.length})`; });
+window.mcii.screenLatest().then((d) => {
+  $('#mktcount').textContent = d.tokens.length ? `(${d.tokens.length})` : '';
+});
+$('#refresh').addEventListener('click', () => { load(); if (!$('#market').hidden) loadMarket(); });
 $('#go').addEventListener('click', search);
 $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
 load();
