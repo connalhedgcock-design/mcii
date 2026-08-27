@@ -1,0 +1,250 @@
+{
+  "main": {
+    "id": "97701f1cf5833fa8",
+    "type": "split",
+    "children": [
+      {
+        "id": "4989c09e7ab868d7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "66dce88099504c74",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "00-INDEX.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "00-INDEX"
+            }
+          }
+        ]
+      },
+      {
+        "id": "669afc0165762b25",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "cc861da4c5940d23",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "60-KB/base-rates.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "base-rates"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "372573ce0922dcd5",
+    "type": "split",
+    "children": [
+      {
+        "id": "b32fa337941724a5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fccbe8027c14529e",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "ff5b67b569b5bcc5",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "a56debbae3d5a921",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d26bff90c197a328",
+    "type": "split",
+    "children": [
+      {
+        "id": "673c7632e2c22fba",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bf0694360fd2dbdb",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "60-KB/base-rates.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "82f8a46497089da4",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "60-KB/base-rates.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "8ca3249ddf2f2b45",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "0b7e56bc14419e29",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "415a5a3b6b9b943a",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "60-KB/base-rates.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "cc861da4c5940d23",
+  "lastOpenFiles": [
+    "50-LOG/2026-08-26i-live.md",
+    "app/main/live.js",
+    "50-LOG/2026-08-26h-screener.md",
+    "app/main/screener.js",
+    "app/main/adapters/ratelimit.js",
+    "50-LOG/2026-08-26g-collection-audit.md",
+    "50-LOG/2026-08-26f-backfill-abandoned.md",
+    "app/main/collector.js",
+    "app/main/backfill.js",
+    "50-LOG/2026-08-26e-social-live.md",
+    "app/test/offtopic.test.js",
+    "app/test/queries.test.js",
+    "50-LOG/2026-08-26d-social-engine.md",
+    "app/test/sentiment.test.js",
+    "app/main/adapters/twitterapi.js",
+    "app/test/hype.test.js",
+    "50-LOG/2026-08-26c-alerts.md",
+    "50-LOG/2026-08-26b-memory-layer.md",
+    "50-LOG/2026-08-26-p1-shipped.md",
+    "app/node_modules/@electron/get/README.md",
+    "app/node_modules/@electron-internal/extract-zip/README.md",
+    "app/node_modules/@types/node/README.md",
+    "app/node_modules/electron/README.md",
+    "app/node_modules/undici/types/README.md",
+    "app/node_modules/undici/README.md",
+    "app/node_modules/sumchecker/README.md",
+    "app/node_modules/sumchecker/NEWS.md",
+    "app/node_modules/debug/README.md",
+    "app/node_modules/undici/docs/docs/best-practices/writing-tests.md",
+    "app/node_modules/undici/docs/docs/best-practices/undici-vs-builtin-fetch.md",
+    "app/node_modules/undici/docs/docs/best-practices/proxy.md",
+    "app/node_modules/undici/docs/docs/best-practices/mocking-request.md",
+    "app/node_modules/undici/docs/docs/best-practices/crawling.md",
+    "app/node_modules/undici/docs/docs/best-practices/client-certificate.md",
+    "app/node_modules/undici/docs/docs/api/api-lifecycle.md",
+    "app/node_modules/undici/docs/docs/api/WebSocket.md"
+  ]
+}

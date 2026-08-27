@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
+<title>MCII</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="dot"></span> MCII <span class="tag">station</span></div>
+    <div class="barright">
+      <span id="status" class="status"></span>
+      <button id="refresh" class="btn">Refresh</button>
+    </div>
+  </header>
+  <section class="search">
+    <input id="q" type="text" placeholder="Search any memecoin by name, or paste a contract address" autocomplete="off">
+    <button id="go" class="btn">Search</button>
+  </section>
+  <div id="results" class="results"></div>
+  <section id="alerts" class="alerts"></section>
+  <main id="grid" class="grid"></main>
+  <footer class="foot">
+    <span>Read-only. This app cannot trade, and holds no wallet or exchange keys.</span>
+    <span id="stamp"></span>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

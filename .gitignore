@@ -1,0 +1,13 @@
+# Secrets — never commit. The workflow reads its key from GitHub Actions secrets instead.
+.env
+*.env
+!.env.example
+
+node_modules/
+dist/
+.DS_Store
+
+# Local high-frequency data. The laptop polls every 15s; that volume is local-only and
+# rebuildable. Only the hourly cloud record is shared.
+app/sidecar/
+*.local.jsonl

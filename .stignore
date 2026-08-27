@@ -1,0 +1,8 @@
+app/
+sidecar/
+node_modules/
+.env
+*.db
+*.db-wal
+*.db-shm
+.DS_Store

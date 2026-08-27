@@ -1,0 +1,16 @@
+{
+  "name": "mcii",
+  "version": "0.1.0",
+  "description": "MCII - memecoin safety and exit-liquidity dashboard",
+  "main": "main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/alerts.test.js && node test/hype.test.js && node test/sentiment.test.js && node test/queries.test.js && node test/offtopic.test.js && node test/scanstore.test.js"
+  },
+  "author": "connal + austin",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "electron": "^44.0.0"
+  }
+}

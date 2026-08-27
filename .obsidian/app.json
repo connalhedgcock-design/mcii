@@ -1,0 +1,12 @@
+{
+  "userIgnoreFilters": [
+    "app/",
+    "sidecar/",
+    "node_modules/",
+    ".env"
+  ],
+  "attachmentFolderPath": "_att",
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false
+}
