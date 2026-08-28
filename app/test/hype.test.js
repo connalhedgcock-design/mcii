@@ -88,5 +88,16 @@ check('...and is not flagged manipulated', rb.manipulated === false);
 const noVocab = h.bucket([{ authorId: 'a', author: realAcct(1), text: 'the weather is nice', likes: 1, createdAt: now }], { bucketMs: 9e5, ts: now });
 check('bucket with no scoreable language returns null sentiment', noVocab.sentiment === null);
 
+// ! a live run produced "tone 0.818" for NEEGY off ONE scored post. Three decimals resting on a
+// single sentence reads as measured and is not. Withheld below three.
+const P = (id, text) => ({ id, authorId: id, text, views: 100, likes: 5, author: {} });
+const thin = h.bucket([P('a', 'bullish'), P('b', 'nothing here')], { bucketMs: 1, ts: 1 });
+check('one scored post gives no tone', thin.sentiment === null, `-> ${thin.sentiment}`);
+check('...and says it was too thin, not that it was neutral', thin.sentimentThin === true);
+check('...but the raw value is still kept in the record', thin.sentimentRaw !== null);
+const ok = h.bucket([P('a', 'bullish'), P('b', 'scam'), P('c', 'rug'), P('d', 'moon')], { bucketMs: 1, ts: 1 });
+check('three or more scored posts do give a tone', ok.sentiment !== null && ok.sentimentThin === false,
+  `-> ${ok.sentiment} from ${ok.sentimentN}`);
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

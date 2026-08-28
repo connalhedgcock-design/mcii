@@ -317,7 +317,7 @@ async function loadSocial(ca) {
     ${warn}
     <div class="socgrid" style="margin-top:10px">
       <div class="socstat"><span class="k">People posting</span><span class="v">${b.uniqueAuthors ?? '—'}</span></div>
-      <div class="socstat"><span class="k">Tone</span><span class="v">${b.sentiment == null ? '—' : (b.sentiment >= 0 ? '+' : '') + b.sentiment}</span></div>
+      <div class="socstat"><span class="k">Tone</span><span class="v" ${b.sentimentThin ? 'title="only ' + b.sentimentN + ' post(s) had any wording to judge — too few to call it a mood"' : ''}>${b.sentiment == null ? (b.sentimentThin ? 'too few' : '—') : (b.sentiment >= 0 ? '+' : '') + b.sentiment}</span></div>
       <div class="socstat"><span class="k">vs usual</span><span class="v">${br.value != null ? (br.value >= 0 ? '+' : '') + br.value : '—'}</span></div>
       <div class="socstat"><span class="k">Bot-looking</span><span class="v">${b.botRatio != null ? Math.round(b.botRatio * 100) + '%' : '—'}</span></div>
       <div class="socstat"><span class="k">Spam filtered</span><span class="v">${b.noiseFiltered ?? 0}</span></div>
@@ -455,7 +455,9 @@ async function loadSector() {
 
   const s = d.social;
   const tone = s && s.sentiment != null ? s.sentiment : null;
-  const toneWord = tone == null ? 'no clear tone' : tone > 0.15 ? 'positive' : tone < -0.15 ? 'negative' : 'mixed';
+  const toneWord = tone == null
+    ? (s && s.sentimentThin ? 'too few posts to call' : 'no clear tone')
+    : tone > 0.15 ? 'positive' : tone < -0.15 ? 'negative' : 'mixed';
 
   const head = `<div class="card">
     <div class="chead"><b>What's happening in memecoins</b>

@@ -39,3 +39,15 @@ the cron that never fired | the watchlist file nobody wrote | holder counts from
   buttons must use askText. comments are stripped first so the explanation is not read as the bug.
 
 ## TESTS 219 > 225
+
+## PART 2 — FALSE PRECISION CAUGHT IN THE FIRST LIVE RUN
+- published, then ran the collector: NEEGY **"tone 0.818" computed from ONE scored post.** CATE's came
+  from 14. three decimals of apparent measurement resting on a single sentence.
+- ✓ tone is now WITHHELD below 3 scored posts. `sentimentThin` says why; `sentimentRaw` keeps the value
+  in the record so the threshold can be revisited. UI reads "too few" rather than a dash or a number.
+- ! mandate anti-pattern, named on day one: "false precision — hype score 73.4 implies accuracy that
+  does not exist". I shipped exactly that and only caught it by looking at real output.
+- also confirmed in that run: the watchlist reaching the cloud is REAL — it collected **CASHCAT and
+  invest**, two coins added on a laptop that the hourly job had never seen.
+- rug search hit its 50-post ceiling on the first page-walk and flagged itself truncated ∴ the true
+  rate is above the ~44/hour I measured.

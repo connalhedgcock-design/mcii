@@ -117,4 +117,5 @@ prio: high
 | D-83 | each search carries its own depth and cadence, stamped in data/query-runs.json. "every 6 hours" means wall clock, never 6 firings of an unreliable schedule. | 08-28 | — |
 | D-84 | ! never window.prompt() — it THROWS in electron and kills the handler silently. use askText(). pinned by a source test. | 08-28 | ! permanent |
 | D-85 | ! any control whose failure looks identical to its idle state must be verified INSIDE a running electron window, not by reading the code. eighth instance of a silent failure in this project. | 08-28 | ! permanent |
+| D-86 | ! tone is withheld below 3 posts containing scoreable wording. one post produced "0.818" live. raw value kept in the record, never offered as a reading. | 08-28 | ! never show a mood from one voice |
 

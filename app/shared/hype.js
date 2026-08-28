@@ -174,7 +174,15 @@ function bucket(posts, { bucketMs, ts }) {
     engagement: +engagement.toFixed(3),
     // Sentiment is engagement-weighted and computed only over posts that actually contained
     // scoreable language. Unscored posts are excluded, never counted as neutral.
-    sentiment: wSum > 0 ? +(sSum / wSum).toFixed(3) : null,
+    //
+    // ! and it is withheld entirely below three such posts. A live run produced "tone 0.818" for
+    // NEEGY off ONE post -- three decimals of apparent precision resting on a single sentence.
+    // A number that looks measured and is not is worse than no number, because it gets believed.
+    // The raw value is still recorded so the threshold can be revisited; it is just not offered
+    // as a reading.
+    sentiment: (wSum > 0 && scoredCount >= MIN_SENTIMENT_POSTS) ? +(sSum / wSum).toFixed(3) : null,
+    sentimentRaw: wSum > 0 ? +(sSum / wSum).toFixed(3) : null,
+    sentimentThin: wSum > 0 && scoredCount < MIN_SENTIMENT_POSTS,
     sentimentN: scoredCount,
     diversity: +diversity.toFixed(3),
     duplicateRatio: +dupes.toFixed(3),
@@ -194,6 +202,8 @@ function bucket(posts, { bucketMs, ts }) {
 //   thin      -> not enough people talking yet. Wait. Says nothing about the token.
 //   manipulated -> the conversation is manufactured. That IS information, and it is bad news.
 // Collapsing them into one "unreliable" verdict throws away the distinction that matters.
+const MIN_SENTIMENT_POSTS = 3;   // below this a tone score is one person's wording, not a mood
+
 const MIN_AUTHORS = 12;      // below this, treat as thin rather than informative
 const GOOD_AUTHORS = 30;     // at or above this, sample is comfortable
 
