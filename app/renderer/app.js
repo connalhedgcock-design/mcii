@@ -263,14 +263,36 @@ async function loadSocial(ca) {
 // and never learn it. A dated, resolvable prediction is the cheapest honest test available.
 async function loadJournal() {
   const box = $('#journal');
-  const [cal, fx, th] = await Promise.all([
-    window.mcii.calibration(), window.mcii.forecasts(), window.mcii.theses(),
+  const me = await window.mcii.owner();
+  if (!me) {
+    // Scores are personal. Without knowing who is typing, the log would blend two people into
+    // one number that describes neither -- so this is asked before anything can be recorded.
+    box.innerHTML = `<div class="jbox">
+      <h3>Who is using this machine?</h3>
+      <p class="calverdict">Forecast accuracy is scored per person. Two people sharing one log
+        would produce a single number that describes neither of you, so the journal needs to know
+        who is typing before it will record anything.</p>
+      <div class="fform" style="grid-template-columns:1fr auto;margin-top:14px">
+        <div><label for="who">Your name</label><input id="who" placeholder="connal"></div>
+        <button class="btn" id="setwho">Save</button>
+      </div></div>`;
+    $('#setwho').addEventListener('click', async () => {
+      const v = $('#who').value.trim();
+      if (!v) return;
+      await window.mcii.setOwner(v);
+      loadJournal();
+    });
+    return;
+  }
+  const [cal, fx, th, everyone] = await Promise.all([
+    window.mcii.calibration(), window.mcii.forecasts(), window.mcii.theses(), window.mcii.allOwners(),
   ]);
+  const others = everyone.filter((o) => o !== me);
   $('#jcount').textContent = fx.length ? `(${fx.length})` : '';
 
   const cls = cal.brier == null ? 'none' : cal.brier <= cal.baseline ? 'good' : 'bad';
   const cal_html = `<div class="jbox">
-    <h3>Calibration</h3>
+    <h3>Calibration — ${esc(me)}${others.length ? ` <span style="color:var(--muted)">· also logging: ${others.map(esc).join(', ')}</span>` : ''}</h3>
     <div class="calnum ${cls}">${cal.brier != null ? cal.brier.toFixed(3) : '—'}</div>
     <p class="calverdict">${esc(cal.verdict)}</p>
     <div class="calbar">

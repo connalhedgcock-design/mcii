@@ -24,7 +24,7 @@ const SEED_WATCHLIST = [
 // Rolling snapshot, not a database. Bounded by construction: one small object per token, so
 // storage grows with the number of tokens, not with time or with how often we poll.
 const SIDECAR = path.join(app.getPath('userData'), 'snapshot.json');
-let store = { tokens: {}, positions: {}, watchlist: null };
+let store = { tokens: {}, positions: {}, watchlist: null, owner: null };
 try { store = { ...store, ...JSON.parse(fs.readFileSync(SIDECAR, 'utf8')) }; } catch {}
 if (!Array.isArray(store.watchlist)) store.watchlist = SEED_WATCHLIST.slice();
 const save = () => { try { fs.writeFileSync(SIDECAR + '.tmp', JSON.stringify(store)); fs.renameSync(SIDECAR + '.tmp', SIDECAR); } catch {} };
@@ -208,12 +208,20 @@ ipcMain.handle('social:token', (_e, ca) => {
   return { rows, latest, reliability: rel, breadth };
 });
 
+// Identity is stored locally and never synced -- each machine knows only who is sitting at it.
+ipcMain.handle('journal:owner', () => store.owner);
+ipcMain.handle('journal:setOwner', (_e, name) => {
+  store.owner = String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || null;
+  save();
+  return store.owner;
+});
+ipcMain.handle('journal:owners', () => journal.owners());
 ipcMain.handle('journal:theses', () => journal.listTheses());
-ipcMain.handle('journal:saveThesis', (_e, t) => journal.saveThesis(t));
-ipcMain.handle('journal:forecasts', () => journal.readForecasts());
-ipcMain.handle('journal:addForecast', (_e, f) => journal.addForecast(f));
+ipcMain.handle('journal:saveThesis', (_e, t) => journal.saveThesis({ ...t, owner: t.owner || store.owner }));
+ipcMain.handle('journal:forecasts', (_e, owner) => journal.readForecasts(owner === undefined ? store.owner : owner));
+ipcMain.handle('journal:addForecast', (_e, f) => journal.addForecast({ ...f, owner: store.owner }));
 ipcMain.handle('journal:resolve', (_e, { id, outcome, lesson }) => journal.resolveForecast(id, outcome, lesson));
-ipcMain.handle('journal:calibration', () => journal.calibration());
+ipcMain.handle('journal:calibration', (_e, owner) => journal.calibration(owner || store.owner));
 
 ipcMain.handle('history:series', (_e, { ca, field, days }) =>
   history.series(ca, field, (days || 30) * 864e5));

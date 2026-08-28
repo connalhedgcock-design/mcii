@@ -41,3 +41,25 @@ v: 1
   everything the trending feeds surface has already moved (+395%, +11092%, -71%). the accumulation condition requires price NOT to have run.
 - ∴ still confirms D-34's underlying worry: the universe is momentum-biased even though the ranking no longer is.
   ? next discovery axis: pull from new_pools by holder-growth rather than trending. needs the geckoterminal throttle to behave.
+
+## 2026-08-28 MULTI-USER JOURNAL — the actual blocker to adding austin
+operator asked "should we wait until the app is more set up before putting austin on it?"
+answer: polish is NOT the blocker. two structural problems were:
+
+1. !! FORECASTS HAD NO OWNER. austin logging predictions would blend into one Brier with connal's.
+   a blended Brier describes NEITHER forecaster — it is precisely the confident-looking meaningless
+   number the journal exists to prevent. worse than no score.
+2. ! one shared append-only forecasts.jsonl > git conflict on every pull from two writers.
+
+✓ FIX: one file per person, `50-LOG/forecasts-<owner>.jsonl`. same trick already used for positions.
+  conflicts impossible BY CONSTRUCTION (single writer per file), and scores are personal by construction.
+✓ calibration(owner) REFUSES to score without an owner and says why.
+✓ resolveForecast finds which file holds an id rather than guessing ∴ can never resolve another person's forecast.
+✓ identity stored in the LOCAL snapshot, never synced — each machine knows only who sits at it. UI asks once.
+✓ test proves the property that matters: austin 0.04 (good), connal 0.785 (bad), computed independently, neither contaminated.
+
+TESTS 86.
+
+! GENERAL PATTERN, third instance: adding a second participant broke an invariant a single-user design held silently.
+  (1) shared rate limits across app+collector+screener. (2) per-process budget caps summing to 2x. (3) per-person scores blending.
+  ∴ before adding ANY second instance of something — process, machine, person — enumerate what the first one was implicitly assuming it was alone in.

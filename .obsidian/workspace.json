@@ -210,6 +210,7 @@
   },
   "active": "cc861da4c5940d23",
   "lastOpenFiles": [
+    "50-LOG/2026-08-27c-ui-and-journal.md",
     "app/test/journal.test.js",
     "app/main/journal.js",
     "SETUP.md",
@@ -227,7 +228,6 @@
     "app/test/queries.test.js",
     "50-LOG/2026-08-26d-social-engine.md",
     "app/test/sentiment.test.js",
-    "app/main/adapters/twitterapi.js",
     "50-LOG/2026-08-26c-alerts.md",
     "50-LOG/2026-08-26b-memory-layer.md",
     "50-LOG/2026-08-26-p1-shipped.md",

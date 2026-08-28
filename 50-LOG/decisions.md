@@ -71,3 +71,5 @@ prio: high
 | D-43 | market view sorts by accumulation then persistence. NEVER by price change — that rebuilds a trending list. | 08-27 | ! never |
 | D-44 | theses are markdown in 40-POS/, forecasts JSONL in 50-LOG/. both in the repo ∴ shared + readable without the app. | 08-27 | — |
 | D-45 | calibration verdict must be blunt. n<50 = "too few"; brier>0.25 = "no demonstrated edge". no softening words. tested. | 08-27 | ! never soften |
+| D-46 | forecasts are per-person files. a blended Brier describes neither forecaster and must never be produced. | 08-28 | ! never blend |
+| D-47 | identity is local-only, never synced. each machine knows who sits at it. | 08-28 | — |

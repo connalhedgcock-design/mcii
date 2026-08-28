@@ -20,7 +20,18 @@ function init(repoRoot) {
 }
 
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const FORECASTS = () => path.join(REPO, '50-LOG', 'forecasts.jsonl');
+// One forecast file per person. Two people appending to a shared file would collide on every
+// git pull, and -- worse -- their scores would average into a single number that measures
+// neither of them. Accuracy is personal; a blended Brier is meaningless.
+const FORECASTS = (owner) => path.join(REPO, '50-LOG', `forecasts-${slug(owner || 'unknown')}.jsonl`);
+
+function owners() {
+  try {
+    return fs.readdirSync(path.join(REPO, '50-LOG'))
+      .filter((f) => /^forecasts-.*\.jsonl$/.test(f))
+      .map((f) => f.replace(/^forecasts-|\.jsonl$/g, ''));
+  } catch { return []; }
+}
 
 // --- theses ---------------------------------------------------------------
 function saveThesis(t) {
@@ -94,9 +105,11 @@ function newId(existing) {
 }
 
 function addForecast(f) {
-  const seen = new Set(readForecasts().map((r) => r.id));
+  const owner = f.owner || 'unknown';
+  const seen = new Set(readForecasts(owner).map((r) => r.id));
   const row = {
     id: newId(seen),
+    owner,
     created: Date.now(),
     question: f.question,
     prob: Number(f.prob),
@@ -106,19 +119,32 @@ function addForecast(f) {
     ca: f.ca || null, sym: f.sym || null,
     resolved: null, outcome: null, brier: null, lesson: '',
   };
-  fs.appendFileSync(FORECASTS(), JSON.stringify(row) + '\n');
+  fs.mkdirSync(path.join(REPO, '50-LOG'), { recursive: true });
+  fs.appendFileSync(FORECASTS(owner), JSON.stringify(row) + '\n');
   return row;
 }
 
-function readForecasts() {
-  try {
-    return fs.readFileSync(FORECASTS(), 'utf8').trim().split('\n')
-      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-  } catch { return []; }
+// Pass an owner for one person's log, or omit it to read everyone's -- useful for comparing,
+// never for scoring, which is always per person.
+function readForecasts(owner) {
+  const load = (o) => {
+    try {
+      return fs.readFileSync(FORECASTS(o), 'utf8').trim().split('\n')
+        .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    } catch { return []; }
+  };
+  if (owner) return load(owner);
+  return owners().flatMap(load).sort((a, b) => b.created - a.created);
 }
 
-function resolveForecast(id, outcome, lesson) {
-  const all = readForecasts();
+function resolveForecast(id, outcome, lesson, owner) {
+  // Resolution must target one person's file. Without an owner we find which file holds the id
+  // rather than guessing, so a shared id can never resolve the wrong person's forecast.
+  if (!owner) {
+    owner = owners().find((o) => readForecasts(o).some((f) => f.id === id));
+    if (!owner) return { ok: false, error: 'forecast not found' };
+  }
+  const all = readForecasts(owner);
   const matches = all.filter((f) => f.id === id);
   if (matches.length > 1) return { ok: false, error: `id ${id} is ambiguous — refusing to resolve` };
   const i = all.findIndex((f) => f.id === id);
@@ -127,17 +153,19 @@ function resolveForecast(id, outcome, lesson) {
   const o = outcome ? 1 : 0;
   all[i] = { ...all[i], resolved: Date.now(), outcome: o,
              brier: +Math.pow(all[i].prob / 100 - o, 2).toFixed(4), lesson: lesson || '' };
-  fs.writeFileSync(FORECASTS(), all.map((r) => JSON.stringify(r)).join('\n') + '\n');
+  fs.writeFileSync(FORECASTS(owner), all.map((r) => JSON.stringify(r)).join('\n') + '\n');
   return { ok: true, forecast: all[i] };
 }
 
 // Brier score: mean squared error of the probabilities. 0 is perfect, 0.25 is a coin flip.
 // Reported with n, and with the honest verdict attached rather than left for interpretation.
-function calibration() {
-  const all = readForecasts();
+function calibration(owner) {
+  if (!owner) return { n: 0, open: 0, brier: null,
+    verdict: 'Set who you are before scoring. Accuracy is personal — averaging two people produces a number that describes neither.' };
+  const all = readForecasts(owner);
   const done = all.filter((f) => f.resolved);
   const n = done.length;
-  if (!n) return { n: 0, open: all.length, brier: null,
+  if (!n) return { owner, n: 0, open: all.length, brier: null,
     verdict: 'No forecasts have resolved yet. This is the only measure of whether the reasoning works, and it needs about 50 to say anything.' };
 
   const brier = done.reduce((s, f) => s + f.brier, 0) / n;
@@ -153,9 +181,9 @@ function calibration() {
   else if (brier > baseline) verdict = `Brier ${brier.toFixed(3)} is worse than guessing 50% every time (${baseline}). On this evidence the process has no demonstrated edge.`;
   else verdict = `Brier ${brier.toFixed(3)}, better than the ${baseline} a coin flip scores. That is real, measured, and worth continuing.`;
 
-  return { n, open: all.length - n, brier: +brier.toFixed(4), baseline,
+  return { owner, n, open: all.length - n, brier: +brier.toFixed(4), baseline,
     marketBrier: marketBrier != null ? +marketBrier.toFixed(4) : null,
     beatsMarket: marketBrier != null ? brier < marketBrier : null, verdict };
 }
 
-module.exports = { init, saveThesis, listTheses, addForecast, readForecasts, resolveForecast, calibration };
+module.exports = { init, saveThesis, listTheses, addForecast, readForecasts, resolveForecast, calibration, owners };
