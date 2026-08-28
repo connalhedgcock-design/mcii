@@ -96,14 +96,17 @@ async function collectSocial(tokens) {
   return rows;
 }
 
-// Ground truth is expensive (~60MB, ~6s per token) so it runs once a day rather than hourly.
-// Its job is not to supply the number but to verify the cheap source still deserves trust.
+// Ground truth every hour. It is expensive (~60MB, ~6s per token) and runs against a public RPC
+// that owes us nothing, so a rejection is expected occasionally rather than treated as a failure:
+// we fall back to Jupiter for that hour and try again next time. What we never do is record a
+// fallback value as though it were ground truth.
 async function verifyHolders(tokens) {
   const stamp = path.join(DATA, 'holder-truth.json');
   let prev = {};
   try { prev = JSON.parse(fs.readFileSync(stamp, 'utf8')); } catch {}
-  if (prev.checkedAt && Date.now() - prev.checkedAt < 20 * 36e5) {
-    log('  ground truth checked within the last day, skipping');
+  const MIN_GAP = 50 * 60000;   // an hour, less a little slack for jitter in the cron
+  if (prev.checkedAt && Date.now() - prev.checkedAt < MIN_GAP) {
+    log('  ground truth checked within the hour, skipping');
     return [];
   }
   const out = { checkedAt: Date.now(), tokens: {} };
@@ -111,6 +114,22 @@ async function verifyHolders(tokens) {
   for (const t of tokens) {
     try {
       const truth = await onchain.holderCount(t.ca);
+
+      // Compare against the previous hour and flag a real move. Empty accounts are excluded from
+      // the count, so a genuine swing here means wallets actually opened or emptied positions.
+      const before = prev.tokens?.[t.ca];
+      if (before && before.holders > 0 && !before.stale) {
+        const changePct = ((truth.holders - before.holders) / before.holders) * 100;
+        const hrs = Math.max((Date.now() - (prev.checkedAt || Date.now())) / 36e5, 1 / 60);
+        if (Math.abs(changePct) >= 5) {
+          const dir = changePct > 0 ? 'gained' : 'lost';
+          log(`  ! ${t.sym} ${dir} ${Math.abs(changePct).toFixed(1)}% of its holders in ${hrs.toFixed(1)}h ` +
+              `(${before.holders.toLocaleString()} -> ${truth.holders.toLocaleString()})`);
+          rows.push({ ts: Date.now(), src: 'onchain-alert', ca: t.ca, sym: t.sym,
+            kind: 'holder-change', changePct: +changePct.toFixed(2), hours: +hrs.toFixed(2),
+            from: before.holders, to: truth.holders });
+        }
+      }
       let jup = null;
       try { jup = (await fetchTokenMeta(t.ca)).holderCount; } catch {}
       const driftPct = jup ? ((jup - truth.holders) / truth.holders) * 100 : null;
@@ -121,7 +140,12 @@ async function verifyHolders(tokens) {
       // A cheap source that has drifted badly is no longer a usable stand-in for the real thing.
       if (driftPct != null && Math.abs(driftPct) > 10)
         log(`  ! ${t.sym}: Jupiter is ${Math.abs(driftPct).toFixed(0)}% off the chain — stop trusting it as a proxy`);
-    } catch (e) { log(`  ${t.sym}: ground truth failed — ${e.message}`); }
+    } catch (e) {
+      // A blocked or rate-limited RPC is not a data point. Record nothing and note why.
+      log(`  ${t.sym}: ground truth unavailable — ${e.message}`);
+      const carried = prev.tokens?.[t.ca];
+      if (carried) out.tokens[t.ca] = { ...carried, stale: true, lastError: e.message };
+    }
   }
   try { fs.writeFileSync(stamp, JSON.stringify(out, null, 2)); } catch {}
   return rows;

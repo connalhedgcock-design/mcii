@@ -97,6 +97,20 @@ async function loadToken(entry) {
   const position = store.positions[ca] || null;
   out.position = position;
 
+  // Hour-on-hour holder change, computed on chain by the cloud collector. Read from the shared
+  // record rather than recomputed here -- the query costs ~60MB and belongs on the server, not on
+  // a laptop that may be on battery.
+  try {
+    const rows = fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'holders-onchain.jsonl'), 'utf8')
+      .trim().split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((r) => r && r.ca === ca && r.kind === 'holder-change');
+    if (rows.length) {
+      const latest = rows[rows.length - 1];
+      // Only surface it while it is still current; a change from three days ago is history.
+      if (Date.now() - latest.ts < 6 * 36e5) out.holderTruth = latest;
+    }
+  } catch {}
+
   const prevGate = store.tokens[ca]?.gate || null;
   out.alerts = alerts.evaluate(out, prevGate);
   // Only notify on things that are both serious and new -- a standing condition should not

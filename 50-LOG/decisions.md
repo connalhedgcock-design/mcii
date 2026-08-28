@@ -81,3 +81,5 @@ prio: high
 | D-53 | "holders" = wallets with a NON-ZERO balance. token accounts are a different quantity and never displayed as holders. | 08-28 | ! definition is fixed |
 | D-54 | jupiter holderCount is the live source (0.14% verified). ground truth from chain runs daily to confirm it still deserves trust. | 08-28 | drift exceeds 10% |
 | D-55 | ! auto-detect the token program before any on-chain query. guessing returns an empty result that looks like a real zero. | 08-28 | ! permanent |
+| D-56 | on-chain holder truth runs hourly. RPC rejection = no data point, never a fallback recorded as truth. | 08-28 | RPC blocks us persistently; then a keyed free tier |
+| D-57 | a holder SURGE is MED not good news — airdrops and wash distribution look identical to buying. | 08-28 | ! never frame a surge as demand |

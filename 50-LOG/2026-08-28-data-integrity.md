@@ -108,3 +108,19 @@ is barely better than a wrong number. so I computed ground truth from chain inst
 ## ! THE LESSON THAT GENERALISES
 before deciding two sources conflict, check they are measuring the same thing. "holders" was never defined
 anywhere in this codebase, so two correct answers looked like a contradiction. DEFINE THE QUANTITY FIRST.
+
+## PART 4 — HOURLY GROUND TRUTH + HOLDER-CHANGE ALERTS (operator request)
+- ground truth now runs EVERY HOUR in the cloud collector, not daily. ~60MB + ~6s per token, measured 15s for both.
+- ! runs against a public RPC that owes us nothing. a rejection is EXPECTED occasionally, not a failure:
+  falls back for that hour, carries the previous value marked `stale:true`, retries next hour.
+  !! never records a fallback as though it were ground truth.
+- ✓ two new alerts, both computed on CHAIN (so they cannot be triggered by a vendor index rebuilding):
+  - holders-exodus HIGH at <=-8%: "people actually selling out, not a data glitch"
+  - holders-surge MED at >=+25%: ! deliberately NOT framed as good news.
+    airdrops, wash distribution and bot swarms produce an identical shape to genuine buying.
+    test asserts the detail text mentions airdrops — the operator must not read a surge as demand.
+- ordinary hourly drift (~1.4%) fires nothing. tested.
+- app reads the change from the shared record rather than recomputing: a 60MB query belongs on the
+  server, not on a laptop that may be on battery. only surfaced while <6h old.
+
+## TESTS 103

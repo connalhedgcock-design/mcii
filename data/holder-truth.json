@@ -1,0 +1,33 @@
+{
+  "checkedAt": 1787932966842,
+  "tokens": {
+    "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
+      "sym": "CATE",
+      "holders": 116145,
+      "tokenAccounts": 258742,
+      "emptyAccounts": 142597,
+      "top1Pct": 2.8,
+      "top10Pct": 13.85,
+      "top100Pct": 39.64,
+      "program": "token-2022",
+      "source": "onchain",
+      "fetchedAt": 1787932969845,
+      "jupiter": null,
+      "driftPct": null
+    },
+    "6oGuFDbEeaSzTcvrmmd2MqfNYwHKXFoN7regcR22pump": {
+      "sym": "NEEGY",
+      "holders": 5840,
+      "tokenAccounts": 22827,
+      "emptyAccounts": 16987,
+      "top1Pct": 12,
+      "top10Pct": 30.33,
+      "top100Pct": 74.92,
+      "program": "token-2022",
+      "source": "onchain",
+      "fetchedAt": 1787932975876,
+      "jupiter": null,
+      "driftPct": null
+    }
+  }
+}

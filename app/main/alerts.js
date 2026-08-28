@@ -32,6 +32,34 @@ const RULES = [
     },
   },
   {
+    // Ground truth from chain, hourly. Holders here means wallets with a balance, so a move is
+    // people genuinely opening or emptying positions rather than an index recounting itself.
+    id: 'holders-exodus',
+    severity: 'HIGH',
+    test: (t) => {
+      const d = t.holderTruth;
+      if (!d || d.changePct == null || d.changePct > -8) return null;
+      return {
+        title: `${t.sym} lost ${Math.abs(d.changePct).toFixed(0)}% of its holders`,
+        detail: `Wallets holding ${t.sym} fell from ${d.from.toLocaleString()} to ${d.to.toLocaleString()} in ${d.hours < 2 ? Math.round(d.hours * 60) + ' minutes' : d.hours.toFixed(0) + ' hours'}. This is counted directly from the blockchain, so it is people actually selling out, not a data glitch.`,
+      };
+    },
+  },
+  {
+    // A sudden influx is not automatically good. Airdrops, wash distribution and bot swarms all
+    // look like this, and each of them means the new "holders" are not buyers.
+    id: 'holders-surge',
+    severity: 'MED',
+    test: (t) => {
+      const d = t.holderTruth;
+      if (!d || d.changePct == null || d.changePct < 25) return null;
+      return {
+        title: `${t.sym} gained ${d.changePct.toFixed(0)}% more holders`,
+        detail: `Wallets holding ${t.sym} went from ${d.from.toLocaleString()} to ${d.to.toLocaleString()} in ${d.hours < 2 ? Math.round(d.hours * 60) + ' minutes' : d.hours.toFixed(0) + ' hours'}. Worth checking why before reading it as demand — airdrops and distribution campaigns produce the same shape as genuine buying.`,
+      };
+    },
+  },
+  {
     id: 'holders-falling',
     severity: 'MED',
     test: (t) => {
