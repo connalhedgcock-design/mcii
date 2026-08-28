@@ -189,11 +189,30 @@ export function boardsFor(roomHeight) {
   return BOARDS.filter((b) => keep.has(b.id))
 }
 
+/** The door's width in CSS px, and the room's lens. These live here because the
+ *  globe's size is DERIVED from them — the handoff's warning that a too-large
+ *  sphere "fills the lit doorway so the two read as one object" is a
+ *  relationship between two numbers, and a relationship kept in prose drifts the
+ *  moment either number is touched. `--st-perspective` and the .st-portal box in
+ *  station.css must match these. */
+export const DOOR_W = 620
+export const PERSPECTIVE = 900
+
+/** How wide the door actually renders on screen at the ring. */
+export function doorScreenWidth() {
+  return DOOR_W * (PERSPECTIVE / (PERSPECTIVE + RING))
+}
+
 /** The globe's diameter as a share of the room — never a constant.
- *  ⚠️ 0.185, not 0.21. At 0.21 the sphere fills the lit doorway behind it and
- *  the two read as one object: a halo, rather than a room with a door in it. */
+ *  Raised from the handoff's 0.185 because the operator asked for a bigger
+ *  Earth; the doorway was widened to match. The cap is not a taste value: it is
+ *  82% of the projected door, so the arch always FRAMES the sphere instead of
+ *  being swallowed by it, whatever either number becomes later. */
+export const GLOBE_MAX_OF_DOOR = 0.82
+
 export function globeSize(roomHeight) {
-  return Math.round(Math.max(112, Math.min(190, roomHeight * 0.185)))
+  const cap = doorScreenWidth() * GLOBE_MAX_OF_DOOR
+  return Math.round(Math.max(150, Math.min(cap, roomHeight * 0.26)))
 }
 
 /** Column height as a SHARE of the room. Every fixed pixel height in a room

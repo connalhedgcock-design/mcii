@@ -62,6 +62,7 @@ uniform vec3  uDeep;
 uniform vec3  uHolo;
 uniform vec3  uHot;
 uniform int   uMode;      // 0 = the globe, 1 = the atmosphere shell
+uniform sampler2D uLand;  // equirectangular land mask — the actual Earth
 
 out vec4 frag;
 
@@ -120,12 +121,17 @@ void main() {
   float lons = gridLine(lon, 0.2618, 0.004);
   float wire = max(lats, lons * 0.85);
 
-  // Landmass: fbm, thresholded. The COASTLINE is bright and the interior barely
-  // filled — an outline reads as surveyed data, a filled shape reads as a picture.
-  float land  = fbm(N * 2.1 + vec3(0.0, 0.0, 17.0));
-  float fill  = smoothstep(0.500, 0.585, land) * 0.16;
-  float coast = (smoothstep(0.485, 0.505, land)
-               - smoothstep(0.575, 0.600, land)) * 0.75;
+  // Landmass: the REAL Earth, sampled from an equirectangular mask. Noise makes
+  // a planet; it does not make THIS planet, and a globe nobody recognises is
+  // just a blue ball with a pattern on it.
+  //
+  // u runs 0..1 west-to-east from the antimeridian; v runs 0..1 north-to-south.
+  vec2 uv = vec2(lon / 6.2831853 + 0.5, 0.5 - lat / 3.1415927);
+  float land = texture(uLand, uv).r;
+  // The COASTLINE is bright and the interior barely filled — an outline reads as
+  // surveyed data, a filled shape reads as a photograph.
+  float fill  = smoothstep(0.55, 0.80, land) * 0.17;
+  float coast = (smoothstep(0.16, 0.46, land) - smoothstep(0.54, 0.86, land)) * 0.95;
 
   // The scan band, climbing. ~11 seconds a pass: slow enough to be noticed
   // rather than watched.
@@ -187,6 +193,84 @@ function mRotX(m, r) {
 }
 function mTranslate(m, x, y, z) {
   mIdent(m); m[12] = x; m[13] = y; m[14] = z; return m
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE EARTH.
+
+   A 5-degree land grid — 72 columns of longitude by 36 rows of latitude — as
+   explicit column ranges per row. Ellipses were tried first and produced a
+   planet of disconnected ovals: recognisable as "a planet", never as THIS one,
+   which is the entire point of putting Earth in the room.
+
+   Column c spans longitude -180 + 5c. Row r spans latitude 90 - 5r.
+   So c=36 is the prime meridian and r=18 is the equator.
+
+   It is coarse on purpose. At 240px on a hologram the continents need to be
+   the right SHAPE in the right PLACE; they do not need to be surveyed.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const EARTH_ROWS = [
+  [],                                                              //  90-85N  Arctic ocean
+  [[25, 30]],                                                      //  85-80N  N Greenland
+  [[14, 22], [24, 31], [39, 41], [56, 60]],                        //  80-75N  Canadian arctic, Greenland, Svalbard
+  [[8, 22], [24, 32], [44, 71]],                                   //  75-70N  Canada, Greenland, Siberian coast
+  [[3, 24], [25, 31], [37, 71]],                                   //  70-65N  Alaska, Canada, Greenland, Scandinavia, Russia
+  [[3, 25], [25, 28], [31, 33], [36, 71]],                         //  65-60N  Iceland
+  [[3, 25], [35, 71]],                                             //  60-55N
+  [[9, 25], [34, 35], [36, 71]],                                   //  55-50N  Britain separates
+  [[10, 25], [34, 35], [35, 71]],                                  //  50-45N
+  [[11, 22], [34, 71]],                                            //  45-40N  Japan is inside the Asian span
+  [[11, 21], [34, 36], [38, 45], [46, 71]],                        //  40-35N  Iberia, Italy, Balkans, Turkey
+  [[12, 20], [34, 48], [48, 60], [62, 63]],                        //  35-30N  N Africa, Middle East, China, Japan
+  [[13, 20], [34, 48], [50, 60]],                                  //  30-25N  Sahara, Arabia, India, China
+  [[14, 19], [32, 47], [50, 58]],                                  //  25-20N
+  [[14, 18], [32, 46], [50, 58]],                                  //  20-15N  Mexico, Sahel, India, SE Asia
+  [[17, 19], [21, 25], [33, 45], [51, 58]],                        //  15-10N  C America, Venezuela
+  [[19, 25], [33, 46], [52, 52], [55, 58]],                        //  10-5N   Panama, Colombia, Malaysia
+  [[20, 26], [36, 45], [55, 62]],                                  //   5-0N   Amazon, Africa, Indonesia
+  [[20, 27], [37, 44], [55, 62]],                                  //   0-5S   equator
+  [[20, 29], [38, 44], [56, 66]],                                  //   5-10S  New Guinea
+  [[21, 29], [38, 44], [60, 66]],                                  //  10-15S  Australia N
+  [[22, 29], [38, 43], [44, 45], [58, 65]],                        //  15-20S  Madagascar
+  [[22, 28], [38, 43], [44, 45], [58, 66]],                        //  20-25S
+  [[21, 26], [39, 42], [58, 66]],                                  //  25-30S
+  [[21, 25], [39, 42], [59, 66]],                                  //  30-35S  S Africa
+  [[21, 24], [61, 65], [69, 70]],                                  //  35-40S  Australia SE, NZ
+  [[21, 23], [69, 70]],                                            //  40-45S  Patagonia, NZ
+  [[21, 23]],                                                      //  45-50S
+  [[21, 22]],                                                      //  50-55S  Tierra del Fuego
+  [], [], [],                                                      //  55-70S  Southern Ocean
+  [[0, 71]], [[0, 71]], [[0, 71]], [[0, 71]],                      //  70-90S  Antarctica
+]
+const EC = 72, ER = 36
+
+/** Bilinear sample of the coarse grid. The interpolation IS the coastline: it
+ *  gives a soft band exactly one cell wide that the shader reads as the shore,
+ *  which a hard threshold would alias into a staircase. */
+function landAt(gx, gy) {
+  const x0 = Math.floor(gx), y0 = Math.floor(gy)
+  const fx = gx - x0, fy = gy - y0
+  const at = (x, y) => {
+    if (y < 0 || y >= ER) return 0
+    const xx = ((x % EC) + EC) % EC          // longitude wraps; latitude does not
+    const row = EARTH_ROWS[y]
+    for (let i = 0; i < row.length; i++) if (xx >= row[i][0] && xx <= row[i][1]) return 1
+    return 0
+  }
+  const a = at(x0, y0), b = at(x0 + 1, y0), c = at(x0, y0 + 1), d = at(x0 + 1, y0 + 1)
+  return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+}
+
+function buildEarth(w, h) {
+  const px = new Uint8Array(w * h)
+  for (let y = 0; y < h; y++) {
+    const gy = ((y + 0.5) / h) * ER - 0.5
+    for (let x = 0; x < w; x++) {
+      const gx = ((x + 0.5) / w) * EC - 0.5
+      px[y * w + x] = Math.round(landAt(gx, gy) * 255)
+    }
+  }
+  return px
 }
 
 /** A UV sphere. Position doubles as the normal, because the radius is 1. */
@@ -284,6 +368,21 @@ export function mountGlobe(host, opts = {}) {
   const uMVP = U('uMVP'), uModel = U('uModel'), uScale = U('uScale')
   const uTime = U('uTime'), uEnergy = U('uEnergy'), uEye = U('uEye')
   const uDeep = U('uDeep'), uHolo = U('uHolo'), uHot = U('uHot'), uMode = U('uMode')
+
+  // The Earth. R8 single channel, wrapped east-west (the antimeridian is a seam
+  // in the data, not in the world) and clamped north-south so the poles do not
+  // sample across to the other hemisphere.
+  const EW = 1024, EH = 512
+  const landTex = gl.createTexture()
+  gl.activeTexture(gl.TEXTURE0)
+  gl.bindTexture(gl.TEXTURE_2D, landTex)
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, EW, EH, 0, gl.RED, gl.UNSIGNED_BYTE, buildEarth(EW, EH))
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.uniform1i(U('uLand'), 0)
 
   // Linear-light RGB matching --st-holo-deep / --st-holo / --st-holo-hot.
   const C = Object.assign({
@@ -429,6 +528,7 @@ export function mountGlobe(host, opts = {}) {
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('resize', onResize)
       gl.deleteBuffer(vbo); gl.deleteBuffer(ibo)
+      gl.deleteTexture(landTex)
       gl.deleteVertexArray(vao); gl.deleteProgram(prog)
       // ⚠️ Chromium caps live WebGL contexts PER PROCESS (~16). If the room is
       // opened and closed repeatedly in one session and each visit leaks a

@@ -101,8 +101,14 @@ const check = (n, c, x = '') => {
   check('a short room drops boards rather than squashing them',
     g.boardsFor(600).length < g.boardsFor(900).length,
     `${g.boardsFor(600).length} of ${g.boardsFor(900).length}`);
-  check('the globe never fills the doorway behind it',
-    g.globeSize(1200) <= 190 && g.globeSize(400) >= 112);
+  // ⚠️ The real invariant, not a magic number: the arch must FRAME the globe.
+  // Asserted against the projection the CSS actually performs, so raising either
+  // the globe or the door cannot silently swallow one in the other.
+  const doorPx = g.doorScreenWidth();
+  check('the arch always frames the globe, at every room height',
+    [400, 700, 900, 1200, 2000].every((h) => g.globeSize(h) < doorPx),
+    `door ${doorPx.toFixed(0)}px vs globe ${g.globeSize(2000)}px at the cap`);
+  check('...and the globe is never smaller than legible', g.globeSize(400) >= 150);
 
   console.log(`\n  ${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

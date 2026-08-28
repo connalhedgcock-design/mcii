@@ -12,6 +12,7 @@ const scanstore = require('./scanstore');
 const hype = require('../shared/hype');
 const journal = require('./journal');
 const updater = require('./updater');
+const orion = require('./orion');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
@@ -417,6 +418,12 @@ ipcMain.handle('tokens:setPosition', (_e, { ca, tokens }) => {
   return store.positions[ca];
 });
 ipcMain.handle('shell:open', (_e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url); });
+
+// Orion — the Claude CLI, not the API. No key, no per-token billing; whoever is
+// at the machine signs in with their own account.
+ipcMain.handle('orion:status', () => orion.status());
+ipcMain.handle('orion:ask', (_e, text) => orion.ask(text));
+ipcMain.handle('orion:login', () => orion.login());
 
 ipcMain.handle('update:check', () => updater.checkForUpdates());
 ipcMain.handle('update:apply', () => updater.applyUpdate());

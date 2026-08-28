@@ -376,10 +376,15 @@
      are facing would be hidden behind the subject, which is the one thing it
      must never be. At 420×560 it renders 201×268 and the arch FRAMES the globe
      instead. If RING or the globe size changes, re-derive these. */
-  left: -210px;
-  top: -400px;
-  width: 420px;
-  height: 560px;
+  /* Re-derived, not nudged. Projection scale at the ring is 900/(900+980) =
+     0.479, so 560px renders 268px on screen — comfortably wider than the 203px
+     globe standing in front of it, which is the whole requirement: the arch must
+     FRAME the sphere, never be hidden behind it. Change globeSize() and these
+     move with it. */
+  left: -310px;
+  top: -520px;
+  width: 620px;
+  height: 740px;
   transform-style: preserve-3d;
   cursor: pointer;
   opacity: 0.62;
@@ -398,7 +403,7 @@
 .st-portal-arch {
   position: absolute;
   inset: 0;
-  border-radius: 210px 210px 8px 8px;
+  border-radius: 280px 280px 8px 8px;
   border: 3px solid oklch(0.62 0.045 246 / 0.85);
   border-bottom-color: oklch(0.36 0.016 250 / 0.5);
   background: linear-gradient(to bottom,
@@ -450,7 +455,7 @@
 .st-portal-view {
   position: absolute;
   inset: 6px;                 /* inside the jamb — the frame stays the frame */
-  border-radius: 206px 206px 6px 6px;
+  border-radius: 274px 274px 6px 6px;
   overflow: hidden;           /* ← a LEAF. Safe. */
   pointer-events: none;
   opacity: 0.55;
@@ -742,13 +747,21 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 .st-hub {
   position: absolute;
-  left: 50%; top: 46%;
-  transform: translate(-50%, -50%);
+  /* ⚠️ Anchored on BOTH edges rather than left:50% + translate(-50%). The hub is
+     a flex column whose width comes from its widest child, so a fractional
+     sub-pixel width made translate(-50%) land the globe a couple of pixels off
+     the room's own axis — visible as the sphere sitting left of the doorway it
+     is supposed to be standing in. left:0/right:0 centres against the room
+     itself and cannot drift.
+     Lowered from 46% to 54%: the operator wanted the globe and the prompt to
+     sit further down the frame. */
+  left: 0; right: 0; top: 54%;
+  transform: translateY(-50%);
   z-index: 4;
   display: flex; flex-direction: column; align-items: center; gap: 14px;
   transition: opacity 220ms var(--st-ease), transform 220ms var(--st-ease);
 }
-.st-hub.is-yielded { opacity: 0.24; transform: translate(-50%, -50%) scale(0.94); }
+.st-hub.is-yielded { opacity: 0.24; transform: translateY(-50%) scale(0.94); }
 .st-hub.is-yielded .st-projector { opacity: 0; transform: translateY(10px); }
 
 .st-globe { position: relative; width: var(--globe-d, 170px); height: var(--globe-d, 170px); }
@@ -809,7 +822,7 @@
 .st-mode {
   font-family: var(--st-mono);
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-  padding: 4px 9px; border-radius: 2px; cursor: pointer;
+  padding: 4px 9px; border-radius: 2px; flex: none;
   border: 1px solid oklch(0.50 0.030 245 / 0.6);
   background: oklch(0.14 0.010 250 / 0.7);
   color: var(--st-fg-mute);
@@ -818,8 +831,7 @@
 /* ⚠️ ask READS. log WRITES. Keep them visibly distinct and never let ask write:
    the moment a user is unsure whether typing will modify their data, they stop
    typing. */
-.st-mode.is-on          { color: var(--st-holo-hot); border-color: oklch(0.70 0.09 236 / 0.85); }
-.st-mode.is-on[data-mode='log'] { color: var(--st-warn); border-color: oklch(0.70 0.12 75 / 0.85); }
+.st-mode.is-on { color: var(--st-holo-hot); border-color: oklch(0.70 0.09 236 / 0.85); }
 .st-prompt {
   flex: 1; min-width: 0;
   background: transparent; border: 0; outline: 0;
@@ -827,12 +839,35 @@
   font-family: inherit; font-size: 13.5px;
 }
 .st-prompt::placeholder { color: var(--st-fg-faint); }
+.st-signin {
+  flex: none;
+  font-family: var(--st-mono);
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 2px; cursor: pointer;
+  border: 1px solid oklch(0.70 0.12 75 / 0.8);
+  background: oklch(0.18 0.020 75 / 0.85);
+  color: var(--st-warn);
+}
+.st-signin:hover { background: oklch(0.24 0.030 75 / 0.9); }
+.st-signin:disabled { opacity: 0.5; cursor: default; }
+.st-signin[hidden] { display: none; }
+
+/* Orion answers in prose, and prose is longer than a readout. It SCROLLS inside
+   the pane rather than growing it: a transcript expanding in the middle of a
+   cockpit destroys the room. */
 .st-reply {
   margin-top: 9px; padding-top: 9px;
   border-top: 1px solid oklch(0.50 0.030 245 / 0.22);
-  font-size: 12.5px; line-height: 1.5; color: var(--st-fg-2);
-  max-height: 92px; overflow-y: auto;
+  font-size: 12.5px; line-height: 1.55; color: var(--st-fg-2);
+  max-height: 170px; overflow-y: auto; overscroll-behavior: contain;
+  white-space: pre-wrap; word-break: break-word;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.52 0.06 240 / 0.55) transparent;
 }
+.st-reply::-webkit-scrollbar { width: 7px; }
+.st-reply::-webkit-scrollbar-track { background: transparent; }
+.st-reply::-webkit-scrollbar-thumb { background: oklch(0.52 0.06 240 / 0.5); border-radius: 4px; }
+.st-reply::-webkit-scrollbar-thumb:hover { background: oklch(0.64 0.08 238 / 0.75); }
 .st-reply.is-err { color: var(--st-down); }
 .st-reply:empty { display: none; }
 

@@ -84,10 +84,10 @@ function build(root) {
             <span class="st-projector-beam"></span>
             <div class="st-projector-pane">
               <div class="st-prompt-row">
-                <button class="st-mode is-on" data-mode="ask">ask</button>
-                <button class="st-mode" data-mode="log">log</button>
+                <span class="st-mode is-on">orion</span>
                 <input class="st-prompt" type="text" autocomplete="off"
-                       placeholder="ask about your coins, your notes, the market…">
+                       placeholder="talk to orion — your coins, your notes, the market…">
+                <button class="st-signin" hidden>log in to anthropic</button>
               </div>
               <div class="st-reply"></div>
             </div>
@@ -293,16 +293,49 @@ async function refresh() {
 function wirePrompt(root) {
   const input = root.querySelector('.st-prompt')
   const reply = root.querySelector('.st-reply')
-  let mode = 'ask'
+  const signin = root.querySelector('.st-signin')
 
-  root.querySelectorAll('.st-mode').forEach((b) => {
-    b.addEventListener('click', () => {
-      mode = b.dataset.mode
-      root.querySelectorAll('.st-mode').forEach((x) => x.classList.toggle('is-on', x === b))
-      input.placeholder = mode === 'ask'
-        ? 'ask about your coins, your notes, the market…'
-        : 'what happened? this gets written to your notes.'
-    })
+  const say = (text, err) => {
+    reply.className = `st-reply${err ? ' is-err' : ''}`
+    reply.textContent = text
+    reply.scrollTop = 0
+  }
+
+  // Three states, and they must never look like one another: no CLI installed,
+  // installed but not signed in, and ready. The first two have different
+  // answers and only one of them is a button.
+  async function refreshAuth() {
+    const s = await window.mcii?.orionStatus?.().catch(() => null)
+    const installed = !!s?.installed
+    const ready = !!s?.ready
+    signin.hidden = !installed || ready
+    input.disabled = !installed
+    if (!installed) {
+      input.placeholder = 'orion needs the claude cli'
+      setNotice('Orion is not connected: the Claude CLI is not installed. In Terminal run  '
+        + 'npm install -g @anthropic-ai/claude-code  then reopen the app. No API key, no billing '
+        + '— it signs in with your own Claude account.')
+    } else if (!ready) {
+      input.placeholder = 'sign in to talk to orion'
+      setNotice('Orion is installed but not signed in. Click "log in to anthropic" — it opens '
+        + 'Terminal and your browser. The app never sees your account.')
+    } else {
+      input.placeholder = 'talk to orion — your coins, your notes, the market…'
+      setNotice('')
+    }
+    return { installed, ready }
+  }
+
+  signin.addEventListener('click', async () => {
+    signin.disabled = true
+    await window.mcii?.orionLogin?.()
+    say('A terminal is opening. Finish signing in there, then come back — I will check again.')
+    // Poll rather than make them tell us: the sign-in finishes somewhere else.
+    let tries = 0
+    const t = setInterval(async () => {
+      const s = await refreshAuth()
+      if (s.ready || ++tries > 60) { clearInterval(t); signin.disabled = false; if (s.ready) say('Signed in. Ask me something.') }
+    }, 2000)
   })
 
   // Reaching for the keyboard is an unambiguous statement that you have
@@ -318,31 +351,27 @@ function wirePrompt(root) {
     if (e.key !== 'Enter') return
     const text = input.value.trim()
     if (!text || inFlight) return
-    if (!window.mcii?.orb) {
-      reply.className = 'st-reply is-err'
-      reply.textContent = 'The prompt is not wired up yet — it needs an Anthropic API key. '
-        + 'Everything else in this room works without one.'
-      return
-    }
     inFlight = true
-    globe?.setState('working')
-    reply.className = 'st-reply'
-    reply.textContent = ''
+    globe?.setState('working')          // the globe IS the loading indicator
+    say('')
     input.value = ''
     try {
-      const res = await window.mcii.orb(mode, text)
+      const res = await window.mcii.orionAsk(text)
       // ⚠️ A failure is REPORTED. A blank answer is indistinguishable from
       // "there is nothing to say", and the two must never look the same.
-      reply.className = res?.ok ? 'st-reply' : 'st-reply is-err'
-      reply.textContent = res?.ok ? res.reply : (res?.error || 'that did not go through.')
+      if (res?.ok) say(res.reply)
+      else if (res?.code === 'auth') { await refreshAuth(); say('Not signed in yet — use the button.', true) }
+      else if (res?.code === 'no-cli') { await refreshAuth(); say('The Claude CLI is not installed on this machine.', true) }
+      else say(res?.error || 'Orion did not answer.', true)
     } catch (err) {
-      reply.className = 'st-reply is-err'
-      reply.textContent = String(err?.message || err)
+      say(String(err?.message || err), true)
     } finally {
       inFlight = false
       globe?.setState(document.activeElement === input ? 'listening' : 'idle')
     }
   })
+
+  refreshAuth()
 }
 
 /** An honest system placard. It states what is actually blocking the prompt —
