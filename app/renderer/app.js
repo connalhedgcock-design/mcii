@@ -428,6 +428,54 @@ async function search() {
   });
 }
 
+// --- updates ------------------------------------------------------------
+// Only ever informs and, on request, fast-forwards -- it refuses (rather than guessing) when
+// there's anything uncommitted here, and points at share.sh, which is the tool that knows how
+// to combine two people's edits.
+const updateBtn = $('#update');
+function renderUpdateStatus(r) {
+  updateBtn.disabled = false;
+  updateBtn.classList.remove('accent');
+  if (!r || !r.ok) { updateBtn.textContent = 'Check for updates'; updateBtn.dataset.state = 'idle'; return; }
+  if (r.behind === 0) { updateBtn.textContent = 'Up to date'; updateBtn.dataset.state = 'idle'; return; }
+  if (r.hasLocalChanges || r.ahead > 0) {
+    updateBtn.textContent = `Update available (${r.behind}) — save your changes first`;
+    updateBtn.dataset.state = 'blocked';
+    return;
+  }
+  updateBtn.textContent = `Update available (${r.behind}) — click to install`;
+  updateBtn.classList.add('accent');
+  updateBtn.dataset.state = 'available';
+}
+
+updateBtn.addEventListener('click', async () => {
+  const state = updateBtn.dataset.state;
+  if (state === 'blocked') {
+    alert('You (or Connal) have edits that have not been saved and shared yet.\n\n'
+      + 'Open Terminal and run:\n  cd ~/Documents/MCII && ./share.sh "describe your changes"\n\n'
+      + 'Then click Check for updates again.');
+    return;
+  }
+  if (state === 'available') {
+    updateBtn.disabled = true;
+    updateBtn.textContent = 'Installing update…';
+    const res = await window.mcii.applyUpdate();
+    if (!res.ok) {
+      alert('Could not install the update (' + res.reason + ').\n\n'
+        + 'Open Terminal and run:\n  cd ~/Documents/MCII && git pull\nto see why, or ask Connal.');
+      renderUpdateStatus(await window.mcii.checkForUpdates());
+      return;
+    }
+    updateBtn.textContent = 'Restarting…';
+    window.mcii.restartApp();
+    return;
+  }
+  updateBtn.disabled = true;
+  updateBtn.textContent = 'Checking…';
+  renderUpdateStatus(await window.mcii.checkForUpdates());
+});
+window.mcii.onUpdateStatus(renderUpdateStatus);
+
 window.mcii.onRefreshed(() => load());
 
 // --- live updates -----------------------------------------------------------

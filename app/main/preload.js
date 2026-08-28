@@ -27,4 +27,8 @@ contextBridge.exposeInMainWorld('mcii', {
   onLiveAlert: (cb) => ipcRenderer.on('live-alert', (_e, a) => cb(a)),
   onRefreshed: (cb) => ipcRenderer.on('refreshed', () => cb()),
   onProgress: (cb) => ipcRenderer.on('progress', (_e, m) => cb(m)),
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  applyUpdate: () => ipcRenderer.invoke('update:apply'),
+  restartApp: () => ipcRenderer.invoke('update:restart'),
+  onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, r) => cb(r)),
 });

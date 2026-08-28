@@ -11,6 +11,7 @@ const { LiveMonitor } = require('./live');
 const scanstore = require('./scanstore');
 const hype = require('../shared/hype');
 const journal = require('./journal');
+const updater = require('./updater');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 
@@ -232,6 +233,21 @@ ipcMain.handle('tokens:setPosition', (_e, { ca, tokens }) => {
 });
 ipcMain.handle('shell:open', (_e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url); });
 
+ipcMain.handle('update:check', () => updater.checkForUpdates());
+ipcMain.handle('update:apply', () => updater.applyUpdate());
+ipcMain.handle('update:restart', () => { app.relaunch(); app.exit(0); });
+
+// Silent background check so the button shows a badge without the person having to remember to
+// click it. Never applies anything on its own -- pulling code out from under a running app would
+// be surprising, so this only ever informs.
+function startUpdateChecks() {
+  const check = () => updater.checkForUpdates().then((r) => {
+    if (r.ok && win && !win.isDestroyed()) win.webContents.send('update-status', r);
+  });
+  check();
+  setInterval(check, 15 * 60 * 1000);
+}
+
 // Live monitoring replaces the old ten-minute refresh for market data. On-chain data is free and
 // DexScreener sustains ten calls a second, so there is no reason to look at a stale price.
 let live = null;
@@ -272,6 +288,6 @@ function startAutoRefresh() {
   }, 10 * 60 * 1000);
 }
 
-app.whenReady().then(() => { createWindow(); startAutoRefresh(); startLive(); });
+app.whenReady().then(() => { createWindow(); startAutoRefresh(); startLive(); startUpdateChecks(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
