@@ -24,7 +24,9 @@ function record(result) {
       ts: scanTs, ca: c.ca, sym: c.symbol, name: c.name, via: c.via,
       price: c.priceUsd, mcap: Math.round(c.marketCap || 0),
       liq: Math.round(c.liquidityUsd || 0), vol24: Math.round(c.volume24h || 0),
-      txns24: c.txns24h, ageH: c.ageHours != null ? +c.ageHours.toFixed(1) : null,
+      txns24: c.txns24h, buys24: c.buys24 ?? null, sells24: c.sells24 ?? null,
+      buys6: c.buys6 ?? null, sells6: c.sells6 ?? null, change6h: c.change6h ?? null,
+      ageH: c.ageHours != null ? +c.ageHours.toFixed(1) : null,
       chg24: c.change24h, holders: c.safety?.totalHolders ?? null,
       top1: c.safety?.top1Pct != null ? +c.safety.top1Pct.toFixed(2) : null,
       verdict: c.gate?.verdict ?? null, flags: c.gate?.findings?.length ?? 0,
@@ -75,10 +77,16 @@ function trajectories(sinceMs = 24 * 864e5 / 24) {
 
 const growth = (a, b) => (a && b && a > 0) ? ((b - a) / a) * 100 : null;
 
-// The point of storing scans. A token seen once at +800% is a token that already moved. A token
-// seen across many scans with holders climbing while price sits still is people accumulating
-// before anything shows on a chart -- which is the only kind of "early" this tool can honestly
-// claim, because it is measured rather than guessed.
+// The point of storing scans: finding coins where interest is building BEFORE price moves.
+//
+// Rebuilt 2026-08-28 to stop depending on holder counts. Holder counts come from an index that
+// scans every wallet, and RugCheck's rebuilt from zero on 2026-08-27 -- during which every token
+// appeared to gain holders rapidly, which is precisely the shape of "people arriving". Nine
+// tokens in our own scan record show swings up to 57x from that one event.
+//
+// Liquidity and trade flow are read straight from pool state instead. They can be wrong, but they
+// cannot silently re-scan themselves, and a rug shows in them immediately. Holder growth is kept
+// only as optional confirmation, never as a requirement, and never when flagged suspect.
 function risers({ minScans = 4, windowMs = 6 * 36e5 } = {}) {
   const out = [];
   for (const [ca, obs] of trajectories(windowMs)) {
@@ -87,24 +95,44 @@ function risers({ minScans = 4, windowMs = 6 * 36e5 } = {}) {
     const spanH = (last.ts - first.ts) / 36e5;
     if (spanH < 0.25) continue;
 
-    const holderGrowth = growth(first.holders, last.holders);
     const liqGrowth = growth(first.liq, last.liq);
     const priceGrowth = growth(first.price, last.price);
     const persistence = obs.length;
 
-    // Accumulation: audience and depth building faster than price. Deliberately requires price
-    // NOT to have run, which is what separates this from every trending list.
-    const accumulating = holderGrowth != null && liqGrowth != null && priceGrowth != null &&
-      holderGrowth > 5 && liqGrowth > 3 && priceGrowth < 15;
+    // Holder growth is advisory only, and discarded outright if it moved impossibly fast --
+    // a jump like that is an index rebuilding, not a crowd arriving.
+    let holderGrowth = growth(first.holders, last.holders);
+    let holderSuspect = false;
+    if (holderGrowth != null) {
+      const perHour = holderGrowth / Math.max(spanH, 1 / 60);
+      if (perHour > 40 || perHour < -25) { holderSuspect = true; holderGrowth = null; }
+    }
+
+    // Buying pressure from trade counts: more buys than sells means people are stepping in.
+    // Straight from pool activity, with no index in between.
+    const buyPressure = (last.buys24 != null && last.sells24 != null && last.sells24 > 0)
+      ? last.buys24 / last.sells24 : null;
+
+    // Accumulation, on pool state alone: depth building, price NOT having run, and more buyers
+    // than sellers. Requiring price to be flat is what separates this from a trending list.
+    const accumulating = liqGrowth != null && priceGrowth != null &&
+      liqGrowth > 3 && priceGrowth < 15 && (buyPressure == null || buyPressure > 1.05);
 
     out.push({
       ca, sym: last.sym, name: last.name, scans: persistence, spanHours: +spanH.toFixed(2),
       holderGrowth: holderGrowth != null ? +holderGrowth.toFixed(1) : null,
+      holderSuspect,
+      buyPressure: buyPressure != null ? +buyPressure.toFixed(2) : null,
       liqGrowth: liqGrowth != null ? +liqGrowth.toFixed(1) : null,
       priceGrowth: priceGrowth != null ? +priceGrowth.toFixed(1) : null,
       accumulating, last,
       // Ranked on people-arriving-per-unit-price-move. Not on price.
-      score: accumulating ? (holderGrowth + liqGrowth) / Math.max(Math.abs(priceGrowth), 5) : 0,
+      // Ranked on depth-and-buying built per unit of price move. Holder growth adds to the score
+      // when it is trustworthy, but can never be required -- otherwise a broken index silently
+      // decides what gets surfaced.
+      score: accumulating
+        ? (liqGrowth + ((buyPressure || 1) - 1) * 100 + (holderGrowth || 0)) / Math.max(Math.abs(priceGrowth), 5)
+        : 0,
     });
   }
   return out.sort((a, b) => b.score - a.score);

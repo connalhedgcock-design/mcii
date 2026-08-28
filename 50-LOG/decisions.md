@@ -76,3 +76,5 @@ prio: high
 | D-48 | ! every external number needs a plausibility guard AND a second source. one vendor is never truth. | 08-28 | ! permanent |
 | D-49 | ! liquidity deltas are NEVER suppressed by sanity guards. a rug looks like a broken feed; always err toward showing it. | 08-28 | ! never |
 | D-50 | disagreeing sources are shown as disagreeing, never averaged. averaging a broken value yields a less-obviously-wrong one. | 08-28 | ! never average |
+| D-51 | accumulation signal runs on pool state (liquidity, buy/sell flow), never on holder counts. holder growth is advisory only. | 08-28 | a holder source proves stable across months |
+| D-52 | prefer directly-read data (pool reserves) over index-derived data (wallet counts). indexes re-scan silently. | 08-28 | ! design principle |

@@ -18,17 +18,20 @@ const mk = (i) => ({
     { ca: 'ACCUM', symbol: 'ACCUM', name: 'Accumulating', via: 'trending',
       priceUsd: 0.001 * (1 + i * 0.015), marketCap: 500000, liquidityUsd: 50000 * (1 + i * 0.10),
       volume24h: 300000, txns24h: 900, ageHours: 30 + i,
-      change24h: 4, safety: { totalHolders: Math.round(2000 * (1 + i * 0.09)), top1Pct: 4 },
+      change24h: 4, buys24: 1200, sells24: 900,
+      safety: { totalHolders: Math.round(2000 * (1 + i * 0.09)), top1Pct: 4 },
       gate: { verdict: 'PASS', findings: [] } },
     { ca: 'PUMPED', symbol: 'PUMPED', name: 'Already Ran', via: 'trending',
       priceUsd: 0.01 * (1 + i * 0.9), marketCap: 9000000, liquidityUsd: 200000,
       volume24h: 8000000, txns24h: 40000, ageHours: 20 + i,
-      change24h: 700, safety: { totalHolders: 15000, top1Pct: 6 },
+      change24h: 700, buys24: 20000, sells24: 20000,
+      safety: { totalHolders: 15000, top1Pct: 6 },
       gate: { verdict: 'PASS', findings: [] } },
     { ca: 'FLAT', symbol: 'FLAT', name: 'Nothing Doing', via: 'promoted',
       priceUsd: 0.005, marketCap: 700000, liquidityUsd: 60000,
       volume24h: 90000, txns24h: 300, ageHours: 100 + i,
-      change24h: 0.2, safety: { totalHolders: 3000, top1Pct: 5 },
+      change24h: 0.2, buys24: 150, sells24: 150,
+      safety: { totalHolders: 3000, top1Pct: 5 },
       gate: { verdict: 'PASS', findings: [] } },
   ],
 });
@@ -52,6 +55,44 @@ check('PUMPED is NOT flagged (price already ran)', pump && pump.accumulating ===
 check('FLAT is NOT flagged (nothing growing)', flat && flat.accumulating === false);
 check('ACCUM ranks first', r[0].ca === 'ACCUM', `(order: ${r.map(x=>x.ca).join(', ')})`);
 check('PUMPED scores zero', pump.score === 0);
+
+// --- the index-rebuild scenario, which nearly produced a false signal ---------
+// RugCheck's holder index reset on 2026-08-27 and rebuilt over 17 hours. During a rebuild every
+// token appears to gain holders extremely fast. If holder growth were still a required input,
+// that alone would look like a crowd arriving.
+const rebuild = (i) => ({
+  scannedAt: now - (6 - i) * 30 * 60000, tookMs: 1, universe: 1,
+  rejectedStage1: [], rejectedStage2: [],
+  survivors: [{ ca: 'REBUILD', symbol: 'REBUILD', name: 'Index Rebuilding', via: 'trending',
+    priceUsd: 0.002, marketCap: 800000,
+    liquidityUsd: 70000,                       // liquidity FLAT — nothing is actually happening
+    volume24h: 200000, txns24h: 600, buys24: 300, sells24: 300,
+    ageHours: 50 + i, change24h: 0.5,
+    safety: { totalHolders: Math.round(5000 * Math.pow(4, i / 2)), top1Pct: 5 },  // 5k -> 320k
+    gate: { verdict: 'PASS', findings: [] } }],
+});
+for (let i = 0; i < 6; i++) store.record(rebuild(i));
+const rb = store.risers({ minScans: 4, windowMs: 6 * 36e5 }).find((x) => x.ca === 'REBUILD');
+check('an index rebuild is NOT mistaken for accumulation', rb && rb.accumulating === false,
+  rb ? `(holders looked like +${(4**2.5*100-100).toFixed(0)}%, flagged suspect: ${rb.holderSuspect})` : '');
+check('...and the impossible holder growth is discarded', rb && rb.holderSuspect === true && rb.holderGrowth === null);
+check('ACCUM still passes without needing holder data', acc && acc.accumulating === true);
+
+// A token whose holder feed is broken but whose pool is genuinely building must still surface.
+store.record({ scannedAt: now - 3 * 36e5, tookMs: 1, universe: 1, rejectedStage1: [], rejectedStage2: [],
+  survivors: [{ ca: 'NOHOLD', symbol: 'NOHOLD', name: 'No Holder Data', via: 'trending',
+    priceUsd: 0.001, marketCap: 500000, liquidityUsd: 50000, volume24h: 300000, txns24h: 900,
+    buys24: 1300, sells24: 900, ageHours: 40, change24h: 3,
+    safety: {}, gate: { verdict: 'PASS', findings: [] } }] });
+for (let i = 1; i < 5; i++) store.record({ scannedAt: now - (3 - i * 0.5) * 36e5, tookMs: 1, universe: 1,
+  rejectedStage1: [], rejectedStage2: [],
+  survivors: [{ ca: 'NOHOLD', symbol: 'NOHOLD', name: 'No Holder Data', via: 'trending',
+    priceUsd: 0.001 * (1 + i * 0.02), marketCap: 500000, liquidityUsd: 50000 * (1 + i * 0.06),
+    volume24h: 300000, txns24h: 900, buys24: 1300, sells24: 900, ageHours: 40 + i, change24h: 3,
+    safety: {}, gate: { verdict: 'PASS', findings: [] } }] });
+const nh = store.risers({ minScans: 4, windowMs: 6 * 36e5 }).find((x) => x.ca === 'NOHOLD');
+check('a coin with NO holder data can still be flagged accumulating', nh && nh.accumulating === true,
+  nh ? `(liq +${nh.liqGrowth}%, buy pressure ${nh.buyPressure})` : '(not found)');
 
 // A token seen once cannot produce a growth rate and must not be guessed at.
 store.record({ scannedAt: now, tookMs: 1, universe: 1, rejectedStage1: [], rejectedStage2: [],

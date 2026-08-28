@@ -43,3 +43,31 @@ prio: high
 - we still do not know CATE's true holder count. rugcheck is mid-rescan, jupiter says 116k, no third source consulted.
 - ∴ the app now correctly says "sources disagree, showing neither as fact" rather than picking one.
 - ? worth adding a third source (solana RPC getProgramAccounts w/ a proper endpoint) to arbitrate. public RPC rate-limited us.
+
+## PART 2 — THE SIGNAL WAS BUILT ON THE BROKEN NUMBER
+- ! the corruption was NOT confined to the watchlist. 9 of 38 tokens in the SCANNER's record showed
+  implausible holder swings from the same reset — up to **57.7x** (BREAKING 441 > 25,434).
+- !! and the accumulation signal — the ONE thing I called a genuinely early, honestly-measured signal —
+  took holderGrowth as a required input.
+- ! NEAR MISS: during an index rebuild every token appears to gain holders extremely fast.
+  that is precisely the shape of "a crowd arriving". we escaped a false signal only because prices
+  were not simultaneously flat. that is luck, not design.
+
+## FIX — rebuilt the signal on POOL STATE, not on an index
+- ∴ structural insight (which vindicates the operator's earlier "scan based on dexscreener" instinct,
+  for a better reason than either of us gave): dexscreener numbers are read DIRECTLY FROM POOL RESERVES.
+  holder counts require an index that walks every wallet. an index can silently re-scan itself. a pool cannot.
+- accumulating is now: liqGrowth > 3% AND priceGrowth < 15% AND buys/sells > 1.05. all from pool state.
+- holderGrowth is ADVISORY ONLY — added to score when trustworthy, never required, discarded outright
+  when the implied rate exceeds +40%/hr or -25%/hr.
+- ! test proves it: a token whose holders appeared to grow +3,100% during a rebuild is flagged suspect
+  and NOT surfaced. and a token with NO holder data at all can still be flagged accumulating.
+- quarantined 41 corrupted scan observations across 38 tokens.
+- UI: when rugcheck and jupiter disagree >1.5x the card shows a RANGE in warning colour + "sources disagree",
+  never a single confident figure.
+
+## TESTS 99
+
+## ! THE GENERALISED LESSON (fourth instance of this shape)
+prefer data read directly from the thing being measured over data derived by an index that must
+scan the world. pool reserves > wallet indexes. the second kind fails silently and plausibly.

@@ -7,6 +7,24 @@ const ago = (t) => { const m = Math.round((Date.now() - t) / 60000);
 
 window.mcii.onProgress((m) => { $('#status').textContent = m || ''; });
 
+// Holder counts come from indexes that scan every wallet, and those indexes rebuild. When two
+// sources disagree materially we show that they disagree rather than picking one -- a single
+// confident number here is exactly what misled us on 2026-08-28.
+function holderCell(t) {
+  const rc = t.safety?.totalHolders ?? null;
+  const jp = t.meta?.holderCount ?? null;
+  if (rc == null && jp == null) return '<span class="v">—</span>';
+  if (rc != null && jp != null) {
+    const ratio = Math.max(rc, jp) / Math.max(Math.min(rc, jp), 1);
+    if (ratio > 1.5) {
+      return `<span class="v" style="font-size:15px;color:var(--warn)" title="RugCheck ${rc.toLocaleString()} vs Jupiter ${jp.toLocaleString()}">${fmtNum(Math.min(rc, jp))}–${fmtNum(Math.max(rc, jp))}</span>
+        <div class="s" style="color:var(--warn)">sources disagree</div>`;
+    }
+    return `<span class="v">${fmtNum(Math.round((rc + jp) / 2))}</span>`;
+  }
+  return `<span class="v">${fmtNum(rc ?? jp)}</span>`;
+}
+
 function pctEl(v) {
   if (v == null) return '<span class="v">—</span>';
   const c = v >= 0 ? 'up' : 'down';
@@ -94,7 +112,7 @@ function card(t) {
         <span class="v">${fmtUsd(m?.totalLiquidityUsd)}</span>
         <div class="s">market cap ${fmtUsd(m?.marketCap)}</div></div>
       <div class="stat"><span class="k">Holders</span>
-        <span class="v">${fmtNum(t.safety?.totalHolders)}</span>
+        ${holderCell(t)}
         <div class="s">top wallet ${t.safety?.top1Pct != null ? t.safety.top1Pct.toFixed(1) + '%' : '—'}</div></div>
     </div>
     <div class="social"><span class="lab">Social</span></div>
