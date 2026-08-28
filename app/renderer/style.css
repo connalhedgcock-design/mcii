@@ -257,3 +257,13 @@ a{color:var(--accent); cursor:pointer}
 .thesis h4{font-family:var(--mono);font-size:15px;margin-bottom:6px}
 .thesis dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
 .thesis dt{color:var(--muted)} .thesis dd{color:var(--ink2)}
+
+/* --- actual posts --- */
+.posts{margin-top:12px;display:grid;gap:7px}
+.post{border:1px solid var(--rule);background:var(--ground);padding:9px 12px}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.pwho{font-family:var(--mono);font-size:11.5px;color:var(--ink2)}
+.pviews{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:auto}
+.ptone{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;padding:1px 6px;border:1px solid currentColor}
+.ptone.pos{color:var(--ok)} .ptone.neg{color:var(--crit)} .ptone.neu{color:var(--muted)}
+.ptext{font-size:13px;line-height:1.5;color:var(--ink2);word-break:break-word}

@@ -149,8 +149,26 @@ function bucket(posts, { bucketMs, ts }) {
   const totalViews = posts.reduce((s2, p) => s2 + (p.views || 0), 0);
   const replyShare = posts.length ? posts.filter((p) => p.isReply).length / posts.length : 0;
 
+  // The five most-seen posts, kept so the app can show what people actually said. A score with
+  // no example behind it is impossible to sanity-check -- and being able to read the posts is how
+  // you catch the scorer being wrong.
+  const topPosts = posts.slice()
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 5)
+    .map((p) => ({
+      text: String(p.text || '').slice(0, 240),
+      handle: p.handle || null,
+      views: p.views || 0,
+      likes: p.likes || 0,
+      replies: p.replies || 0,
+      url: p.url || null,
+      sentiment: score(p.text).scored ? score(p.text).score : null,
+      at: p.createdAt,
+    }));
+
   return {
     ts, bucketMs,
+    topPosts,
     posts: posts.length,
     uniqueAuthors: authors.size,
     engagement: +engagement.toFixed(3),

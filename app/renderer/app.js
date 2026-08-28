@@ -265,7 +265,17 @@ async function loadSocial(ca) {
       <div class="socstat"><span class="k">Spam filtered</span><span class="v">${b.noiseFiltered ?? 0}</span></div>
       <div class="socstat"><span class="k">Confidence</span><span class="v"><span class="conf ${rel.confidence || 'none'}">${rel.confidence || 'none'}</span></span></div>
     </div>
-    <p class="socverdict">${verdict}</p>`;
+    <p class="socverdict">${verdict}</p>
+    ${(b.topPosts && b.topPosts.length) ? `<div class="posts">
+      ${b.topPosts.map((p) => `<div class="post">
+        <div class="phead">
+          <span class="pwho">${esc(p.handle ? '@' + p.handle : 'unknown')}</span>
+          <span class="pviews">${Number(p.views || 0).toLocaleString()} views</span>
+          ${p.sentiment != null ? `<span class="ptone ${p.sentiment >= 0.2 ? 'pos' : p.sentiment <= -0.2 ? 'neg' : 'neu'}">${p.sentiment >= 0 ? '+' : ''}${p.sentiment}</span>` : '<span class="ptone neu">no tone</span>'}
+        </div>
+        <div class="ptext">${esc(p.text)}</div>
+      </div>`).join('')}
+    </div>` : '<p class="socverdict" style="color:var(--muted);font-size:12.5px;margin-top:10px">Posts will appear here from the next collection.</p>'}`;
 }
 
 
