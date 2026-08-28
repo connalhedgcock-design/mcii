@@ -70,6 +70,8 @@ async function loadToken(entry) {
     out.meta = await fetchTokenMeta(ca);
   } catch (e) { out.errors.push(`token details unavailable (${e.message})`); }
 
+  // Holders and token accounts are different quantities and are kept apart deliberately.
+  if (out.safety && out.meta) out.safety.totalHolders = out.meta.holderCount ?? null;
   if (out.safety) out.gate = evaluateSafety(out.safety, out.market);
 
   if (out.meta && out.market) {

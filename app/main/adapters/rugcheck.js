@@ -9,7 +9,10 @@ async function fetchSafety(ca) {
     metadataMutable: !!(d.tokenMeta && d.tokenMeta.mutable),
     rugged: !!d.rugged,
     risks: d.risks || [],
-    totalHolders: d.totalHolders,
+    // RugCheck's "totalHolders" counts TOKEN ACCOUNTS, including empty ones. Verified on chain
+    // 2026-08-28: CATE had 258,724 token accounts but only 116,152 holding a balance. Calling
+    // this "holders" was our mistake, not theirs -- and it made an accurate number look wrong.
+    tokenAccounts: d.totalHolders,
     top1Pct: holders[0]?.pct ?? null,
     top10Pct: holders.slice(0, 10).reduce((s, h) => s + (h.pct || 0), 0),
     insiderCount: holders.filter((h) => h.insider).length,

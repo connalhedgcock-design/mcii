@@ -19,6 +19,7 @@ const { evaluateSafety } = require('../shared/safety');
 const tw = require('./adapters/twitterapi');
 const h = require('../shared/hype');
 const screener = require('./screener');
+const onchain = require('./adapters/onchain');
 
 const append = (file, rows) => {
   if (!rows || !rows.length) return;
@@ -95,6 +96,37 @@ async function collectSocial(tokens) {
   return rows;
 }
 
+// Ground truth is expensive (~60MB, ~6s per token) so it runs once a day rather than hourly.
+// Its job is not to supply the number but to verify the cheap source still deserves trust.
+async function verifyHolders(tokens) {
+  const stamp = path.join(DATA, 'holder-truth.json');
+  let prev = {};
+  try { prev = JSON.parse(fs.readFileSync(stamp, 'utf8')); } catch {}
+  if (prev.checkedAt && Date.now() - prev.checkedAt < 20 * 36e5) {
+    log('  ground truth checked within the last day, skipping');
+    return [];
+  }
+  const out = { checkedAt: Date.now(), tokens: {} };
+  const rows = [];
+  for (const t of tokens) {
+    try {
+      const truth = await onchain.holderCount(t.ca);
+      let jup = null;
+      try { jup = (await fetchTokenMeta(t.ca)).holderCount; } catch {}
+      const driftPct = jup ? ((jup - truth.holders) / truth.holders) * 100 : null;
+      out.tokens[t.ca] = { sym: t.sym, ...truth, jupiter: jup, driftPct };
+      rows.push({ ts: Date.now(), src: 'onchain', ca: t.ca, sym: t.sym, ...truth, jupiter: jup, driftPct });
+      log(`  ${t.sym}: ${truth.holders.toLocaleString()} holders on chain` +
+          (jup ? `, Jupiter says ${jup.toLocaleString()} (${driftPct >= 0 ? '+' : ''}${driftPct.toFixed(2)}%)` : ''));
+      // A cheap source that has drifted badly is no longer a usable stand-in for the real thing.
+      if (driftPct != null && Math.abs(driftPct) > 10)
+        log(`  ! ${t.sym}: Jupiter is ${Math.abs(driftPct).toFixed(0)}% off the chain — stop trusting it as a proxy`);
+    } catch (e) { log(`  ${t.sym}: ground truth failed — ${e.message}`); }
+  }
+  try { fs.writeFileSync(stamp, JSON.stringify(out, null, 2)); } catch {}
+  return rows;
+}
+
 async function main() {
   const tokens = watchlist();
   log(`cloud collection — ${tokens.map((t) => t.sym).join(', ')}`);
@@ -104,6 +136,9 @@ async function main() {
 
   log('social:');
   append('social.jsonl', await collectSocial(tokens));
+
+  log('holder ground truth:');
+  append('holders-onchain.jsonl', await verifyHolders(tokens));
 
   log('market scan:');
   try {

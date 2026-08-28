@@ -11,18 +11,12 @@ window.mcii.onProgress((m) => { $('#status').textContent = m || ''; });
 // sources disagree materially we show that they disagree rather than picking one -- a single
 // confident number here is exactly what misled us on 2026-08-28.
 function holderCell(t) {
-  const rc = t.safety?.totalHolders ?? null;
-  const jp = t.meta?.holderCount ?? null;
-  if (rc == null && jp == null) return '<span class="v">—</span>';
-  if (rc != null && jp != null) {
-    const ratio = Math.max(rc, jp) / Math.max(Math.min(rc, jp), 1);
-    if (ratio > 1.5) {
-      return `<span class="v" style="font-size:15px;color:var(--warn)" title="RugCheck ${rc.toLocaleString()} vs Jupiter ${jp.toLocaleString()}">${fmtNum(Math.min(rc, jp))}–${fmtNum(Math.max(rc, jp))}</span>
-        <div class="s" style="color:var(--warn)">sources disagree</div>`;
-    }
-    return `<span class="v">${fmtNum(Math.round((rc + jp) / 2))}</span>`;
-  }
-  return `<span class="v">${fmtNum(rc ?? jp)}</span>`;
+  // Wallets holding a balance. Distinct from token accounts, which include empty and closed ones
+  // and run roughly twice as high -- conflating the two is what made an accurate feed look broken.
+  const holders = t.meta?.holderCount ?? t.safety?.totalHolders ?? null;
+  const accts = t.safety?.tokenAccounts ?? null;
+  if (holders == null) return '<span class="v">—</span>';
+  return `<span class="v" title="${accts ? accts.toLocaleString() + ' token accounts exist, most of them empty' : ''}">${fmtNum(holders)}</span>`;
 }
 
 function pctEl(v) {

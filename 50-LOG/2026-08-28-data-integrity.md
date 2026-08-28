@@ -71,3 +71,40 @@ prio: high
 ## ! THE GENERALISED LESSON (fourth instance of this shape)
 prefer data read directly from the thing being measured over data derived by an index that must
 scan the world. pool reserves > wallet indexes. the second kind fails silently and plausibly.
+
+## PART 3 — RESOLVED. THE SOURCES WERE NEVER DISAGREEING.
+operator pushed back: "we need consistent accurate holder counts". right — a range you can't act on
+is barely better than a wrong number. so I computed ground truth from chain instead of trusting anyone.
+
+## ! MY BUG BEFORE I COULD MEASURE IT
+- first getProgramAccounts returned 0 accounts. I queried the LEGACY token program.
+- CATE is **Token-2022** (TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb) — jupiter had told me this on day one and I didn't use it.
+- ! querying the wrong program returns an empty result that looks EXACTLY like "nobody holds this token". silent and plausible. fifth time today.
+
+## GROUND TRUTH (chain, 2026-08-28)
+  CATE   258,731 token accounts | **116,155 holding a balance** | 142,576 empty
+  NEEGY   22,826 token accounts | **5,839 holding a balance**   | 16,987 empty
+
+## !! THE RESOLUTION: TWO DIFFERENT METRICS, NOT TWO CONFLICTING ANSWERS
+- rugcheck `totalHolders` = TOKEN ACCOUNTS (incl. empty). its pre-reset 252,968 ≈ chain's 258,731. ACCURATE for what it measures.
+- jupiter `holderCount` = accounts WITH A BALANCE. 115,994 vs chain 116,155 = **0.14% drift**. ACCURATE.
+- ∴ neither vendor was wrong. **I conflated two quantities into one field and then flagged them as disagreeing.**
+  my "sources disagree" warning was itself the error. removed.
+- (rugcheck's 24,783 IS still broken — that's the index reset, a separate and real fault.)
+
+## ! CONSEQUENCE FOR THE OPERATORS
+- NEEGY has **5,839** real holders, not the ~23,000 we had been showing. that is a 4x smaller community than the app implied.
+- CATE 116,155, not 252,968.
+
+## FIX
+- adapters/onchain.js — ground truth from getProgramAccounts, dataSlice to the amount field only.
+  auto-detects token program (legacy vs 2022) ∵ guessing returns a plausible zero.
+  also yields top1/top10/top100 concentration computed from actual balances.
+- jupiter holderCount is now the live number (cheap, verified 0.14% accurate).
+- rugcheck field RENAMED tokenAccounts. it is not a holder count and must never be displayed as one.
+- cloud collector runs ground truth DAILY (~60MB, ~6s/token — a calibration, not a poll) and logs drift.
+  drift >10% prints a warning that the cheap source no longer deserves trust.
+
+## ! THE LESSON THAT GENERALISES
+before deciding two sources conflict, check they are measuring the same thing. "holders" was never defined
+anywhere in this codebase, so two correct answers looked like a contradiction. DEFINE THE QUANTITY FIRST.

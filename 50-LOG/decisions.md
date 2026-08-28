@@ -78,3 +78,6 @@ prio: high
 | D-50 | disagreeing sources are shown as disagreeing, never averaged. averaging a broken value yields a less-obviously-wrong one. | 08-28 | ! never average |
 | D-51 | accumulation signal runs on pool state (liquidity, buy/sell flow), never on holder counts. holder growth is advisory only. | 08-28 | a holder source proves stable across months |
 | D-52 | prefer directly-read data (pool reserves) over index-derived data (wallet counts). indexes re-scan silently. | 08-28 | ! design principle |
+| D-53 | "holders" = wallets with a NON-ZERO balance. token accounts are a different quantity and never displayed as holders. | 08-28 | ! definition is fixed |
+| D-54 | jupiter holderCount is the live source (0.14% verified). ground truth from chain runs daily to confirm it still deserves trust. | 08-28 | drift exceeds 10% |
+| D-55 | ! auto-detect the token program before any on-chain query. guessing returns an empty result that looks like a real zero. | 08-28 | ! permanent |

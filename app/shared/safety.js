@@ -37,8 +37,10 @@ function evaluateSafety(safety, market) {
     if (ageDays != null && ageDays < 3) add(MED, 'Brand new pool',
       `This pool is ${ageDays.toFixed(1)} days old. There is no track record yet.`);
   }
+  // Holders means wallets actually holding a balance. Token-account counts include empty and
+  // closed accounts and run far higher -- for CATE, 258,724 accounts against 116,152 holders.
   if (safety.totalHolders != null && safety.totalHolders < 200) add(MED, 'Few holders',
-    `${safety.totalHolders} holders. Small crowds move violently.`);
+    `${safety.totalHolders} wallets hold this. Small crowds move violently.`);
 
   const worst = findings.some(f => f.level === CRITICAL) ? CRITICAL
               : findings.some(f => f.level === HIGH) ? HIGH
