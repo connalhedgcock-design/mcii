@@ -44,8 +44,12 @@ journal.init(path.join(__dirname, '..', '..'));
 
 let win;
 function createWindow() {
+  // Bounds are per-machine (like identity), not synced -- Austin and Connal each keep whatever
+  // size they left the window at.
+  const b = store.windowBounds;
   win = new BrowserWindow({
-    width: 1280, height: 880, minWidth: 900,
+    width: b?.width || 1280, height: b?.height || 880, x: b?.x, y: b?.y,
+    minWidth: 900, minHeight: 640,
     backgroundColor: '#0B0E13', titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -56,6 +60,18 @@ function createWindow() {
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+
+  let saveBoundsTimer = null;
+  const saveBounds = () => {
+    clearTimeout(saveBoundsTimer);
+    saveBoundsTimer = setTimeout(() => {
+      if (win.isDestroyed()) return;
+      store.windowBounds = win.getBounds();
+      save();
+    }, 500);
+  };
+  win.on('resize', saveBounds);
+  win.on('move', saveBounds);
 }
 
 const progress = (m) => win && win.webContents.send('progress', m);

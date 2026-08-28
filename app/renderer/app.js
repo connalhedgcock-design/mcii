@@ -95,21 +95,26 @@ function card(t) {
       <span class="pill ${cls}">${g ? g.verdict : 'NO DATA'}</span>
     </div>
     <p class="verdict">${esc(t.sentence || 'Not enough data to give a verdict yet.')}</p>
-    <div class="stats">
-      <div class="stat hero"><span class="k">Sellable before −5%</span>
-        <span class="v">${fmtUsd(x?.usd)}</span>
-        <div class="s">${x ? fmtNum(x.tokens) + ' tokens' : 'not simulated'}</div></div>
-      <div class="stat"><span class="k">Price</span>
+    <div class="stats primary">
+      <div class="stat hero" data-field="price"><span class="k">Price</span>
         <span class="v">$${m ? m.priceUsd.toPrecision(4) : '—'}</span>
         <div class="s">${m?.poolCount ?? '—'} pools</div></div>
-      <div class="stat"><span class="k">24h change</span>${pctEl(m?.priceChange?.h24)}
+      <div class="stat hero" data-field="mcap"><span class="k">Market cap</span>
+        <span class="v">${fmtUsd(m?.marketCap)}</span>
+        <div class="s">${m?.volume?.h24 != null ? 'vol 24h ' + fmtUsd(m.volume.h24) : '—'}</div></div>
+      <div class="stat hero" data-field="change24h"><span class="k">24h change</span>${pctEl(m?.priceChange?.h24)}
         <div class="s">1h ${m?.priceChange?.h1 ?? '—'}%</div></div>
-      <div class="stat"><span class="k">Liquidity</span>
+    </div>
+    <div class="stats secondary">
+      <div class="stat" data-field="liq"><span class="k">Liquidity</span>
         <span class="v">${fmtUsd(m?.totalLiquidityUsd)}</span>
-        <div class="s">market cap ${fmtUsd(m?.marketCap)}</div></div>
-      <div class="stat"><span class="k">Holders</span>
+        <div class="s">${m?.totalLiquidityUsd && m?.marketCap ? (100 * m.totalLiquidityUsd / m.marketCap).toFixed(1) + '% of market cap' : '—'}</div></div>
+      <div class="stat" data-field="holders"><span class="k">Holders</span>
         ${holderCell(t)}
         <div class="s">top wallet ${t.safety?.top1Pct != null ? t.safety.top1Pct.toFixed(1) + '%' : '—'}</div></div>
+      <div class="stat" data-field="exit"><span class="k">Sellable before −5%</span>
+        <span class="v">${fmtUsd(x?.usd)}</span>
+        <div class="s">${x ? fmtNum(x.tokens) + ' tokens' : 'not simulated'}</div></div>
     </div>
     <div class="social"><span class="lab">Social</span></div>
     <div class="chartwrap">
@@ -777,11 +782,11 @@ window.mcii.onLive((t) => {
     el.textContent = val;
     if (flash) { el.classList.remove('tick'); void el.offsetWidth; el.classList.add('tick'); }
   };
-  const stats = card.querySelectorAll('.stat');
-  set('.stat:nth-child(2) .v', '$' + t.market.priceUsd.toPrecision(4), true);
-  set('.stat:nth-child(4) .v', fmtUsd(t.market.totalLiquidityUsd), true);
-  if (t.exit) set('.stat.hero .v', fmtUsd(t.exit.usd), true);
-  const ch = card.querySelector('.stat:nth-child(3) .v');
+  set('[data-field="price"] .v', '$' + t.market.priceUsd.toPrecision(4), true);
+  set('[data-field="liq"] .v', fmtUsd(t.market.totalLiquidityUsd), true);
+  if (t.market.marketCap != null) set('[data-field="mcap"] .v', fmtUsd(t.market.marketCap), true);
+  if (t.exit) set('[data-field="exit"] .v', fmtUsd(t.exit.usd), true);
+  const ch = card.querySelector('[data-field="change24h"] .v');
   if (ch && t.market.priceChange?.h24 != null) {
     const v = t.market.priceChange.h24;
     ch.textContent = (v >= 0 ? '+' : '') + Number(v).toFixed(1) + '%';
