@@ -2,11 +2,15 @@ name: Collect market and social data
 
 on:
   schedule:
-    # Hourly. Private repos get 2,000 free Actions minutes a month; at roughly two minutes a run
-    # this uses ~1,440, which fits. Going more frequent would exhaust the allowance mid-month and
-    # stop collecting entirely — worse than a coarser baseline. The laptops cover high frequency
-    # when they are awake; this exists so the record has no holes when they are not.
-    - cron: '7 * * * *'
+    # Hourly, and not on the hour. The repo is public, so minutes are free; what caps the cadence
+    # is the X budget, since every run pays for social posts. Hourly sits well inside the $12.
+    #
+    # ! the minute matters. This ran at :07 for a day and GitHub fired it ZERO times out of 27 —
+    # scheduled runs are queued best-effort and the top of the hour is the busiest slot, where
+    # they are dropped rather than delayed. Moved to :37. If this still does not fire, the answer
+    # is not a different minute, it is that GitHub's scheduler cannot be relied on and collection
+    # has to be triggered by something we control.
+    - cron: '37 * * * *'
   workflow_dispatch:        # lets you run it by hand from the Actions tab
 
 # Only one collection at a time. Two runs appending to the same files would interleave lines.

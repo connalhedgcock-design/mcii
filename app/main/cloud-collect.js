@@ -18,8 +18,21 @@ const { fetchTokenMeta, maxExitable } = require('./adapters/jupiter');
 const { evaluateSafety } = require('../shared/safety');
 const tw = require('./adapters/twitterapi');
 const h = require('../shared/hype');
+const sector = require('../shared/sector');
+const imp = require('../shared/importance');
+const resolve = require('../shared/resolve');
+const { searchTokens } = require('./adapters/dexscreener');
 const screener = require('./screener');
 const onchain = require('./adapters/onchain');
+const scanstore = require('./scanstore');
+
+// One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
+// whole monthly bill. 4 searches x 15 posts, hourly, is ~$6.50 of the $12.
+const SWEEP_POSTS_PER_QUERY = 15;
+const SWEEP_RESERVE_USD = 3;      // kept back so the sweep itself never runs out mid-month
+const MIN_POSTS_PER_COIN = 8;     // below this the sweep clearly missed the coin; ask directly
+const MAX_LOOKUPS = 8;            // identifying a ticker is free but not unlimited; be a polite caller
+const COLLISION_EVERY_MS = 20 * 36e5;   // which coins share our tickers changes slowly; check daily
 
 const append = (file, rows) => {
   if (!rows || !rows.length) return;
@@ -71,30 +84,127 @@ async function collectMarket(tokens) {
 }
 
 async function collectSocial(tokens) {
-  if (!process.env.TWITTERAPI_KEY) { log('  no X key configured, skipping social'); return []; }
+  if (!process.env.TWITTERAPI_KEY) { log('  no X key configured, skipping social'); return { social: [], sector: [] }; }
   tw.configure({ key: process.env.TWITTERAPI_KEY, monthlyCapUsd: Number(process.env.X_MONTHLY_CAP_USD || 12) });
   try { tw.loadSpend(JSON.parse(fs.readFileSync(path.join(DATA, 'x-spend.json'), 'utf8'))); } catch {}
 
+  // ONE sweep of memecoin chatter, sorted afterwards into what matters. This replaced asking X
+  // about each coin separately, and the reason is arithmetic:
+  //
+  //   per-coin searching   cost = coins x queries x posts    -> a third coin broke the $12 cap
+  //   one sweep + sorting  cost = queries x posts            -> flat, whatever they watch
+  //
+  // Depth per coin is what shrinks as the watchlist grows, not the bill. That is the right thing
+  // to give up: a cap that gets breached stops collection entirely for everyone (D-28).
+  const sweepPosts = [];
+  const perQuery = [];
+  for (const q of tw.sectorQueries()) {
+    // Each search has its own depth and its own cadence, set by how much of it exists. Capturing
+    // every rug report is affordable; capturing a slice of the firehose was not worth paying for.
+    if (q.everyHours > 1 && !dueForQuery(q.kind, q.everyHours)) {
+      log(`  ${q.kind}: not due yet`);
+      continue;
+    }
+    try {
+      const r = await tw.searchPosts(q.q, { maxPosts: q.depth });
+      sweepPosts.push(...r.posts);
+      perQuery.push({ kind: q.kind, posts: r.posts.length, pages: r.pages, truncated: r.truncated });
+      log(`  ${q.kind}: ${r.posts.length} posts over ${r.pages} page(s)` +
+          (r.truncated ? ` — MORE AVAILABLE (${r.stoppedBecause}), this is a floor not a count` : ''));
+      markQuery(q.kind);
+    } catch (e) {
+      // A failed query writes nothing for that slice. Failure is never a zero (D-29).
+      log(`  ${q.kind}: ${e.message}`);
+      perQuery.push({ kind: q.kind, posts: null, error: e.message });
+    }
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  const seenSweep = new Set();
+  const sweep = sweepPosts.filter((p) => !seenSweep.has(p.id) && seenSweep.add(p.id));
+  log(`  sweep: ${sweep.length} posts across ${perQuery.length} searches`);
+
+  // What is left after the sweep, split evenly. A coin the sweep already found enough about does
+  // not get a top-up at all, so the budget goes to the coins nobody happened to mention.
+  const b = tw.budget();
+  const spare = Math.max(0, b.remainingUsd - SWEEP_RESERVE_USD);
+  const runsLeftThisMonth = Math.max(1, hoursLeftInMonth());
+  const topUpPostsPerCoin = tokens.length
+    ? Math.max(0, Math.min(20, Math.floor((spare / runsLeftThisMonth / tw.COST_PER_POST) / tokens.length)))
+    : 0;
+  log(`  $${b.remainingUsd} left this month -> up to ${topUpPostsPerCoin} extra posts per coin per run`);
+
+  const collisions = await checkCollisions(tokens);
+  const contestedSet = new Set(Object.keys(collisions));
+
   const rows = [];
   for (const t of tokens) {
-    const all = [];
-    for (const q of tw.queriesFor(t)) {
-      try { const r = await tw.searchPosts(q.q, { maxPosts: 20 }); all.push(...r.posts); }
-      catch (e) { log(`  ${t.sym} ${q.kind}: ${e.message}`); }
-      await new Promise((r) => setTimeout(r, 800));
+    const tlex = resolve.buildLexicon([t], { contested: contestedSet });
+    let mine = sweep.filter((p) => imp.about(p, [t], tlex).hits.length > 0);
+    const fromSweep = mine.length;
+    // Only ask about this coin directly if the sweep did not already cover it.
+    if (mine.length < MIN_POSTS_PER_COIN && topUpPostsPerCoin > 0) {
+      // ! a cashtag search is worthless when several coins share the ticker -- it would buy
+      // posts about somebody else's coin and file them under theirs. Address only, in that case.
+      const queries = contestedSet.has(resolve.bare(t.sym))
+        ? tw.queriesFor(t).filter((q) => q.kind === 'address')
+        : tw.queriesFor(t);
+      for (const q of queries) {
+        try {
+          const r = await tw.searchPosts(q.q, { maxPosts: Math.min(topUpPostsPerCoin, 15) });
+          mine.push(...r.posts);
+        } catch (e) { log(`  ${t.sym} ${q.kind}: ${e.message}`); }
+        await new Promise((r) => setTimeout(r, 800));
+      }
+      const seen = new Set();
+      mine = mine.filter((p) => !seen.has(p.id) && seen.add(p.id));
     }
-    const seen = new Set();
-    const unique = all.filter((p) => !seen.has(p.id) && seen.add(p.id));
-    const { onTopic, noise } = h.partition(unique, t);
-    const b = h.bucket(onTopic, { bucketMs: 36e5, ts: Date.now() });
-    b.noiseFiltered = noise.length;
-    const rel = h.reliability(b);
-    rows.push({ ...b, src: 'cloud', ca: t.ca, sym: t.sym, confidence: rel.confidence, manipulated: rel.manipulated });
-    log(`  ${t.sym}: ${onTopic.length} posts / ${b.uniqueAuthors} people, sentiment ${b.sentiment ?? '—'}, ${rel.confidence}`);
+    // Nothing found is nothing found. An empty bucket would be recorded as a real reading of
+    // zero interest, which is a claim we cannot support from a sweep that simply looked elsewhere.
+    if (!mine.length) { log(`  ${t.sym}: not mentioned in this sweep — writing nothing`); continue; }
+
+    const { onTopic, noise } = h.partition(mine, t);
+    if (!onTopic.length) { log(`  ${t.sym}: only passing mentions — writing nothing`); continue; }
+    const bucket = h.bucket(onTopic, { bucketMs: 36e5, ts: Date.now() });
+    bucket.noiseFiltered = noise.length;
+    const rel = h.reliability(bucket);
+    rows.push({ ...bucket, src: 'cloud', ca: t.ca, sym: t.sym,
+      confidence: rel.confidence, manipulated: rel.manipulated,
+      fromSweep, topUp: mine.length - fromSweep,
+      // ! recorded on the row itself: a reading taken while other coins share this ticker is a
+      // weaker reading, and whoever reads it later must be able to see that.
+      tickerShared: contestedSet.has(resolve.bare(t.sym)) || null });
+    log(`  ${t.sym}: ${onTopic.length} posts / ${bucket.uniqueAuthors} people (${fromSweep} from the sweep), tone ${bucket.sentiment ?? '—'}, ${rel.confidence}`);
   }
+
+  const sectorRows = await buildSectorRow(sweep, perQuery, tokens);
   try { fs.writeFileSync(path.join(DATA, 'x-spend.json'), JSON.stringify(tw.budget(), null, 2)); } catch {}
-  return rows;
+  return { social: rows, sector: sectorRows };
 }
+
+// When each search last ran. Kept in a file rather than in memory because the job is a fresh
+// process every hour -- and because that schedule has proved unreliable, so "every six hours"
+// has to mean six hours of wall clock, not six firings.
+function queryStamps() {
+  try { return JSON.parse(fs.readFileSync(path.join(DATA, 'query-runs.json'), 'utf8')); } catch { return {}; }
+}
+function dueForQuery(kind, everyHours) {
+  const last = queryStamps()[kind] || 0;
+  return Date.now() - last >= (everyHours - 0.5) * 36e5;
+}
+function markQuery(kind) {
+  const s = queryStamps();
+  s[kind] = Date.now();
+  try { fs.writeFileSync(path.join(DATA, 'query-runs.json'), JSON.stringify(s, null, 2) + '\n'); } catch {}
+}
+
+// Runs remaining this month, so the leftover budget is spread across them rather than spent in
+// the first week. Collection stopping on the 20th is worse than a thinner reading all month.
+function hoursLeftInMonth() {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return Math.max(1, Math.round((end - now) / 36e5));
+}
+
 
 // Ground truth every hour. It is expensive (~60MB, ~6s per token) and runs against a public RPC
 // that owes us nothing, so a rejection is expected occasionally rather than treated as a failure:
@@ -151,6 +261,104 @@ async function verifyHolders(tokens) {
   return rows;
 }
 
+// --- the sector read ---------------------------------------------------------
+// Built from the sweep that was already paid for, not from a second set of searches. The earlier
+// version fetched its own posts, which meant the same chatter was bought twice in one run.
+async function buildSectorRow(sweepPosts, perQuery, tokens) {
+  if (!sweepPosts.length) { log('  sector: nothing returned, writing nothing'); return []; }
+
+  const scanned = recentScanned();
+  const collisions = await checkCollisions(tokens);
+  const contested = new Set(Object.keys(collisions));
+  // One index over every coin we know of, so a post can be matched by address, cashtag, bare
+  // ticker in a trading sentence, shortened address, or project name -- and so a ticker several
+  // coins share stops counting as proof of which one is meant.
+  const lex = resolve.buildLexicon([...tokens, ...scanned], { contested });
+
+  // No partition() here: there is no single token to be off-topic about. The whole sector is the
+  // topic, so everything counts and the junk shows up in the filter counts instead.
+  const bucket = h.bucket(sweepPosts, { bucketMs: 36e5, ts: Date.now() });
+  const named = sector.tickers(sweepPosts, { minPeople: 2 });
+  const ranked = imp.rank(sweepPosts, { watchlist: tokens, scanned, lex });
+
+  // ! the part that turns talk into something checkable. A ticker several different people are
+  // using that nobody here has ever looked up is the most useful thing in a sweep -- but a
+  // ticker is not a coin, so each one is resolved to an actual address before it is worth
+  // anything, and refuses to resolve when two coins share the name.
+  const queue = resolve.unknownTickers(sweepPosts, lex, { minPeople: 3 }).slice(0, MAX_LOOKUPS);
+  const identified = [];
+  for (const u of queue) {
+    const found = await resolve.identify(u.ticker, searchTokens);
+    identified.push({ ...u, ...found });
+    log(`  $${u.ticker}: ${u.people} people — ` +
+        (found.resolved ? `${found.resolved.name || found.resolved.sym} (${found.matches[0].liquidityUsd.toLocaleString()} liquidity)`
+                        : found.reason || 'could not identify'));
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
+  const strip = (r) => ({
+    text: String(r.post.text || '').slice(0, 240),
+    handle: r.post.handle || null,
+    views: r.post.views || 0,
+    at: r.post.createdAt,
+    kind: r.kind,
+    why: r.reasons[0] || null,
+    about: r.about.map((a) => a.sym).filter(Boolean),
+  });
+
+  log(`  sector: ${sweepPosts.length} posts / ${bucket.uniqueAuthors} people, ` +
+      `${ranked.important.length} worth reading, ${ranked.setAside.length} set aside, ` +
+      `${identified.filter((i) => i.resolved).length} new coins identified`);
+
+  return [{
+    ...bucket, src: 'cloud', kind: 'sector',
+    queries: perQuery,
+    tickers: named.slice(0, 20),
+    pushRatio: sector.pushRatio(named),
+    // Coins people are talking about that were not on any of our lists until now.
+    identified,
+    // Tickers of theirs that other coins also use, so the app can stop presenting a cashtag
+    // reading as though it were about their coin.
+    collisions,
+    // The filter's own workings are stored, so it can be audited later rather than trusted now.
+    filter: { counts: ranked.counts, total: ranked.total, promoShare: ranked.promoShare },
+    important: ranked.important.slice(0, 12).map(strip),
+    background: ranked.background.slice(0, 8).map(strip),
+    // A sample of what was dropped, kept deliberately: it is how anyone catches this filter
+    // discarding something it should not have (D-26).
+    setAsideSample: ranked.setAside.slice(0, 5).map(strip),
+    spentUsd: +(tw.budget().usd).toFixed(4),
+  }];
+}
+
+// Which of their own tickers other coins are also using. Checked about once a day: new coins
+// launch under an existing name constantly, and the answer decides whether "$X" can be read as
+// meaning their X at all.
+async function checkCollisions(tokens) {
+  const file = path.join(DATA, 'ticker-collisions.json');
+  let prev = null;
+  try { prev = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
+  if (prev && Date.now() - (prev.checkedAt || 0) < COLLISION_EVERY_MS) return prev.tickers || {};
+  let tickers = {};
+  try { tickers = await resolve.findContested(tokens, searchTokens); }
+  catch (e) { log(`  ticker check failed — ${e.message}`); return (prev && prev.tickers) || {}; }
+  for (const [t, info] of Object.entries(tickers))
+    log(`  ! $${t} is used by ${info.of} Solana coins — theirs is #${info.rank} by pool size`);
+  try { fs.writeFileSync(file, JSON.stringify({ checkedAt: Date.now(), tickers }, null, 2) + '\n'); } catch {}
+  return tickers;
+}
+
+// Coins the scanner recently let through, so the filter can tell "a coin that passed our checks"
+// from a ticker nobody here has ever looked at.
+function recentScanned() {
+  try {
+    return fs.readFileSync(path.join(DATA, 'candidates.jsonl'), 'utf8').trim().split('\n')
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((r) => r && Date.now() - r.ts < 3 * 864e5)
+      .map((r) => ({ sym: r.sym, ca: r.ca }));
+  } catch { return []; }
+}
+
 async function main() {
   const tokens = watchlist();
   log(`cloud collection — ${tokens.map((t) => t.sym).join(', ')}`);
@@ -158,8 +366,10 @@ async function main() {
   log('market:');
   append('market.jsonl', await collectMarket(tokens));
 
-  log('social:');
-  append('social.jsonl', await collectSocial(tokens));
+  log('chatter sweep:');
+  const chatter = await collectSocial(tokens);
+  append('social.jsonl', chatter.social);
+  append('sector.jsonl', chatter.sector);
 
   log('holder ground truth:');
   append('holders-onchain.jsonl', await verifyHolders(tokens));
@@ -169,7 +379,10 @@ async function main() {
     const r = await screener.run({ limit: 60 });
     log(`  ${r.summary}`);
     append('scans.jsonl', [{ ts: r.scannedAt, src: 'cloud', universe: r.universe,
-      survivors: r.survivors.length, tookMs: r.tookMs }]);
+      survivors: r.survivors.length, tookMs: r.tookMs,
+      // Why coins were dropped describes the market, not just the filter: a day where almost
+      // everything fails on liquidity is a different market from one where safety is the killer.
+      rejects: scanstore.tally([...r.rejectedStage1, ...r.rejectedStage2]) }]);
     append('candidates.jsonl', r.survivors.map((c) => ({
       ts: r.scannedAt, src: 'cloud', ca: c.ca, sym: c.symbol, name: c.name, via: c.via,
       price: c.priceUsd, mcap: Math.round(c.marketCap || 0), liq: Math.round(c.liquidityUsd || 0),

@@ -19,6 +19,7 @@
   <nav class="tabs">
     <button class="tab active" data-view="watch">Your coins</button>
     <button class="tab" data-view="market">Market <span class="count" id="mktcount"></span></button>
+    <button class="tab" data-view="sector">What's happening</button>
     <button class="tab" data-view="journal">Journal <span class="count" id="jcount"></span></button>
   </nav>
   <section class="search">
@@ -26,9 +27,11 @@
     <button id="go" class="btn">Search</button>
   </section>
   <div id="results" class="results"></div>
+  <section id="collhealth" class="alerts"></section>
   <section id="alerts" class="alerts"></section>
   <main id="grid" class="grid"></main>
   <main id="market" class="grid" hidden></main>
+  <main id="sector" class="grid" hidden></main>
   <main id="journal" class="grid" hidden></main>
   <footer class="foot">
     <span>Read-only. This app cannot trade, and holds no wallet or exchange keys.</span>

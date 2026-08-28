@@ -87,8 +87,10 @@ function card(t) {
   const held = t.position?.tokens && m ? t.position.tokens * m.priceUsd : null;
   return `<article class="card ${cls}" data-ca="${t.ca}">
     <div class="chead">
-      <span class="sym">${esc(t.sym)}</span>
-      <span class="nm">${esc(m?.name || '')}</span>
+      <span class="sym">${esc(t.nick || t.sym)}</span>
+      <span class="nm">${esc(m?.name || '')}
+        <span class="tail" title="the end of this coin's ID code — the only part that is unique">…${esc(String(t.ca).slice(-4))}</span>
+        <button class="btn sm nick" title="give this coin your own name">${t.nick ? 'rename' : 'name it'}</button></span>
       <span class="livedot" title="updating live"></span>
       <span class="pill ${cls}">${g ? g.verdict : 'NO DATA'}</span>
     </div>
@@ -162,6 +164,16 @@ function render(tokens) {
     });
   });
   tokens.forEach((t) => loadSocial(t.ca));
+  document.querySelectorAll('.nick').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const ca = b.closest('.card').dataset.ca;
+      const cur = b.textContent === 'rename' ? b.closest('.card').querySelector('.sym').textContent : '';
+      const name = await askText('What do you want to call this coin?', { value: cur, ok: 'Save name' });
+      if (name === null) return;
+      await window.mcii.renameToken(ca, name);
+      load();
+    });
+  });
   document.querySelectorAll('.rm').forEach((b) => {
     b.addEventListener('click', async () => {
       await window.mcii.removeToken(b.closest('.card').dataset.ca);
@@ -235,14 +247,59 @@ async function loadMarket() {
   });
 }
 
+// !! window.prompt() THROWS in Electron -- "prompt() is not supported". It is not a no-op: it
+// takes the whole click handler down with it, silently, so the button appears to do nothing at
+// all. Three buttons were dead because of this and nobody could tell why:
+//   - Save & share my changes  (so neither of them could ever publish from the app)
+//   - resolving a forecast     (the calibration record, which is the point of the journal)
+//   - naming a coin
+//
+// ! the lesson, which is the same one this project keeps relearning: a failure that produces
+// NOTHING is worse than one that produces an error. There was no message, no log line, and the
+// button re-enabled itself as though it had worked.
+function askText(question, { value = '', placeholder = '', ok = 'OK' } = {}) {
+  return new Promise((resolve) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'ask';
+    wrap.innerHTML = `<div class="askbox">
+      <label>${esc(question)}</label>
+      <input type="text" value="${esc(value)}" placeholder="${esc(placeholder)}">
+      <div class="askbtns"><button class="btn cancel">Cancel</button><button class="btn accent go">${esc(ok)}</button></div>
+    </div>`;
+    document.body.appendChild(wrap);
+    const input = wrap.querySelector('input');
+    const done = (v) => { wrap.remove(); resolve(v); };
+    wrap.querySelector('.go').addEventListener('click', () => done(input.value));
+    wrap.querySelector('.cancel').addEventListener('click', () => done(null));
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) done(null); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') done(input.value);
+      if (e.key === 'Escape') done(null);
+    });
+    input.focus();
+    input.select();
+  });
+}
+
 // --- social panel ------------------------------------------------------------
 async function loadSocial(ca) {
   let d;
   try { d = await window.mcii.socialFor(ca); } catch { return; }
   const card = document.querySelector(`.card[data-ca="${ca}"] .social`);
   if (!card) return;
+
+  // ! sits above the numbers, not under them. If several coins share this ticker, every figure
+  // below is measuring a smaller and less certain set of posts, and reading them as a clean
+  // sentiment score for this coin is exactly the mistake.
+  const cols = await loadCollisions();
+  const clash = Object.values(cols).find((c) => c.ca === ca);
+  const warn = clash ? `<p class="socverdict" style="color:var(--crit);margin-top:8px">
+    ${clash.of} Solana coins use $${esc(clash.ticker)} — yours is number ${clash.rank} of them by pool size.
+    Only posts containing the actual contract address are counted here, so this is a narrower
+    picture than the numbers suggest.</p>` : '';
+
   if (!d || !d.latest) {
-    card.innerHTML = '<span class="lab">Social</span><p class="socverdict" style="margin-top:8px">No social readings collected yet.</p>';
+    card.innerHTML = '<span class="lab">Social</span>' + warn + '<p class="socverdict" style="margin-top:8px">No social readings collected yet.</p>';
     return;
   }
   const b = d.latest, rel = d.reliability || {}, br = d.breadth || {};
@@ -257,6 +314,7 @@ async function loadSocial(ca) {
     : `${b.uniqueAuthors} different people posted in the last reading, tone mostly ${sent}.${br.reading ? ' ' + esc(br.reading) + '.' : ''}`;
 
   card.innerHTML = `<span class="lab">Social — ${d.rows.length} readings</span>
+    ${warn}
     <div class="socgrid" style="margin-top:10px">
       <div class="socstat"><span class="k">People posting</span><span class="v">${b.uniqueAuthors ?? '—'}</span></div>
       <div class="socstat"><span class="k">Tone</span><span class="v">${b.sentiment == null ? '—' : (b.sentiment >= 0 ? '+' : '') + b.sentiment}</span></div>
@@ -374,22 +432,187 @@ async function loadJournal() {
   box.querySelectorAll('.yn button').forEach((b) => {
     b.addEventListener('click', async () => {
       const id = b.closest('.frow').dataset.id;
-      const lesson = prompt('What would you have needed to see to get this right?') || '';
+      const lesson = (await askText('What would you have needed to see to get this right?', { ok: 'Save' })) || '';
       await window.mcii.resolveForecast(id, b.dataset.o === '1', lesson);
       loadJournal();
     });
   });
 }
 
+// --- what's happening --------------------------------------------------------
+// The sector view. Reading order is chosen, not incidental: the survival rate comes first, the
+// coins come last, and the limits are on the same screen rather than behind a link.
+//
+// ! what this screen must never become: a list sorted by what went up. That is a trending feed,
+// it is what every other tool already does, and it is the behaviour the rest of this app exists
+// to slow down. Coins here are ordered by when they were found, tickers by how many different
+// people said them.
+async function loadSector() {
+  const box = $('#sector');
+  box.innerHTML = '<div class="skel">READING THE RECORD…</div>';
+  let d;
+  try { d = await window.mcii.sector(); } catch (e) { box.innerHTML = `<div class="quiet">Could not read the record: ${esc(e.message)}</div>`; return; }
+
+  const s = d.social;
+  const tone = s && s.sentiment != null ? s.sentiment : null;
+  const toneWord = tone == null ? 'no clear tone' : tone > 0.15 ? 'positive' : tone < -0.15 ? 'negative' : 'mixed';
+
+  const head = `<div class="card">
+    <div class="chead"><b>What's happening in memecoins</b>
+      <span class="v">${d.collectedAt ? 'chatter read ' + ago(d.collectedAt) : 'no chatter collected yet'}</span></div>
+    ${d.lines.length ? d.lines.map((l) => `<p class="sline">${esc(l)}</p>`).join('')
+                     : '<div class="quiet">Not enough collected yet to say anything. This fills in as the hourly job runs.</div>'}
+    <div class="caveats"><b>What this does not tell you</b>
+      ${d.caveats.map((c) => `<span>${esc(c)}</span>`).join('')}</div>
+  </div>`;
+
+  const mood = s ? `<div class="card">
+    <div class="chead"><b>The conversation</b><span class="v">${s.posts} posts</span></div>
+    <div class="stats">
+      <div class="stat"><dt>People posting</dt><dd class="v">${fmtNum(s.uniqueAuthors)}</dd></div>
+      <div class="stat"><dt>Tone</dt><dd class="v">${toneWord}${tone != null ? ` (${tone > 0 ? '+' : ''}${tone.toFixed(2)})` : ''}</dd></div>
+      <div class="stat"><dt>Sales language</dt><dd class="v">${s.shillRatio != null ? Math.round(s.shillRatio * 100) + '%' : '—'}</dd></div>
+      <div class="stat"><dt>Repeated posts</dt><dd class="v">${s.duplicateRatio != null ? Math.round(s.duplicateRatio * 100) + '%' : '—'}</dd></div>
+    </div>
+    <p class="note">Tone and sales language are counted separately on purpose. Posts can sound
+      enthusiastic and still be an advert; those need opposite reactions.</p>
+  </div>` : '';
+
+  // What the filter kept, and what it put down. Both are shown: a filter nobody can audit is a
+  // filter nobody can catch being wrong, and the size of the discard pile is itself a reading --
+  // a sweep that is mostly adverts describes a market being sold to.
+  const postCard = (p) => `<div class="post">
+      <div class="phead"><span class="pwho">${esc(p.handle ? '@' + p.handle : 'unknown')}</span>
+        ${p.kind ? `<span class="ptone ${p.kind === 'failure' ? 'neg' : p.kind === 'held' ? 'pos' : 'neu'}">${esc(p.kind)}</span>` : ''}
+        <span class="pviews">${fmtNum(p.views)} views</span></div>
+      <div class="ptext">${esc(p.text)}</div>
+      ${p.why ? `<div class="pwhy">${esc(p.why)}</div>` : ''}
+    </div>`;
+
+  const f = s && s.filter ? s.filter : null;
+  const important = s && s.important ? s.important : [];
+  const background = s && s.background ? s.background : [];
+  const aside = s && s.setAsideSample ? s.setAsideSample : [];
+
+  const filtered = s ? `<div class="card">
+    <div class="chead"><b>Worth reading</b>
+      <span class="v">${f ? `${important.length} of ${f.total} posts` : ''}</span></div>
+    ${important.length ? `<div class="posts">${important.map(postCard).join('')}</div>`
+      : '<div class="quiet">Nothing in this sweep was about your coins or about a coin failing.</div>'}
+    ${background.length ? `<div class="chead"><b>Background</b><span class="v">coins the scanner found, and general market talk</span></div>
+      <div class="posts">${background.map(postCard).join('')}</div>` : ''}
+    ${f ? `<p class="note">${Math.round((f.promoShare || 0) * 100)}% of this sweep was advertising or
+      posts name-dropping a list of coins. That share is itself worth watching: a market being
+      sold to looks different from one being argued about.</p>` : ''}
+    ${aside.length ? `<details class="aside"><summary>What was set aside (${f ? f.total - important.length - background.length : aside.length})</summary>
+      <div class="posts">${aside.map(postCard).join('')}</div>
+      <p class="note">Shown so you can catch the filter being wrong. It sorts; it never deletes.</p>
+    </details>` : ''}
+  </div>` : '';
+
+  // A ticker is not a coin. Anything several people are naming gets looked up against real pools
+  // before it appears here as anything more than a word, and when two coins share a ticker it
+  // stays a word rather than being guessed at.
+  const ident = new Map(((s && s.identified) || []).map((i) => [i.ticker, i]));
+  const named = (d.tickers || []).filter((t) => !t.major).slice(0, 10);
+  const idCell = (t) => {
+    const i = ident.get(t.ticker);
+    if (!i) return '<span class="v">on our list already</span>';
+    if (i.ambiguous) return `<span class="down">${i.matches.length} different coins use this name</span>`;
+    if (!i.resolved) return `<span class="v">${esc(i.reason || 'could not identify')}</span>`;
+    const m = i.matches[0];
+    return `${esc(i.resolved.name || i.resolved.sym)} · ${fmtUsd(m.liquidityUsd)} in the pool${m.ageDays != null ? ` · ${Math.round(m.ageDays)}d old` : ''}`;
+  };
+  const tickers = named.length ? `<div class="card">
+    <div class="chead"><b>Coins people are naming</b><span class="v">by how many different people</span></div>
+    <table class="tbl"><thead><tr><th>Named</th><th>People</th><th>Posts</th><th>Which coin this actually is</th></tr></thead><tbody>
+      ${named.map((t) => `<tr><td>$${esc(t.ticker)}</td><td>${t.people}</td><td>${t.mentions}</td><td>${idCell(t)}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="note">Sorted by how many different people said it, never by how many posts. Fifty
+      posts from three accounts is a campaign, not interest. Tickers are not unique — where two
+      coins share one, it says so rather than picking the bigger one.</p>
+  </div>` : '';
+
+  const b = d.breadth;
+  const co = d.cohort;
+  const market = `<div class="card">
+    <div class="chead"><b>The market as a whole</b><span class="v">counted over coins the scanner looked at</span></div>
+    <div class="stats">
+      <div class="stat"><dt>Passed the last scan</dt><dd class="v">${d.funnel ? `${d.funnel.survivors} of ${d.funnel.universe}` : '—'}</dd></div>
+      <div class="stat"><dt>Coins up / down (24h)</dt><dd class="v">${b.n ? `${b.up} / ${b.down}` : '—'}</dd></div>
+      <div class="stat"><dt>Middle coin moved</dt><dd class="v">${b.median != null ? (b.median > 0 ? '+' : '') + b.median + '%' : '—'}</dd></div>
+      <div class="stat"><dt>Pool shrank since we found them</dt><dd class="v">${co.tracked >= 5 ? `${co.drained + co.halved} of ${co.tracked}` : 'not enough history'}</dd></div>
+    </div>
+    ${d.funnel && d.funnel.topRejects.length ? `<p class="note">Dropped for: ${d.funnel.topRejects.map(([r, n]) => `${esc(r)} (${n})`).join(', ')}.</p>` : ''}
+  </div>`;
+
+  const recent = (d.recent || []).length ? `<div class="card">
+    <div class="chead"><b>Coins the scanner found</b><span class="v">newest first — not ranked</span></div>
+    <table class="tbl"><thead><tr><th>Coin</th><th>Found</th><th>Liquidity</th><th>24h</th><th>Age</th></tr></thead><tbody>
+      ${d.recent.map((c) => `<tr>
+        <td>${esc(c.sym || '—')}</td>
+        <td>${ago(c.ts)}</td>
+        <td>${fmtUsd(c.liq)}</td>
+        <td>${c.chg24 != null ? `<span class="${c.chg24 >= 0 ? 'up' : 'down'}">${c.chg24 >= 0 ? '+' : ''}${Math.round(c.chg24)}%</span>` : '—'}</td>
+        <td>${c.ageH != null ? Math.round(c.ageH) + 'h' : '—'}</td>
+      </tr>`).join('')}
+    </tbody></table>
+    <p class="note">Ordered by when they were found. The 24h column is there to read, not to sort by.</p>
+  </div>` : '';
+
+  // ! shown high up, not buried: it changes how every social number for that coin should be read.
+  const col = Object.values(d.collisions || {});
+  const shared = col.length ? `<div class="card fail">
+    <div class="chead"><b>One of your coins shares its name</b></div>
+    ${col.map((c) => `<p class="sline">${c.of} different Solana coins use <b>$${esc(c.ticker)}</b>.
+      Yours is number ${c.rank} of them by how much money is in the pool${c.rivals && c.rivals[0]
+        ? `, behind ${esc(c.rivals[0].name || 'another coin')} at ${fmtUsd(c.rivals[0].liquidityUsd)}` : ''}.</p>
+      <p class="note">So a post saying "$${esc(c.ticker)}" is probably not about your coin. Posts are
+      now only counted for yours when they include the actual contract address. Anything matched on
+      the name alone is set aside instead.</p>`).join('')}
+  </div>` : '';
+
+  box.innerHTML = head + shared + market + filtered + mood + tickers + recent;
+}
+
 function switchView(v) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === v));
   $('#grid').hidden = v !== 'watch';
   $('#market').hidden = v !== 'market';
+  $('#sector').hidden = v !== 'sector';
   $('#journal').hidden = v !== 'journal';
   $('.search').style.display = v === 'watch' ? 'flex' : 'none';
   $('#alerts').style.display = v === 'watch' ? '' : 'none';
   if (v === 'market') loadMarket();
+  if (v === 'sector') loadSector();
   if (v === 'journal') loadJournal();
+}
+
+// The shared record is the only thing filling in while both laptops are closed. When it stops,
+// nothing in the app used to change -- every age on screen was of data fetched seconds earlier,
+// which is always fresh. This says out loud when the record has gone quiet.
+// Loaded once and reused: the answer changes about once a day.
+let collisionCache = null;
+async function loadCollisions() {
+  if (collisionCache) return collisionCache;
+  try { collisionCache = await window.mcii.tickerCollisions(); } catch { collisionCache = {}; }
+  return collisionCache;
+}
+
+async function renderCollectionHealth() {
+  let h;
+  try { h = await window.mcii.collectionHealth(); } catch { return; }
+  const box = $('#collhealth');
+  if (!h || h.state === 'ok') {
+    box.innerHTML = '';
+    if (h && h.lastTs) $('#stamp').title = 'Shared record last added to ' + ago(h.lastTs);
+    return;
+  }
+  const level = h.state === 'late' ? 'MED' : 'HIGH';
+  box.innerHTML = `<div class="alert ${level}">
+      <span class="as">RECORD</span>
+      <div><b>${esc(h.headline)}</b><span>${esc(h.detail)}</span></div>
+    </div>`;
 }
 
 function renderAlerts(tokens) {
@@ -414,6 +637,7 @@ function renderAlerts(tokens) {
 async function load() {
   $('#grid').innerHTML = '<div class="skel">READING CHAIN DATA…</div>';
   const tokens = await window.mcii.getTokens();
+  renderCollectionHealth();
   renderAlerts(tokens);
   render(tokens);
 }
@@ -422,17 +646,23 @@ async function search() {
   const q = $('#q').value.trim();
   if (!q) return;
   $('#results').innerHTML = '<div class="rhead">searching…</div>';
-  const rows = await window.mcii.search(q);
+  let rows = await window.mcii.search(q);
   if (!rows.length) { $('#results').innerHTML = '<div class="rhead">nothing found</div>'; return; }
+  // ! coins you already hold go to the top and are labelled. Searching "CATE" returns six coins
+  // and the biggest one is not yours -- picking by name is exactly how people buy the copy.
+  const mine = new Map((await window.mcii.getTokens().catch(() => [])).map((t) => [t.ca, t]));
+  rows = rows.slice().sort((a, b) => (mine.has(b.ca) ? 1 : 0) - (mine.has(a.ca) ? 1 : 0));
   const dupes = rows.filter((r) => r.symbol.toLowerCase() === rows[0].symbol.toLowerCase()).length;
   $('#results').innerHTML =
     (dupes > 1 ? `<div class="warnbar"><b>${dupes} different tokens share this ticker.</b>
-      Copycats deliberately reuse the name and logo of whatever is trending. Match the contract
-      address against your own wallet — never pick by name.</div>` : '') +
+      Copycats reuse the name and picture of whatever is doing well. Any coin you already hold is
+      marked <b>yours</b> and shown first. Otherwise check the last four characters of the ID code
+      against your wallet — the name alone tells you nothing.</div>` : '') +
     `<div class="rhead"><span>${rows.length} results — sorted by liquidity</span><span>click add to analyse</span></div>` +
     rows.map((r) => `<div class="rrow" data-ca="${r.ca}" data-sym="${esc(r.symbol)}">
-      <span class="rsym">${esc(r.symbol)}</span>
-      <span class="rnm">${esc(r.name)} <span class="chain">${esc(r.chain)}</span></span>
+      <span class="rsym">${esc(r.symbol)}${mine.has(r.ca) ? '<span class="yours">yours</span>' : ''}</span>
+      <span class="rnm">${esc(mine.get(r.ca)?.nick || r.name)} <span class="chain">${esc(r.chain)}</span>
+        <span class="tail">…${esc(String(r.ca).slice(-4))}</span></span>
       <span class="rn">${fmtUsd(r.marketCap)}<br><span style="color:var(--muted);font-size:10px">mkt cap</span></span>
       <span class="rn">${fmtUsd(r.liquidityUsd)}<br><span style="color:var(--muted);font-size:10px">liquidity</span></span>
       <span class="rn ${r.change24h >= 0 ? 'up' : 'down'}">${r.change24h != null ? r.change24h.toFixed(1) + '%' : '—'}</span>
@@ -500,7 +730,7 @@ window.mcii.onUpdateStatus(renderUpdateStatus);
 
 const shareBtn = $('#share');
 shareBtn.addEventListener('click', async () => {
-  const message = prompt('What did you change? (a few words)');
+  const message = await askText('What did you change?', { placeholder: 'a few words', ok: 'Save & share' });
   if (message === null) return;
   shareBtn.disabled = true;
   const original = shareBtn.textContent;

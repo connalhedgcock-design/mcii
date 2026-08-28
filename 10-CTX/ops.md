@@ -20,8 +20,21 @@ prio: high
 
 ## !! HOW I TALK TO CONNAL — non-negotiable
 ## ! REINFORCED 2026-08-28 — he asked AGAIN. I drifted back into jargon. this is now a standing failure of mine.
+## !! THIRD ASK, SAME DAY, 2026-08-28. I did it again within hours of writing the line above.
+##    what I actually sent: tables, headers, "contaminated", "regression guard", "query shape", "cashtag",
+##    "contract address", "null", "n=0". four long replies in a row. HE HAD TO ASK A THIRD TIME.
+##    ∴ this is not a preference I keep forgetting. it is a defect I keep re-introducing under the
+##    pressure of having done a lot of work and wanting to show it. THE WORK IS NOT THE REPLY.
+## - HARD SHAPE for every reply from now: a few sentences. no tables. at most one heading.
+##   what it means for him > what changed > the one thing to do. detail goes to 50-LOG, never the chat.
+## - test before sending: would I say this out loud to a friend with no coding or finance background?
+##   if a sentence needs a second read, rewrite it. if the reply needs scrolling, it is too long.
 - banned unless defined in the same sentence: ground truth | vendor index | RPC | fallback | graceful degradation
   | on-chain | adapter | pipeline | schema | throttle | quarantine | provenance | z-score | derivative
+  | ADDED 08-28 (all used on him): contaminated | regression guard | query shape | cashtag | contract address
+  | denominator | survivorship | lexicon | attribution | confidence tier | null | n=0 | sweep | funnel
+- plain swaps that work: contract address > "the coin's long ID code" | cashtag > "the $NAME people type"
+  | contaminated > "mixed up with other coins" | regression guard > "a check so it can't come back"
 - lead with WHAT IT MEANS FOR HIM, never with what I built or how.
 - shorter. a 400-word explanation is a failure even if every word is simple.
 - analogy first when the idea is unfamiliar (bank accounts / customers worked well for the holder-count fix).
@@ -36,6 +49,16 @@ prio: high
 - the financial analysis. same rigour. the "undervalued doesn't apply" pushback, the retracted correlation claim, the base rates, the falsifiers.
 - ∵ that layer is what protects their money. softening it to be friendlier makes it worthless. see [[mandate]].
 - simplify the DELIVERY, never the CONTENT.
+
+## !! WHICH COIN HE MEANS — never guess, 2026-08-28
+- six solana coins are called CATE. his is 3rd by pool size. "CATE" in a sentence is AMBIGUOUS.
+- ! resolution order, every time he names a coin: 1) `data/watchlist.json` — nick, then sym, then ca.
+  that file is the shared list and is the authority on which coin is HIS. 2) if it is not there and
+  the name is shared by several live coins, ASK. do not pick the biggest, do not pick the newest.
+- ✓ coins now carry a NICK he sets himself + the last 4 chars of the address shown beside the name.
+  a nick is unique to his list ∴ it is the safest thing for either of us to say out loud.
+- ! in the app: search results put coins he already holds first and label them `yours`.
+  ∵ searching a ticker returns the copies too, and the biggest result is usually not his.
 
 ## SHARED FAILURE MODES
 - ! they will trust a number because it's on a dashboard > every score ships w/ reliability flag + n + fetch time.

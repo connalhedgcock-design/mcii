@@ -148,4 +148,4 @@ function prune(keepMs = 7 * 864e5) {
   } catch { return 0; }
 }
 
-module.exports = { init, record, readObs, trajectories, risers, prune };
+module.exports = { init, record, readObs, trajectories, risers, prune, tally };

@@ -1,0 +1,34 @@
+{
+  "checkedAt": 1787937142306,
+  "tickers": {
+    "CATE": {
+      "ticker": "CATE",
+      "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
+      "sym": "CATE",
+      "rivals": [
+        {
+          "ca": "8xR7tEjV4bgyh7G3HaQ1z8nFDay5GKxJqcdRETvpZTb7",
+          "name": "Catecoin",
+          "liquidityUsd": 248347633
+        },
+        {
+          "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
+          "name": "Catecoin (cate.meme)",
+          "liquidityUsd": 73764282
+        },
+        {
+          "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
+          "name": "CATE APE",
+          "liquidityUsd": 1477202
+        },
+        {
+          "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
+          "name": "CATE APE",
+          "liquidityUsd": 1432737
+        }
+      ],
+      "rank": 3,
+      "of": 6
+    }
+  }
+}

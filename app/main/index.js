@@ -14,6 +14,8 @@ const journal = require('./journal');
 const updater = require('./updater');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
+const collection = require('../shared/collection');
+const sector = require('../shared/sector');
 
 // Seeds only. The watchlist is user-managed and lives in the sidecar -- any Solana token can be
 // added by address or by search. Nothing about this app is specific to these two.
@@ -33,6 +35,10 @@ const save = () => { try { fs.writeFileSync(SIDECAR + '.tmp', JSON.stringify(sto
 // Second argument points at the repo, so the app opens with the shared cloud history rather
 // than only what this particular machine happened to observe.
 history.init(app.getPath('userData'), path.join(__dirname, '..', '..'));
+// Publish the watchlist on startup too, so a machine that already had coins does not have to
+// add one before the cloud job learns about them. (Declaration is hoisted; it only touches
+// `store`, which is already loaded above.)
+syncWatchlist();
 scanstore.init(app.getPath('userData'));
 journal.init(path.join(__dirname, '..', '..'));
 
@@ -96,6 +102,7 @@ async function loadToken(entry) {
 
   const position = store.positions[ca] || null;
   out.position = position;
+  out.nick = (store.watchlist.find((w) => w.ca === ca) || {}).nick || null;
 
   // Hour-on-hour holder change, computed on chain by the cloud collector. Read from the shared
   // record rather than recomputed here -- the query costs ~60MB and belongs on the server, not on
@@ -151,21 +158,102 @@ ipcMain.handle('tokens:search', async (_e, q) => {
   }
   return searchTokens(q);
 });
+// !! THE WATCHLIST HAD TO BE WRITTEN INTO THE REPO, AND WAS NOT.
+// The cloud collector reads data/watchlist.json and nothing ever wrote that file, so it fell
+// back to two hardcoded coins forever. Anything either of them added in the app was collected
+// only while that laptop happened to be open, and vanished from the shared record the moment it
+// closed -- silently, because a coin with no rows looks exactly like a coin nobody talks about.
+//
+// Written as a UNION with whatever is already in the file: the other machine's coins must survive
+// this one saving. Removal is the one case that takes a coin out, because that is a stated
+// intention rather than an absence.
+const WATCHLIST_FILE = path.join(__dirname, '..', '..', 'data', 'watchlist.json');
+function syncWatchlist({ removed = null } = {}) {
+  let shared = [];
+  try { shared = JSON.parse(fs.readFileSync(WATCHLIST_FILE, 'utf8')); } catch {}
+  if (!Array.isArray(shared)) shared = [];
+  const by = new Map(shared.filter((w) => w && w.ca).map((w) => [w.ca, w]));
+  for (const w of store.watchlist) if (w && w.ca) by.set(w.ca, { ca: w.ca, sym: w.sym, nick: w.nick || null });
+  if (removed) by.delete(removed);
+  const out = [...by.values()];
+  try {
+    fs.mkdirSync(path.dirname(WATCHLIST_FILE), { recursive: true });
+    fs.writeFileSync(WATCHLIST_FILE, JSON.stringify(out, null, 2) + '\n');
+  } catch {}
+  return out;
+}
+
 ipcMain.handle('watchlist:add', async (_e, { ca, sym }) => {
   if (!store.watchlist.some((w) => w.ca === ca)) store.watchlist.push({ ca, sym });
   save();
+  syncWatchlist();
   if (live) live.watch(store.watchlist);
   const r = await loadToken({ ca, sym });
   progress(null);
   return r;
 });
+// A name you choose for a coin, so two coins called the same thing stop being the same thing.
+// Stored on the shared list, so both machines -- and anyone reading the record later -- know
+// which coin "the small cate" refers to without having to compare addresses by eye.
+ipcMain.handle('watchlist:rename', (_e, { ca, nick }) => {
+  const e = store.watchlist.find((w) => w.ca === ca);
+  if (e) { e.nick = String(nick || '').trim().slice(0, 24) || null; save(); syncWatchlist(); }
+  return store.watchlist;
+});
+
 ipcMain.handle('watchlist:remove', (_e, ca) => {
   store.watchlist = store.watchlist.filter((w) => w.ca !== ca);
   delete store.tokens[ca];
   save();
+  syncWatchlist({ removed: ca });
   if (live) live.watch(store.watchlist);
   return store.watchlist;
 });
+// How long the shared record has been quiet. Asked for by the window rather than pushed, so a
+// machine that has been closed for a week reports the truth the moment it opens.
+ipcMain.handle('collection:health', () =>
+  collection.health(path.join(__dirname, '..', '..', 'data')));
+
+
+// The sector read. Everything here is computed from files already on disk -- no network call, so
+// opening the tab costs nothing and works on a plane. What is missing is reported as missing.
+const readJsonl = (name) => {
+  try {
+    return fs.readFileSync(path.join(__dirname, '..', '..', 'data', name), 'utf8')
+      .trim().split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(Boolean);
+  } catch { return []; }
+};
+
+// Tickers of theirs that other coins also use. Read from the shared record so both machines see
+// the same answer, and so the app does not have to make network calls to find out.
+function tickerCollisions() {
+  try {
+    const d = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'ticker-collisions.json'), 'utf8'));
+    return d.tickers || {};
+  } catch { return {}; }
+}
+ipcMain.handle('tickers:collisions', () => tickerCollisions());
+
+ipcMain.handle('sector:latest', () => {
+  const social = readJsonl('sector.jsonl').filter((r) => r.kind === 'sector').pop() || null;
+  const obs = readJsonl('candidates.jsonl');
+  const scans = readJsonl('scans.jsonl');
+  const b = sector.breadth(obs);
+  const co = sector.cohort(obs);
+  const fun = sector.funnel(scans);
+  const tk = social ? (social.tickers || []) : [];
+  return {
+    social, breadth: b, cohort: co, funnel: fun, tickers: tk,
+    collisions: tickerCollisions(),
+    // The newest coins the funnel let through, newest first. Deliberately NOT sorted by how much
+    // they moved -- that ordering is what makes a screen tell you to chase things (D-43).
+    recent: sector.latestPerToken(obs).sort((a, b2) => b2.ts - a.ts).slice(0, 12),
+    ...sector.synthesize({ breadth: b, cohort: co, funnel: fun, social, tickers: tk }),
+    collectedAt: social ? social.ts : null,
+  };
+});
+
 ipcMain.handle('discover:latest', () => discoverLatest());
 ipcMain.handle('alerts:all', () => {
   const all = [];

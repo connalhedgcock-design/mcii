@@ -85,3 +85,36 @@ prio: high
 | D-57 | a holder SURGE is MED not good news — airdrops and wash distribution look identical to buying. | 08-28 | ! never frame a surge as demand |
 | D-58 | ! explanations to connal must be plainer AND shorter. banned-jargon list in [[ops]]. he has asked twice; treat a third as a serious failure. | 08-28 | ! never relax. analysis rigour is untouched — simplify DELIVERY only. |
 | D-59 | store + show the 5 most-seen posts with every reading. a score you cannot check an example against is unverifiable. | 08-28 | — |
+| D-60 | ! the shared record's AGE is displayed in the app at all times. a collector whose age nothing shows is indistinguishable from a broken one — fifth instance. | 08-28 | ! permanent |
+| D-61 | github's scheduler is treated as best-effort, NEVER as a guarantee. D-40/D-41 stand, but "it survives sleeping laptops" is only claimable while the staleness display is green. | 08-28 | cron proves reliable over 2 weeks, or collection moves to a trigger we control |
+| D-62 | sector view answers "what kind of market is this", never "what should I get into". tickers rank by DISTINCT PEOPLE; coins list newest-first, never by price move. | 08-28 | ! never — this is D-43 applied to the new screen |
+| D-63 | ! any rate computed from the scan record must state what its denominator EXCLUDES. survivors-only storage made a "survival rate" read 100%. | 08-28 | ! permanent |
+| D-64 | per-coin social collection outranks the sector read for budget. sector stops below a $2 reserve. | 08-28 | budget changes |
+| D-65 | ! the watchlist is not free: each coin costs ~$4.32/mo in social collection. a 3rd coin breaks the $12 cap. must be surfaced before anyone adds one. | 08-28 | cap or cadence changes |
+| D-66 | ! the app WRITES data/watchlist.json into the repo. the cloud collector had been running on two hardcoded coins ∵ nothing ever wrote that file. union on save, so one machine never deletes the other's coins. | 08-28 | — |
+| D-67 | X collection is ONE broad sweep, sorted afterwards — never one search per coin. cost must not scale with the watchlist. | 08-28 | a per-coin source becomes free |
+| D-68 | leftover budget is a pot DIVIDED across the watchlist. adding a coin costs depth, never money. supersedes D-65's framing. | 08-28 | budget changes |
+| D-69 | ! the filter sorts, it never deletes. what was set aside is stored with its reason and shown behind a fold. | 08-28 | ! permanent |
+| D-70 | ! bad news about a coin they hold outranks everything on every screen, including their own coin's good news. | 08-28 | ! never |
+
+## SUPERSEDED (cont.)
+- **D-65** watchlist not free, 3rd coin breaks the cap. > superseded by D-67/D-68 same day.
+  trigger: the operator asked for every coin covered, which forced the question of why cost scaled at all.
+  ! lesson: I reported a constraint as a fact when it was a property of MY design. before telling them
+  something cannot be afforded, check whether the shape causing the cost is load-bearing. it was not.
+| D-71 | coin attribution is CONFIDENCE-TIERED: address=certain, cashtag=strong, bare ticker+context=probable, name=possible. never a plain yes. | 08-28 | — |
+| D-72 | ! a bare ticker only matches inside a post about trading, and never if it is an ordinary english word. their scan record contains a coin called "fone". | 08-28 | ! permanent |
+| D-73 | ! where several coins share a ticker, a cashtag stops being evidence. address-only searching, downgraded confidence, and it is stated on screen. CATE is 3rd of 6. | 08-28 | ! permanent |
+| D-74 | a ticker >=3 different people used that we do not know is looked up and resolved to a real address. chatter that cannot be tied to a coin is not actionable. | 08-28 | — |
+| D-75 | ! identify() searches the BARE ticker. searching "$X" returns coins whose symbol is literally "$X" and yields a clean empty list — an error shaped like an answer. | 08-28 | ! permanent |
+| D-76 | CATE's 22 contaminated social readings DELETED (4 shared + 18 local + 131 seen-ids), on operator instruction. I recommended quarantine; overruled; executed. | 08-28 | — |
+| D-77 | ! before deleting any history, verify the empty case fails loud. a wiped record that computes from n=0 is worse than the bad data it replaced. checked: both indexes return null with a reason. | 08-28 | ! permanent |
+| D-78 | ! THIRD ask for plainer language, 08-28. every reply: a few sentences, no tables, at most one heading, ends with the one thing to do. detail goes to 50-LOG, not the chat. | 08-28 | ! never relax. supersedes D-58's framing — that one asked me to be plainer and I did not hold it. |
+| D-79 | ! when he names a coin, resolve against data/watchlist.json (nick > sym > address). if it is not there and the name is shared, ASK. never pick the biggest match. | 08-28 | ! permanent |
+| D-80 | coins carry a user-set NICK + the last 4 of the address on screen. search marks coins he already holds and shows them first. | 08-28 | — |
+| D-81 | X searching is NARROW AND DEEP: complete coverage of coins dying (~44/hr, $4.71/mo), not a sample of the firehose (~351/hr for one phrase, 68% adverts, $37/mo). | 08-28 | operator asks for breadth again knowing the price |
+| D-82 | ! searchPosts paginates and returns `truncated`. one page is 20 posts; a count that hit a ceiling is a FLOOR and must never read as "that was all there was". closes D-31. | 08-28 | — |
+| D-83 | each search carries its own depth and cadence, stamped in data/query-runs.json. "every 6 hours" means wall clock, never 6 firings of an unreliable schedule. | 08-28 | — |
+| D-84 | ! never window.prompt() — it THROWS in electron and kills the handler silently. use askText(). pinned by a source test. | 08-28 | ! permanent |
+| D-85 | ! any control whose failure looks identical to its idle state must be verified INSIDE a running electron window, not by reading the code. eighth instance of a silent failure in this project. | 08-28 | ! permanent |
+

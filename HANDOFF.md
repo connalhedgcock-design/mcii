@@ -75,14 +75,22 @@ Node 26.7 via Homebrew. **103 tests** — `npm test`.
   price change**
 - **Journal** — per-person forecast log scored by Brier, positions written as vault markdown
 
-**Running continuously:**
-- GitHub Actions, hourly — market, social, holder count from chain, full market scan. Commits
-  results into `data/`. This is what survives laptops sleeping.
-- Local scanner daemon, every 5 min, stores every scan
+**Supposed to run continuously — verify before believing it:**
+- GitHub Actions, meant to be hourly — market, social, holder count from chain, full market scan.
+  Commits results into `data/`. This is the part that is supposed to survive laptops sleeping.
+  **As of 2026-08-28 it had never once fired on schedule** — 27 hours, 0 scheduled runs, every
+  entry in the record came from a run someone started by hand. Cron moved from `:07` to `:37`;
+  unproven. Check with `gh run list` before repeating the claim that this runs hourly.
+- Local scanner daemon, every 5 min, stores every scan — dies when the laptop sleeps
 - The app itself when open: 15s price polling, instant alerts
 
-**Repo:** `github.com/connalhedgcock-design/mcii` — **public** (needed for reliable scheduling;
-private repos silently never fired). Austin has write access. Personal email scrubbed from history.
+The app now shows how long the shared record has been quiet, at the top of every view. Green means
+collection is alive; red means the history has a hole. That banner is the only trustworthy answer
+to "is this running?" — see `50-LOG/2026-08-28c-cron-never-fired.md`.
+
+**Repo:** `github.com/connalhedgcock-design/mcii` — **public**. It was made public on the theory
+that private repos never fire scheduled jobs; that theory was wrong, since it still did not fire
+once public. Austin has write access. Personal email scrubbed from history.
 
 **Data sources, all free except one:**
 DexScreener (price, liquidity, flow) · GeckoTerminal (price history) · RugCheck (safety) ·

@@ -43,23 +43,64 @@ async function searchWindow(query, fromMs, toMs, { maxPosts = 40 } = {}) {
   return { posts, spend: r.spend, requested: r.posts.length, kept: posts.length };
 }
 
-async function searchPosts(query, { maxPosts = 100 } = {}) {
+// One page holds 20 posts, whatever you ask for. Measured, not assumed: requesting 200 returned
+// 20, and those 20 covered 4.3 minutes of X -- about 276 posts an hour for one phrase alone.
+//
+// So depth means following the cursor. Each page costs money, so the loop stops on whichever
+// comes first: enough posts, no next page, the page limit, or the budget. When it stops with
+// more available the result says `truncated`, because a count that hit a ceiling is a floor and
+// must never be read as "this is all there was" (D-31).
+const PAGE_SIZE = 20;
+
+async function searchPosts(query, { maxPosts = 100, maxPages = 50 } = {}) {
   if (!apiKey) throw new Error('no X API key configured');
-  const b = budget();
-  if (b.remainingUsd <= 0) throw new Error('monthly X budget reached — paused until next month');
-  const want = Math.min(maxPosts, b.postsRemaining);
-  if (want < 1) throw new Error('monthly X budget reached — paused until next month');
+  const out = [];
+  const seen = new Set();
+  let cursor = null, pages = 0, hasMore = false, stopped = null;
 
-  const url = `${BASE}/twitter/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=Latest`;
-  const d = await getJSON(url, { headers: { 'X-API-Key': apiKey } });
-  const raw = (d && (d.tweets || d.data)) || [];
-  const posts = raw.slice(0, want).map(normalize)
-    // Defensive: never let a malformed query's results through silently.
-    .filter((p) => p.text && !/\$undefined/i.test(p.text));
+  while (out.length < maxPosts && pages < maxPages) {
+    const b = budget();
+    if (b.remainingUsd <= 0) { stopped = 'monthly X budget reached'; break; }
+    const room = Math.min(maxPosts - out.length, b.postsRemaining);
+    if (room < 1) { stopped = 'monthly X budget reached'; break; }
 
-  spend.posts += posts.length;
-  spend.usd = +(spend.usd + posts.length * COST_PER_POST).toFixed(6);
-  return { posts, spend: budget() };
+    const url = `${BASE}/twitter/tweet/advanced_search?query=${encodeURIComponent(query)}` +
+                `&queryType=Latest${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+    let d;
+    try { d = await getJSON(url, { headers: { 'X-API-Key': apiKey } }); }
+    catch (e) {
+      // A page that fails mid-walk keeps the pages already collected -- they are real posts that
+      // were really paid for. It is recorded as truncated, never as a complete result.
+      if (!out.length) throw e;
+      stopped = e.message; hasMore = true; break;
+    }
+    pages++;
+
+    const raw = (d && (d.tweets || d.data)) || [];
+    const posts = raw.slice(0, room).map(normalize)
+      // Defensive: never let a malformed query's results through silently.
+      .filter((p) => p.text && !/\$undefined/i.test(p.text));
+
+    // Paid for on arrival, whether or not it is a duplicate of an earlier page.
+    spend.posts += posts.length;
+    spend.usd = +(spend.usd + posts.length * COST_PER_POST).toFixed(6);
+
+    for (const p of posts) if (!seen.has(p.id)) { seen.add(p.id); out.push(p); }
+
+    hasMore = !!(d && d.has_next_page && d.next_cursor);
+    cursor = d && d.next_cursor;
+    if (!hasMore) break;
+    if (raw.length === 0) break;
+    await new Promise((r) => setTimeout(r, 350));
+  }
+  if (!stopped && hasMore && out.length >= maxPosts) stopped = 'asked-for limit reached';
+  if (!stopped && pages >= maxPages && hasMore) stopped = 'page limit reached';
+
+  return {
+    posts: out, spend: budget(), pages,
+    // ! a floor, not a count. Anything reading this must be able to tell the difference.
+    truncated: !!(hasMore && stopped), stoppedBecause: stopped,
+  };
 }
 
 // Normalised into exactly the shape shared/hype.js expects, so the scoring layer never learns
@@ -121,4 +162,31 @@ function queriesFor(token) {
   return qs;
 }
 
-module.exports = { configure, searchPosts, searchWindow, queriesFor, budget, loadSpend, COST_PER_POST };
+module.exports = { configure, searchPosts, searchWindow, queriesFor, budget, loadSpend, COST_PER_POST, PAGE_SIZE };
+
+// What we search for, and why these and nothing else.
+//
+// ! CHANGED 2026-08-28 after measuring the alternative. The old list led with "solana memecoin"
+// and "pump.fun", which is the firehose: ~351 posts an hour for the first phrase alone, and a
+// sample that came back 68% people advertising their own calls ("5x up from my call", "162x
+// profit", "Dm for entry"). At $0.00015 a post the whole feed is roughly half a million posts a
+// month and the budget buys eighty thousand, so wide coverage was never on the table -- we were
+// paying for a thin, random slice of advertising.
+//
+// So the money goes to the posts that change what someone does instead. Measured live:
+//   coins dying  ~44 posts/hour  -> $4.71/month to capture EVERY ONE. complete coverage, affordable.
+//   market mood  ~0 posts/hour   -> costs nothing, occasionally says something.
+// Their own coins are searched separately, by address.
+//
+// ! the point is completeness on a narrow thing rather than a sample of a wide one. A sample of
+// rug reports tells you nothing; all of them is a base rate.
+const SECTOR_QUERIES = [
+  { q: '("rug" OR "rugged" OR "rug pull" OR "pulled liquidity" OR "cant sell" OR "can\'t sell" OR "honeypot" OR "exit scam") (solana OR sol OR memecoin OR pumpfun OR "pump.fun") -is:retweet',
+    kind: 'dying', depth: 50, everyHours: 1 },
+  { q: '(solana OR memecoin) ("dried up" OR "no volume" OR "so quiet" OR "everyone left" OR "dead here" OR "liquidity gone" OR "no liquidity") -is:retweet',
+    kind: 'mood', depth: 20, everyHours: 6 },
+];
+function sectorQueries() { return SECTOR_QUERIES.map((q) => ({ ...q })); }
+
+module.exports.sectorQueries = sectorQueries;
+
