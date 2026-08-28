@@ -210,6 +210,7 @@
   },
   "active": "cc861da4c5940d23",
   "lastOpenFiles": [
+    "make-launcher.sh",
     "50-LOG/2026-08-27c-ui-and-journal.md",
     "app/test/journal.test.js",
     "app/main/journal.js",
@@ -244,7 +245,6 @@
     "app/node_modules/undici/docs/docs/best-practices/undici-vs-builtin-fetch.md",
     "app/node_modules/undici/docs/docs/best-practices/proxy.md",
     "app/node_modules/undici/docs/docs/best-practices/mocking-request.md",
-    "app/node_modules/undici/docs/docs/best-practices/crawling.md",
-    "app/node_modules/undici/docs/docs/best-practices/client-certificate.md"
+    "app/node_modules/undici/docs/docs/best-practices/crawling.md"
   ]
 }

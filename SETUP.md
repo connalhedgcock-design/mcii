@@ -111,3 +111,13 @@ Run this and send the output to Connal:
 ```
 cd ~/Documents/MCII/app && node --version && npm --version && git log --oneline -1
 ```
+
+## Opening the app without the terminal
+
+Run this once:
+
+    ./make-launcher.sh
+
+That puts **MCII** in your Applications folder. Double-click it, or drag it onto the Dock and
+click it there. It starts the same app `npm start` does, and clicking it again brings the existing
+window forward rather than opening a second copy.
