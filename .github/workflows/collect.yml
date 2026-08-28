@@ -12,6 +12,10 @@ on:
     # has to be triggered by something we control.
     - cron: '37 * * * *'
   workflow_dispatch:        # lets you run it by hand from the Actions tab
+    inputs:
+      hours:
+        description: 'How many hourly collections this run should do (max 6)'
+        default: '6'
 
 # Only one collection at a time. Two runs appending to the same files would interleave lines.
 concurrency:
@@ -21,7 +25,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 355     # just under GitHub's six-hour ceiling
     permissions:
       contents: write       # needed to commit the collected data back
     steps:
@@ -31,28 +35,30 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Collect
+      # ! ONE TRIGGER BUYS SIX HOURS, NOT ONE.
+      #
+      # GitHub's scheduler fired this zero times out of twenty-seven, so the design stopped
+      # depending on it being reliable. Instead of collecting once and exiting, the job stays up
+      # and collects every hour for six hours -- GitHub's maximum job length -- committing after
+      # each pass. A single firing, from the schedule or from a person clicking Run workflow,
+      # now covers a whole evening rather than one hour.
+      #
+      # This does not make the timer work. It makes the timer matter six times less.
+      - name: Collect, hourly, for as long as the job may live
         working-directory: app
         env:
           TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
           X_MONTHLY_CAP_USD: '12'
-        run: node main/cloud-collect.js
-
-      - name: Commit results
+          PASSES: ${{ github.event.inputs.hours || '6' }}
         run: |
-          git config user.name  "mcii-collector"
-          git config user.email "collector@users.noreply.github.com"
-          git add data/
-          if git diff --staged --quiet; then
-            echo "nothing collected this run"
-            exit 0
-          fi
-          git commit -m "data: collection $(date -u '+%Y-%m-%d %H:%M UTC')"
-          # Another run may have pushed while this one was collecting. Rebase rather than force:
-          # every write here is an append, so rebasing preserves both sets of rows.
-          for i in 1 2 3; do
-            git pull --rebase --autostash && git push && exit 0
-            sleep 5
+          for i in $(seq 1 "$PASSES"); do
+            echo "=== pass $i of $PASSES ==="
+            node main/cloud-collect.js || echo "pass $i failed, carrying on"
+            cd .. && git add data/ && \
+              git -c user.name=mcii-collector -c user.email=collector@users.noreply.github.com \
+                  commit -q -m "data: collection $(date -u '+%Y-%m-%d %H:%M UTC')" 2>/dev/null && \
+              (git pull -q --rebase --autostash && git push -q) || echo "nothing new to commit"
+            cd app
+            # Skip the wait after the final pass so the job ends rather than idling for an hour.
+            [ "$i" -lt "$PASSES" ] && sleep 3600 || true
           done
-          echo "could not push after 3 attempts"
-          exit 1
