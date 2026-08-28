@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('mcii', {
   onProgress: (cb) => ipcRenderer.on('progress', (_e, m) => cb(m)),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   applyUpdate: () => ipcRenderer.invoke('update:apply'),
+  shareChanges: (message) => ipcRenderer.invoke('update:share', message),
   restartApp: () => ipcRenderer.invoke('update:restart'),
   onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, r) => cb(r)),
 });

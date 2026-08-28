@@ -494,6 +494,35 @@ updateBtn.addEventListener('click', async () => {
 });
 window.mcii.onUpdateStatus(renderUpdateStatus);
 
+const shareBtn = $('#share');
+shareBtn.addEventListener('click', async () => {
+  const message = prompt('What did you change? (a few words)');
+  if (message === null) return;
+  shareBtn.disabled = true;
+  const original = shareBtn.textContent;
+  shareBtn.textContent = 'Saving & sharing…';
+  const res = await window.mcii.shareChanges(message);
+  shareBtn.disabled = false;
+  shareBtn.textContent = original;
+  if (!res.ok) {
+    const msgs = {
+      'no-message': 'You have changes to save — type a few words describing them and try again.',
+      'conflict': 'You and Connal both changed the same part of a file. Your work is saved safely '
+        + 'on this computer, but not shared yet. Talk to Connal about which version should win, '
+        + 'then try again.',
+      'push-failed': 'Could not upload your changes' + (res.detail ? ': ' + res.detail : '') + '.',
+    };
+    alert(msgs[res.reason] || 'Something went wrong sharing your changes.');
+    return;
+  }
+  if (res.ranNpmInstall && confirm('Shared. Connal had changes that need a restart to fully take effect — restart now?')) {
+    window.mcii.restartApp();
+    return;
+  }
+  alert(res.saved ? 'Saved and shared with Connal.' : 'Nothing of yours to save — already in sync.');
+  renderUpdateStatus(await window.mcii.checkForUpdates());
+});
+
 window.mcii.onRefreshed(() => load());
 
 // --- live updates -----------------------------------------------------------

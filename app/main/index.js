@@ -236,6 +236,7 @@ ipcMain.handle('shell:open', (_e, url) => { if (/^https:\/\//.test(url)) shell.o
 ipcMain.handle('update:check', () => updater.checkForUpdates());
 ipcMain.handle('update:apply', () => updater.applyUpdate());
 ipcMain.handle('update:restart', () => { app.relaunch(); app.exit(0); });
+ipcMain.handle('update:share', (_e, message) => updater.shareChanges(message));
 
 // Silent background check so the button shows a badge without the person having to remember to
 // click it. Never applies anything on its own -- pulling code out from under a running app would

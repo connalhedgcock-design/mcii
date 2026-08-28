@@ -60,4 +60,38 @@ async function applyUpdate() {
   return { ok: true, ranNpmInstall: needsInstall };
 }
 
-module.exports = { checkForUpdates, applyUpdate };
+// Saves any edits here (needs a description), lines them up after whatever Connal has already
+// shared, and uploads. Mirrors share.sh exactly, so the two stay interchangeable -- someone who
+// prefers Terminal can keep using share.sh and this button without the two ever disagreeing.
+async function shareChanges(message) {
+  const status = await git(['status', '--porcelain']);
+  const hadLocalChanges = status.length > 0;
+  if (hadLocalChanges) {
+    if (!message || !message.trim()) return { ok: false, reason: 'no-message' };
+    await git(['add', '-A']);
+    await git(['commit', '-m', message.trim()]);
+  }
+
+  const before = await git(['rev-parse', 'HEAD']);
+  try {
+    await git(['pull', '--rebase', 'origin', 'main']);
+  } catch (e) {
+    // Your snapshot is still safe in local history -- only the rebase attempt is undone.
+    try { await git(['rebase', '--abort']); } catch {}
+    return { ok: false, reason: 'conflict' };
+  }
+  const after = await git(['rev-parse', 'HEAD']);
+
+  const changed = before === after ? '' : await git(['diff', '--name-only', before, after]);
+  const needsInstall = changed.split('\n').some((f) => /^app\/package(-lock)?\.json$/.test(f));
+  if (needsInstall) await execFileP('npm', ['install'], { cwd: APP_DIR, timeout: 120000 });
+
+  try {
+    await git(['push', 'origin', 'main']);
+  } catch (e) {
+    return { ok: false, reason: 'push-failed', detail: e.message.split('\n')[0] };
+  }
+  return { ok: true, saved: hadLocalChanges, ranNpmInstall: needsInstall };
+}
+
+module.exports = { checkForUpdates, applyUpdate, shareChanges };
