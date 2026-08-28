@@ -22,5 +22,13 @@ check('naming a coin uses it', /askText\('What do you want to call/.test(code));
 // alert and confirm DO work in Electron and are left alone -- verified, not assumed.
 check('alert is still used for results', /alert\(/.test(code));
 
+// ! the tab panels are .grid, which sets display:flex, and an explicit display in the stylesheet
+// beats the browser's built-in [hidden]{display:none}. Without an override every panel stayed on
+// screen at once, stacked -- clicking Market appended it BELOW the watchlist instead of replacing
+// it, which reads as the tab doing nothing.
+const css = fs.readFileSync(path.join(process.cwd(), 'renderer/style.css'), 'utf8');
+check('hidden panels are actually hidden', /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(css),
+  '(.grid sets display:flex, which beats the browser default)');
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

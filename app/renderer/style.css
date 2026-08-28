@@ -315,3 +315,10 @@ a{color:var(--accent); cursor:pointer}
   color:var(--ink);font-family:inherit;font-size:14px}
 .askbox input:focus{outline:none;border-color:var(--accent)}
 .askbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+/* ! `hidden` does nothing on these panels without this. The tab panels are .grid, which sets
+   display:flex, and an explicit display in the stylesheet beats the browser's built-in
+   [hidden]{display:none}. So every panel was always on screen, stacked on top of each other:
+   clicking Market appended the market below the watchlist rather than replacing it, which looks
+   exactly like the tab not working. */
+[hidden]{display:none !important}
