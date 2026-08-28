@@ -11,3 +11,9 @@ dist/
 # rebuildable. Only the hourly cloud record is shared.
 app/sidecar/
 *.local.jsonl
+
+# Obsidian's per-person UI state -- which tabs are open, cursor position. Changes on every
+# interaction with the vault regardless of whether any file content changed, which made the repo
+# look "dirty" at random moments that had nothing to do with an actual edit.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
