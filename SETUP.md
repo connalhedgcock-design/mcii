@@ -79,6 +79,20 @@ cd ~/Documents/MCII && git pull
 
 Do this whenever you open the app. Everything else happens by itself.
 
+## Sharing code changes with each other
+
+If you edit any of the code (not just data), use `share.sh` instead of `git pull` on its own.
+It saves your changes, grabs the other person's changes, and uploads yours — in the right
+order so nothing gets lost.
+
+```
+cd ~/Documents/MCII && ./share.sh "a few words about what you changed"
+```
+
+Run it once when you're done making changes for the moment. If it prints a message about a
+conflict, stop — that means you both changed the same lines of the same file. Don't run it
+again; just tell the other person and sort out which version should win before continuing.
+
 ## Things worth knowing
 
 **You do not need any API keys.** Everything the app reads live is free, and the paid part
