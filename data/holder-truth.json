@@ -1,47 +1,47 @@
 {
-  "checkedAt": 1787939360122,
+  "checkedAt": 1787958462506,
   "tokens": {
     "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
       "sym": "CATE",
-      "holders": 116162,
-      "tokenAccounts": 258962,
-      "emptyAccounts": 142800,
+      "holders": 115952,
+      "tokenAccounts": 259585,
+      "emptyAccounts": 143633,
       "top1Pct": 2.8,
-      "top10Pct": 13.98,
-      "top100Pct": 39.82,
+      "top10Pct": 14.18,
+      "top100Pct": 39.88,
       "program": "token-2022",
       "source": "onchain",
-      "fetchedAt": 1787939362809,
-      "jupiter": 116002,
-      "driftPct": -0.13773867529829031
+      "fetchedAt": 1787958465589,
+      "jupiter": 115791,
+      "driftPct": -0.13885055885193873
     },
     "6oGuFDbEeaSzTcvrmmd2MqfNYwHKXFoN7regcR22pump": {
       "sym": "NEEGY",
-      "holders": 5832,
-      "tokenAccounts": 22818,
-      "emptyAccounts": 16986,
-      "top1Pct": 11.95,
-      "top10Pct": 30.28,
-      "top100Pct": 75.35,
+      "holders": 5836,
+      "tokenAccounts": 22793,
+      "emptyAccounts": 16957,
+      "top1Pct": 12.63,
+      "top10Pct": 30.96,
+      "top100Pct": 74.89,
       "program": "token-2022",
       "source": "onchain",
-      "fetchedAt": 1787939363257,
-      "jupiter": 5823,
-      "driftPct": -0.15432098765432098
+      "fetchedAt": 1787958466025,
+      "jupiter": 5827,
+      "driftPct": -0.15421521590130224
     },
     "GNGhPhcLt5HJ6WjUHQSYoY3KhBFsksxu6FpvLpCFpump": {
       "sym": "invest",
-      "holders": 3860,
-      "tokenAccounts": 4142,
-      "emptyAccounts": 282,
-      "top1Pct": 8.59,
-      "top10Pct": 12.13,
-      "top100Pct": 30.89,
+      "holders": 4844,
+      "tokenAccounts": 5223,
+      "emptyAccounts": 379,
+      "top1Pct": 15.05,
+      "top10Pct": 20.01,
+      "top100Pct": 41.29,
       "program": "token-2022",
       "source": "onchain",
-      "fetchedAt": 1787939363520,
-      "jupiter": 3863,
-      "driftPct": 0.07772020725388601
+      "fetchedAt": 1787958466248,
+      "jupiter": 4843,
+      "driftPct": -0.020644095788604457
     }
   }
 }
