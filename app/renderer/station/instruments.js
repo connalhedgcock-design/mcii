@@ -154,10 +154,12 @@ function odo(snap) {
   // The tape: where this sits against the deepest single pool.
   const max = Math.max(...t.map((x) => x.market.totalLiquidityUsd || 0), 1)
   const offset = Math.round((0.5 - fraction(total / t.length, max)) * 120)
+  // The label is the value alone: prefixed with "avg " it ran past the tape's
+  // own right edge and was clipped mid-word by the strip's overflow.
   return `<div class="st-odo">${digits}</div>
     <div class="st-tape" style="margin-top:10px">
       <span class="st-tape-scale" style="--tape:${offset}px"></span>
-      <span class="st-tape-now" data-v="avg ${fmtUsd(total / t.length)}"></span>
+      <span class="st-tape-now" data-v="${fmtUsd(total / t.length)}"></span>
     </div>`
 }
 
@@ -264,17 +266,20 @@ function rotary(snap) {
   const lastScan = snap.screen?.lastScan
     ? Math.round((Date.now() - snap.screen.lastScan) / 60000) + 'm ago' : '—'
 
+  // ⚠️ Knob, legends and readout sit on ONE ROW. Stacked, they came to ~111px in
+  // a body that is ~95px tall on a 900px screen and the last line was clipped
+  // away. A span-1 board is wide and short; the instrument has to be too.
   return `<div class="st-rotary">
       <span class="st-rot-knob" style="--rot:${rot}deg" role="button" tabindex="0"
             aria-label="time window"></span>
       <span class="st-rot-opts">${WINDOWS.map((w) =>
         `<span class="st-rot-opt ${w.id === snap.win.id ? 'is-on' : ''}" data-win="${w.id}">${esc(w.label)}</span>`
       ).join('')}</span>
-    </div>
-    <div class="st-rot-yield">
-      <span>readings</span><b>${recorded || '—'}</b>
-      <span>scanned</span><b>${scanned ?? '—'}</b>
-      <span>last scan</span><b>${esc(lastScan)}</b>
+      <span class="st-rot-yield">
+        <span>readings</span><b>${recorded || '—'}</b>
+        <span>scanned</span><b>${scanned ?? '—'}</b>
+        <span>scan</span><b>${esc(lastScan)}</b>
+      </span>
     </div>`
 }
 

@@ -137,11 +137,14 @@ function build(root) {
    at every other size. */
 function measure() {
   if (!stage) return
-  // The stage sits under the app's real chrome. Measuring it rather than
-  // hard-coding an offset means the room stays put when the header changes.
-  const tabs = document.querySelector('.tabs')
-  const top = tabs ? Math.round(tabs.getBoundingClientRect().bottom) : 0
-  stage.style.setProperty('--st-top', `${Math.max(0, top)}px`)
+  // The stage sits under whatever app chrome is actually showing. Measured, not
+  // hard-coded: the tab bar is hidden while you are in the room (it is the thing
+  // the room replaces), and that 88px is the difference between a six-board wall
+  // and a three-board one on a 900px-tall screen.
+  const chrome = [...document.querySelectorAll('.tabs, .bar')]
+    .filter((el) => el.offsetParent !== null)
+  const top = chrome.reduce((m, el) => Math.max(m, el.getBoundingClientRect().bottom), 0)
+  stage.style.setProperty('--st-top', `${Math.max(0, Math.round(top))}px`)
 
   const h = stage.getBoundingClientRect().height || 900
   const colH = columnHeight(h)
@@ -409,6 +412,11 @@ export function initObservatory(root) {
     show: leave,
     hide: () => { stage.hidden = true; active = false },
     refresh,
+    // The chrome above the room changes height when the tab bar comes and goes,
+    // and the board wall is sized from what is left. Re-measure, then rebuild:
+    // crossing BOARDS_MIN_ROOM changes how many boards there are, not just how
+    // tall they are.
+    remeasure: () => { measure(); refresh() },
     isActive: () => active,
   }
 }
