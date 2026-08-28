@@ -5,7 +5,7 @@
   "main": "main/index.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test/alerts.test.js && node test/hype.test.js && node test/sentiment.test.js && node test/queries.test.js && node test/offtopic.test.js && node test/scanstore.test.js && node test/journal.test.js && node test/sanity.test.js && node test/collection.test.js && node test/sector.test.js && node test/importance.test.js && node test/sweep.test.js && node test/resolve.test.js && node test/renderer.test.js",
+    "test": "node test/alerts.test.js && node test/hype.test.js && node test/sentiment.test.js && node test/queries.test.js && node test/offtopic.test.js && node test/scanstore.test.js && node test/journal.test.js && node test/sanity.test.js && node test/collection.test.js && node test/sector.test.js && node test/importance.test.js && node test/sweep.test.js && node test/resolve.test.js && node test/renderer.test.js && node test/station.test.js",
     "collect:local": "node main/collector.js   # do not run while the cloud collector is active"
   },
   "author": "connal + austin",

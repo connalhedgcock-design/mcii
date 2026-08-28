@@ -5,6 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
 <title>MCII</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="station/station.css">
 </head>
 <body>
   <header class="bar">
@@ -18,6 +19,11 @@
   </header>
   <div class="viewport" aria-hidden="true"></div>
   <nav class="tabs">
+    <!-- ⚠️ SCAFFOLDING. The tab bar is deleted at gate 4, when the Observatory
+         becomes the room you land in. Getting to a screen is meant to be
+         physical -- you turn and walk. A tab bar makes that optional, and
+         optional things get kept. -->
+    <button class="tab" data-view="observatory">The Observatory</button>
     <button class="tab active" data-view="watch">Your coins</button>
     <button class="tab" data-view="market">Market <span class="count" id="mktcount"></span></button>
     <button class="tab" data-view="sector">What's happening</button>
@@ -38,6 +44,8 @@
     <span>Read-only. This app cannot trade, and holds no wallet or exchange keys.</span>
     <span id="stamp"></span>
   </footer>
+  <div id="observatory"></div>
   <script src="app.js"></script>
+  <script type="module" src="station/boot.js"></script>
 </body>
 </html>

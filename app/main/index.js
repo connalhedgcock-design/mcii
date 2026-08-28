@@ -61,6 +61,31 @@ function createWindow() {
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
 
+  // Renderer console and uncaught errors, forwarded to the terminal.
+  // A renderer exception is INVISIBLE from outside: it kills the handler it was
+  // thrown in and the button re-enables itself as though it had worked. Three
+  // buttons were dead for days behind exactly that. A failure that produces
+  // nothing is worse than one that produces an error, so this makes them audible.
+  if (!app.isPackaged) {
+    // ⚠️ Electron changed this signature: it used to be
+    // (event, level:number, message, line, sourceId) and is now a single event
+    // object with level as a STRING. Reading the old shape on the new Electron
+    // silently filters everything out -- a logger that logs nothing, which is
+    // the exact failure mode it exists to prevent. Handle both.
+    win.webContents.on('console-message', (e, level, message, line, sourceId) => {
+      const lvl = typeof e === 'object' && e && 'level' in e ? e.level : level;
+      const msg = typeof e === 'object' && e && 'message' in e ? e.message : message;
+      const src = typeof e === 'object' && e && 'sourceId' in e ? e.sourceId : sourceId;
+      const ln  = typeof e === 'object' && e && 'lineNumber' in e ? e.lineNumber : line;
+      const bad = lvl === 'error' || lvl === 'warning' || Number(lvl) >= 2;
+      if (!bad) return;
+      console.error(`[renderer] ${msg}${src ? `  (${path.basename(String(src))}:${ln})` : ''}`);
+    });
+    win.webContents.on('render-process-gone', (_e, d) => {
+      console.error('[renderer] process gone:', d.reason);
+    });
+  }
+
   let saveBoundsTimer = null;
   const saveBounds = () => {
     clearTimeout(saveBoundsTimer);
@@ -306,6 +331,11 @@ ipcMain.handle('sector:latest', () => {
 });
 
 ipcMain.handle('discover:latest', () => discoverLatest());
+// The last reading of every token, straight from the snapshot -- no network at all.
+// `tokens:list` re-fetches four upstream APIs per coin, which is right when the user asked for
+// fresh numbers and wrong for an instrument wall that redraws on resize and on every window
+// change. Same data, no traffic.
+ipcMain.handle('tokens:cached', () => Object.values(store.tokens));
 ipcMain.handle('alerts:all', () => {
   const all = [];
   for (const ca of Object.keys(store.tokens)) all.push(...(store.tokens[ca].alerts || []));

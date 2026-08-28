@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('mcii', {
   screenLatest: () => ipcRenderer.invoke('screen:latest'),
   socialFor: (ca) => ipcRenderer.invoke('social:token', ca),
   allAlerts: () => ipcRenderer.invoke('alerts:all'),
+  cachedTokens: () => ipcRenderer.invoke('tokens:cached'),
   historySeries: (ca, field, days) => ipcRenderer.invoke('history:series', { ca, field, days }),
   onLive: (cb) => ipcRenderer.on('live', (_e, t) => cb(t)),
   onLiveAlert: (cb) => ipcRenderer.on('live-alert', (_e, a) => cb(a)),
