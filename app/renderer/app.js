@@ -759,7 +759,8 @@ shareBtn.addEventListener('click', async () => {
   renderUpdateStatus(await window.mcii.checkForUpdates());
 });
 
-window.mcii.onRefreshed(() => load());
+// Redraw with the fresh numbers, without asking main to refresh again -- that would loop.
+window.mcii.onRefreshed(async () => { render(await window.mcii.getTokens()); });
 
 // --- live updates -----------------------------------------------------------
 // Patch the numbers in place rather than re-rendering the card. A full redraw every fifteen

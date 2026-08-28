@@ -139,7 +139,42 @@ async function loadToken(entry) {
   return out;
 }
 
+// ! opens with what we already know, then refreshes behind the window.
+//
+// This used to fetch every coin before showing anything. Each coin costs a market call, a safety
+// call, an exit simulation of roughly seventeen calls, and a price history -- about ten seconds.
+// Fine at two coins, and the watchlist is now four, so the app sat on a loading screen for the
+// best part of a minute before drawing a single thing.
+//
+// The last reading for every coin is already in the sidecar. Showing it immediately costs
+// nothing and is honest, because every figure on screen already carries the time it was taken.
+// The refresh then runs and the window redraws itself when it lands.
+// ! the guard matters: the window redraws when a refresh lands, and redrawing asks for the list
+// again. Without a floor on how often this may run, that is an endless refresh loop that would
+// quietly burn every rate limit the project has.
+let refreshing = false, lastRefresh = 0;
+const REFRESH_FLOOR_MS = 60000;
+async function refreshAllTokens() {
+  if (refreshing || Date.now() - lastRefresh < REFRESH_FLOOR_MS) return;
+  refreshing = true;
+  lastRefresh = Date.now();
+  try {
+    // Sequential on purpose: several of these sources are rate limited, and three of this
+    // project's worst bugs came from processes that each assumed they were the only caller.
+    for (const e of store.watchlist) { try { await loadToken(e); } catch {} }
+    progress(null);
+    if (win && !win.isDestroyed()) win.webContents.send('refreshed');
+  } finally { refreshing = false; }
+}
+
 ipcMain.handle('tokens:list', async () => {
+  const cached = store.watchlist.map((e) => store.tokens[e.ca]).filter(Boolean);
+  if (cached.length === store.watchlist.length) {
+    refreshAllTokens();          // deliberately not awaited
+    return cached;
+  }
+  // Nothing remembered for at least one coin -- a first run, or a newly added coin. Wait, because
+  // an empty card is worse than a slow one.
   const results = [];
   for (const e of store.watchlist) results.push(await loadToken(e));
   progress(null);
