@@ -83,3 +83,4 @@ prio: high
 | D-55 | ! auto-detect the token program before any on-chain query. guessing returns an empty result that looks like a real zero. | 08-28 | ! permanent |
 | D-56 | on-chain holder truth runs hourly. RPC rejection = no data point, never a fallback recorded as truth. | 08-28 | RPC blocks us persistently; then a keyed free tier |
 | D-57 | a holder SURGE is MED not good news — airdrops and wash distribution look identical to buying. | 08-28 | ! never frame a surge as demand |
+| D-58 | ! explanations to connal must be plainer AND shorter. banned-jargon list in [[ops]]. he has asked twice; treat a third as a serious failure. | 08-28 | ! never relax. analysis rigour is untouched — simplify DELIVERY only. |

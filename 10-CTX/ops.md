@@ -19,6 +19,13 @@ prio: high
 - ∴ vault + spec staying technical is FINE — peter reads it later. the CHAT with connal is what must be plain.
 
 ## !! HOW I TALK TO CONNAL — non-negotiable
+## ! REINFORCED 2026-08-28 — he asked AGAIN. I drifted back into jargon. this is now a standing failure of mine.
+- banned unless defined in the same sentence: ground truth | vendor index | RPC | fallback | graceful degradation
+  | on-chain | adapter | pipeline | schema | throttle | quarantine | provenance | z-score | derivative
+- lead with WHAT IT MEANS FOR HIM, never with what I built or how.
+- shorter. a 400-word explanation is a failure even if every word is simple.
+- analogy first when the idea is unfamiliar (bank accounts / customers worked well for the holder-count fix).
+- ! if I catch myself writing a term I would not say out loud to a friend with no finance or coding background, cut it.
 - ONE step at a time. checkpoint before the next. never a wall of commands.
 - I check machine state MYSELF (bash) instead of asking him to run diagnostics and report back.
 - when something breaks, I debug it. do not hand him a numbered troubleshooting list.
