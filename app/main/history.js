@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const sanity = require('../shared/sanity');
 
 // Append-only, one file per token, one JSON object per line.
 //
@@ -70,6 +71,17 @@ function haveSocialBuckets(ca) {
 function record(ca, token) {
   const m = token.market, s = token.safety, x = token.exit;
   if (!m) return;
+
+  // Guard before writing. A reading that claims something physically impossible is evidence about
+  // the SOURCE, not the token, and storing it corrupts every trend and alert computed afterwards.
+  const prior = readLocal(ca).filter((r) => r.holders != null).pop();
+  let holders = s?.totalHolders ?? null;
+  let holdersSuspect = null;
+  if (prior && holders != null) {
+    const hrs = (Date.now() - prior.ts) / 36e5;
+    const chk = sanity.checkDelta('holders', prior.holders, holders, hrs);
+    if (!chk.ok) { holdersSuspect = chk.reason; holders = null; }
+  }
   const row = {
     ts: Date.now(),
     price: m.priceUsd,
@@ -81,7 +93,8 @@ function record(ca, token) {
     sells24: m.txns?.h24?.sells ?? null,
     exitUsd: x ? Math.round(x.usd) : null,
     exitTok: x ? x.tokens : null,
-    holders: s?.totalHolders ?? null,
+    holders,
+    holdersSuspect,
     top1: s?.top1Pct ?? null,
     top10: s?.top10Pct != null ? Math.round(s.top10Pct * 10) / 10 : null,
     verdict: token.gate?.verdict ?? null,
@@ -89,6 +102,15 @@ function record(ca, token) {
   };
   try { fs.appendFileSync(file(ca), JSON.stringify(row) + '\n'); } catch {}
   return row;
+}
+
+// Local rows only, unmerged -- used by the sanity guard, which must compare against what THIS
+// machine last saw rather than against a cloud row written seconds ago by a different collector.
+function readLocal(ca) {
+  try {
+    return fs.readFileSync(file(ca), 'utf8').trim().split('\n')
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  } catch { return []; }
 }
 
 function read(ca, sinceMs) {
@@ -111,7 +133,10 @@ function read(ca, sinceMs) {
 // fabricated zero when there is not enough history yet -- the UI must be able to say
 // "not enough data" instead of implying nothing moved.
 function delta(ca, field, windowMs) {
-  const rows = read(ca, windowMs).filter((r) => r[field] != null);
+  // Rows flagged suspect for this field are excluded, so a vendor's broken index can never
+  // produce a trend line or fire an alert.
+  const rows = read(ca, windowMs)
+    .filter((r) => r[field] != null && !r[`${field}Suspect`]);
   if (rows.length < 2) return null;
   const first = rows[0][field], last = rows[rows.length - 1][field];
   if (!first) return null;
@@ -141,5 +166,5 @@ function saveSeen(ca, set) {
   try { fs.writeFileSync(seenFile(ca), JSON.stringify(arr)); } catch {}
 }
 
-module.exports = { init, record, read, delta, series, recordSocial, readSocial, haveSocialBuckets,
+module.exports = { init, record, read, readLocal, delta, series, recordSocial, readSocial, haveSocialBuckets,
                    loadSeen, saveSeen };

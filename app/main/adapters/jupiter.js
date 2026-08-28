@@ -6,6 +6,9 @@ async function fetchTokenMeta(ca) {
   const t = Array.isArray(r) ? r.find((x) => x.id === ca) : null;
   if (!t) throw new Error('token not found on Jupiter');
   return { decimals: t.decimals, circSupply: t.circSupply, dev: t.dev,
+           // Second, independent holder count. RugCheck's index reset on 2026-08-27 and reported
+           // a 97% drop that the app recorded as fact; one source for a number is one too few.
+           holderCount: t.holderCount ?? null,
            twitter: t.twitter, telegram: t.telegram, fetchedAt: Date.now() };
 }
 

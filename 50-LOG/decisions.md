@@ -73,3 +73,6 @@ prio: high
 | D-45 | calibration verdict must be blunt. n<50 = "too few"; brier>0.25 = "no demonstrated edge". no softening words. tested. | 08-27 | ! never soften |
 | D-46 | forecasts are per-person files. a blended Brier describes neither forecaster and must never be produced. | 08-28 | ! never blend |
 | D-47 | identity is local-only, never synced. each machine knows who sits at it. | 08-28 | — |
+| D-48 | ! every external number needs a plausibility guard AND a second source. one vendor is never truth. | 08-28 | ! permanent |
+| D-49 | ! liquidity deltas are NEVER suppressed by sanity guards. a rug looks like a broken feed; always err toward showing it. | 08-28 | ! never |
+| D-50 | disagreeing sources are shown as disagreeing, never averaged. averaging a broken value yields a less-obviously-wrong one. | 08-28 | ! never average |
