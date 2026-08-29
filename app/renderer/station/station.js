@@ -340,42 +340,53 @@ function wirePrompt(root) {
     reply.scrollTop = 0
   }
 
-  // ⚠️ Readiness cannot be probed: the CLI keeps credentials in the Keychain, so
-  // there is no file to look at. So the button is OFFERED whenever the CLI is
-  // present and we have not yet had a real answer — never hidden behind a guess
-  // that could be wrong in the direction that blocks the user.
-  let confirmed = false
+  // Readiness is a real answer now: `claude auth status --json`, which costs
+  // nothing. The button appears only when this machine is genuinely signed out —
+  // showing it to someone already signed in is indistinguishable from telling
+  // them they are logged out, which is what happened before.
   async function refreshAuth() {
     const st = await window.mcii?.orionStatus?.().catch(() => null)
     const installed = !!st?.installed
-    signin.hidden = !installed || confirmed
+    const ready = !!st?.ready
+    signin.hidden = !installed || ready
     input.disabled = !installed
+
     if (!installed) {
       input.placeholder = 'orion needs the claude cli'
       setNotice('Orion is not connected: the Claude CLI is not installed. In Terminal run  '
         + 'npm install -g @anthropic-ai/claude-code  then reopen the app. No API key and no '
         + 'billing — it signs in with your own Claude account.')
+    } else if (!ready) {
+      input.placeholder = st?.unknown ? 'orion could not check your sign-in' : 'sign in to talk to orion'
+      setNotice(st?.unknown
+        ? 'Orion is installed but would not report its sign-in state. Try asking it something anyway.'
+        : 'Orion is installed but this machine is not signed in. Click "log in to anthropic" — '
+          + 'it opens a terminal and your browser. The app never sees your account.')
     } else {
       input.placeholder = 'talk to orion — your coins, your notes, the market…'
-      setNotice(confirmed ? '' : 'Orion is installed. If it says you are not signed in, use '
-        + '"log in to anthropic" — it opens a terminal, and the app never sees your account.')
+      setNotice('')
     }
-    return installed
+    return { installed, ready }
   }
 
   signin.addEventListener('click', async () => {
     signin.disabled = true
     const r = await window.mcii?.orionLogin?.()
     say(r && r.ok === false
-      ? 'Could not open a terminal. Open one yourself and run:  claude  then /login'
-      : 'A terminal is opening. Type  /login  there and follow the browser. '
-        + 'Come back when it is done and just ask me something.')
-    signin.disabled = false
+      ? 'Could not start the sign-in. Open a terminal and run:  claude auth login'
+      : 'Signing in — finish in the browser window that opens. '
+        + 'Come back here afterwards and just ask me something.')
+    // The sign-in finishes somewhere else, so watch for it rather than making
+    // them tell us. Bounded: this stops on its own.
+    let tries = 0
+    const t = setInterval(async () => {
+      const st = await refreshAuth()
+      if (st.ready) { clearInterval(t); signin.disabled = false; say('Signed in. Ask me anything.') }
+      else if (++tries > 90) { clearInterval(t); signin.disabled = false }
+    }, 2000)
   })
 
-  // Coming back from the terminal is the moment to re-check, and it costs
-  // nothing: the user has almost certainly just changed the thing we are asking
-  // about.
+  // Coming back from the terminal is exactly when the answer has changed.
   window.addEventListener('focus', () => { if (active) refreshAuth() })
 
   // Reaching for the keyboard is an unambiguous statement that you have
@@ -399,9 +410,8 @@ function wirePrompt(root) {
       const res = await window.mcii.orionAsk(text)
       // ⚠️ A failure is REPORTED. A blank answer is indistinguishable from
       // "there is nothing to say", and the two must never look the same.
-      if (res?.ok) { confirmed = true; signin.hidden = true; setNotice(''); say(res.reply) }
+      if (res?.ok) { signin.hidden = true; setNotice(''); say(res.reply) }
       else if (res?.code === 'auth') {
-        confirmed = false
         await refreshAuth()
         say('You are not signed in to Claude yet. Click "log in to anthropic", type /login in the '
           + 'terminal that opens, finish in the browser, then ask me again.', true)

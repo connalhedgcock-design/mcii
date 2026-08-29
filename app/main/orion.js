@@ -54,22 +54,35 @@ function findClaude({ refresh = false } = {}) {
   return cached;
 }
 
-/** Is the CLI present?
+/** Is the CLI present, and is this machine signed in?
  *
- * ⚠️ It deliberately does NOT try to answer "is it signed in". On macOS the CLI
- * keeps its credentials in the Keychain, not in a file, so every file-based
- * check reports "not signed in" forever — which would leave a working install
- * permanently behind a login button it does not need. Readiness is discovered
- * the only honest way: by asking, and reading what comes back. */
+ * ⚠️ `claude auth status --json` is the real answer and costs nothing — no
+ * tokens, no round trip to the model. Two worse versions came before it: a
+ * credentials FILE check (wrong — macOS keeps them in the Keychain, so it read
+ * "not signed in" forever), and then not checking at all and letting the UI
+ * imply the answer (worse — it showed a sign-in button to someone already
+ * signed in, which is indistinguishable from being logged out). */
 function status() {
   const bin = findClaude({ refresh: true });
-  return bin ? { installed: true, path: bin } : { installed: false };
+  if (!bin) return { installed: false, ready: false };
+  try {
+    const { execFileSync } = require('child_process');
+    const out = execFileSync(bin, ['auth', 'status', '--json'],
+      { encoding: 'utf8', timeout: 15000, cwd: REPO });
+    const j = JSON.parse(out);
+    return { installed: true, ready: !!j.loggedIn, email: j.email || null,
+             method: j.authMethod || null, path: bin };
+  } catch (e) {
+    // The CLI is there but would not answer. Report it as present and unknown
+    // rather than as logged out: refusing to answer is not the same as "no".
+    return { installed: true, ready: false, unknown: true, path: bin };
+  }
 }
 
-// The CLI says this on stdout, with EXIT CODE 0. Treated as a normal answer it
-// would be printed as though Orion had said it -- a login prompt rendered as
-// analysis. Match it before anything else.
-const NOT_SIGNED_IN = /not logged in|please run \/login|\/login\b|unauthor|authenticat|invalid api key|credential/i;
+// The CLI can also say this in the OUTPUT, with exit code 0. Treated as a normal
+// answer it would be printed as though Orion had said it — a login prompt
+// rendered as analysis. Match it before anything else.
+const NOT_SIGNED_IN = /not logged in|please run \/login|claude auth login|unauthor|authenticat|invalid api key/i;
 
 const SYSTEM = [
   'You are Orion, the voice of the MCII Observatory — a memecoin research station',
@@ -127,16 +140,32 @@ function ask(text) {
  */
 function login() {
   const s = status();
-  if (!s.installed) return { ok: false, code: 'no-cli' };
+  if (!s.installed) return Promise.resolve({ ok: false, code: 'no-cli' });
   return new Promise((resolve) => {
-    // `/login` is a slash command INSIDE the interactive session, not a CLI
-    // argument -- passing it as one just asks Claude about the word "/login".
-    // Open a real interactive session; it prompts for sign-in on its own.
+    // ⚠️ AppleScript string escaping, done properly. The previous version
+    // interpolated JSON.stringify(REPO) — which carries its own double quotes —
+    // straight into `do script "..."`, producing nested unescaped quotes and an
+    // AppleScript syntax error every time. It reported "could not open a
+    // terminal" and looked like a permissions problem.
+    const shell = `cd ${shQuote(REPO)} && ${shQuote(s.path)} auth login`;
+    const asStr = (t) => '"' + String(t).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
     execFile('osascript', [
       '-e', 'tell application "Terminal" to activate',
-      '-e', `tell application "Terminal" to do script "cd ${JSON.stringify(REPO)} && ${s.path}"`,
-    ], (err) => resolve(err ? { ok: false, error: String(err.message) } : { ok: true }));
+      '-e', `tell application "Terminal" to do script ${asStr(shell)}`,
+    ], (err) => {
+      if (!err) return resolve({ ok: true });
+      // Terminal may be unavailable or blocked. Falling back to running the
+      // login directly still opens the browser; it just has no visible console.
+      execFile(s.path, ['auth', 'login'], { cwd: REPO, timeout: 5000 }, () => {});
+      resolve({ ok: true, headless: true });
+    });
   });
+}
+
+/** POSIX single-quote escaping. Paths here are ours, but a home directory with
+ *  an apostrophe in it is not exotic and would otherwise break the command. */
+function shQuote(v) {
+  return "'" + String(v).replace(/'/g, `'\\''`) + "'";
 }
 
 module.exports = { ask, status, login, findClaude };
