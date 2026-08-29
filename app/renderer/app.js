@@ -370,9 +370,9 @@ async function loadJournal() {
     });
     return;
   }
-  const [cal, fx, th, everyone, tokensForThesis] = await Promise.all([
+  const [cal, fx, th, everyone, tokensForThesis, notes] = await Promise.all([
     window.mcii.calibration(), window.mcii.forecasts(), window.mcii.theses(), window.mcii.allOwners(),
-    window.mcii.getTokens().catch(() => []),
+    window.mcii.getTokens().catch(() => []), window.mcii.notes(),
   ]);
   const others = everyone.filter((o) => o !== me);
   $('#jcount').textContent = fx.length ? `(${fx.length})` : '';
@@ -402,7 +402,23 @@ async function loadJournal() {
       ${f.resolved ? '' : `<div class="yn"><button data-o="1">Happened</button><button data-o="0">Didn't</button></div>`}
     </div>`;
 
-  box.innerHTML = cal_html + `
+  const noteRow = (n) => `<div class="noterow">
+      <div class="nomh"><span class="nowho">${esc(n.owner)}</span><span class="nowhen">${ago(n.ts)}</span></div>
+      <div class="notext">${esc(n.text)}</div>
+    </div>`;
+  const note_html = `<div class="jbox">
+    <h3>Journal — ${esc(me)}</h3>
+    <p class="socverdict" style="color:var(--muted);font-size:12.5px;margin-bottom:10px">
+      Anything that isn't a dated forecast or a position yet — a thought, a doubt, something to
+      check later. Yours only; Austin's stays in his own log for the same reason forecasts do.</p>
+    <textarea id="notetext" rows="3" placeholder="What are you thinking right now?"></textarea>
+    <button class="btn" id="noteadd" style="margin-top:8px">Add</button>
+    <div style="margin-top:14px">
+      ${notes.length ? notes.map(noteRow).join('') : '<p class="socverdict" style="color:var(--muted)">Nothing written yet.</p>'}
+    </div>
+  </div>`;
+
+  box.innerHTML = cal_html + note_html + `
     <div class="jbox">
       <h3>Record a forecast</h3>
       <div class="fform">
@@ -456,6 +472,13 @@ async function loadJournal() {
     await window.mcii.saveThesis({ ca, sym, claim, invalidation,
       mechanism: $('#pmech').value.trim(), timeStop: $('#pstop').value.trim(),
       confidence: $('#pconf').value.trim() });
+    loadJournal();
+  });
+
+  $('#noteadd').addEventListener('click', async () => {
+    const text = $('#notetext').value.trim();
+    if (!text) return;
+    await window.mcii.addNote(text);
     loadJournal();
   });
 

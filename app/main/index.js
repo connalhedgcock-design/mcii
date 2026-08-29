@@ -429,6 +429,8 @@ ipcMain.handle('journal:forecasts', (_e, owner) => journal.readForecasts(owner =
 ipcMain.handle('journal:addForecast', (_e, f) => journal.addForecast({ ...f, owner: store.owner }));
 ipcMain.handle('journal:resolve', (_e, { id, outcome, lesson }) => journal.resolveForecast(id, outcome, lesson));
 ipcMain.handle('journal:calibration', (_e, owner) => journal.calibration(owner || store.owner));
+ipcMain.handle('journal:notes', (_e, owner) => journal.readNotes(owner === undefined ? store.owner : owner));
+ipcMain.handle('journal:addNote', (_e, n) => journal.addNote({ ...n, owner: store.owner }));
 
 ipcMain.handle('history:series', (_e, { ca, field, days }) =>
   history.series(ca, field, (days || 30) * 864e5));
