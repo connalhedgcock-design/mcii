@@ -159,6 +159,13 @@ async function loadToken(entry) {
     liq: history.delta(ca, 'liq', 7 * 864e5),
     holders: history.delta(ca, 'holders', 7 * 864e5),
     top10: history.delta(ca, 'top10', 7 * 864e5),
+    // ⚠️ NOT the same thing as market.priceChange.h24. DexScreener's h24 is reported by whichever
+    // single pool currently has the most liquidity -- and which pool that is can change day to
+    // day as new pools open. A pool that only recently became "the deepest" reports its OWN price
+    // history, which can look like a 40% move even while the token's real, tradeable price barely
+    // moved -- exactly what happened with ANSEM on 08-29. Computed from our own recorded readings
+    // instead, which do not depend on any one pool staying in first place.
+    price24h: history.delta(ca, 'price', 24 * 36e5),
     recorded: history.read(ca, 30 * 864e5).length,
   };
 

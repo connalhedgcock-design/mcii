@@ -81,10 +81,23 @@ function trendLine(label, d, invertGood) {
   return `<div class="tr ${good ? 'up' : 'down'}">${label}: <b>${dir} ${Math.abs(d.pct).toFixed(1)}%</b> over ${hrs}</div>`;
 }
 
+// DexScreener's own priceChange.h24 comes from whichever single pool is currently deepest --
+// and that pool can change as pools open and close, so its "24h" figure can describe that one
+// pool's short life rather than the token's real price move (see the ANSEM case, 2026-08-29-price-
+// change.md). Our own recorded history isn't tied to any one pool staying in first place, so it's
+// preferred once there's enough of it (at least ~20 of the 24 hours actually covered).
+function chg24Of(t) {
+  const p = t.trend?.price24h;
+  if (p && p.spanHours >= 20) return { pct: p.pct, ours: true };
+  const v = t.market?.priceChange?.h24;
+  return v == null ? { pct: null, ours: false } : { pct: v, ours: false };
+}
+
 function card(t) {
   const g = t.gate, m = t.market, x = t.exit;
   const cls = !g ? '' : g.verdict === 'FAIL' ? 'fail' : g.verdict === 'CAUTION' ? 'caution' : 'pass';
   const held = t.position?.tokens && m ? t.position.tokens * m.priceUsd : null;
+  const chg24 = chg24Of(t);
   return `<article class="card ${cls}" data-ca="${t.ca}">
     <div class="chead">
       <span class="sym">${esc(t.nick || t.sym)}</span>
@@ -103,7 +116,8 @@ function card(t) {
       <div class="stat hero" data-field="mcap"><span class="k">Market cap</span>
         <span class="v">${fmtUsd(m?.marketCap)}</span>
         <div class="s">${m?.volume?.h24 != null ? 'vol 24h ' + fmtUsd(m.volume.h24) : '—'}</div></div>
-      <div class="stat hero" data-field="change24h"><span class="k">24h change</span>${pctEl(m?.priceChange?.h24)}
+      <div class="stat hero" data-field="change24h" title="${chg24.ours ? 'from our own recorded price history' : 'from DexScreener’s single deepest pool — can be wrong if which pool is deepest changed recently'}">
+        <span class="k">24h change${chg24.ours ? '' : ' <span style="opacity:.6">(1 pool)</span>'}</span>${pctEl(chg24.pct)}
         <div class="s">1h ${m?.priceChange?.h1 ?? '—'}%</div></div>
     </div>
     <div class="stats secondary">
@@ -842,8 +856,9 @@ window.mcii.onLive((t) => {
   if (t.market.marketCap != null) set('[data-field="mcap"] .v', fmtUsd(t.market.marketCap), true);
   if (t.exit) set('[data-field="exit"] .v', fmtUsd(t.exit.usd), true);
   const ch = card.querySelector('[data-field="change24h"] .v');
-  if (ch && t.market.priceChange?.h24 != null) {
-    const v = t.market.priceChange.h24;
+  const chg24 = chg24Of(t);
+  if (ch && chg24.pct != null) {
+    const v = chg24.pct;
     ch.textContent = (v >= 0 ? '+' : '') + Number(v).toFixed(1) + '%';
     ch.className = 'v ' + (v >= 0 ? 'up' : 'down');
   }
