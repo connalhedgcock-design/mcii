@@ -370,8 +370,9 @@ async function loadJournal() {
     });
     return;
   }
-  const [cal, fx, th, everyone] = await Promise.all([
+  const [cal, fx, th, everyone, tokensForThesis] = await Promise.all([
     window.mcii.calibration(), window.mcii.forecasts(), window.mcii.theses(), window.mcii.allOwners(),
+    window.mcii.getTokens().catch(() => []),
   ]);
   const others = everyone.filter((o) => o !== me);
   $('#jcount').textContent = fx.length ? `(${fx.length})` : '';
@@ -427,7 +428,36 @@ async function loadJournal() {
           <dt>Exit trigger</dt><dd>${esc(t.invalidation || 'NOT SET')}</dd>
           <dt>Time stop</dt><dd>${esc(t.timeStop || 'NOT SET')}</dd>
         </dl></div>`).join('')
-      : '<p class="socverdict" style="color:var(--muted)">No positions written up yet. These live as files in the project folder and travel with it.</p>'}</div>`;
+      : '<p class="socverdict" style="color:var(--muted)">Nothing written up yet.</p>'}
+      <!-- ! there was no way to write one of these from the app at all. The save existed in main
+           and nothing in the window ever called it, so both position files have sat empty since
+           they were created -- listed on the handoff as an open item for days, when the actual
+           cause was a missing form. -->
+      <div class="fform" style="grid-template-columns:1fr;gap:8px;margin-top:14px">
+        <select id="pcoin">${tokensForThesis.map((t) => `<option value="${esc(t.ca)}|${esc(t.sym)}">${esc(t.nick || t.sym)}</option>`).join('')}</select>
+        <input id="pclaim" type="text" placeholder="Why do you think this goes up? One sentence.">
+        <input id="pmech" type="text" placeholder="What actually has to happen for that? (more buyers, a listing, a trend)">
+        <input id="pinval" type="text" placeholder="What would make you sell? Be specific — a number, not a feeling.">
+        <input id="pstop" type="text" placeholder="By what date, if nothing has happened, do you give up?">
+        <input id="pconf" type="number" min="1" max="99" placeholder="How sure are you, 1-99?">
+        <button id="psave" class="btn accent">Save this position</button>
+      </div>
+      <p class="socverdict" style="color:var(--muted);font-size:12.5px">The exit trigger is the part
+        that matters. Writing it down before you are losing money is the whole point — afterwards you
+        will argue with it.</p></div>`;
+
+  $('#psave').addEventListener('click', async () => {
+    const [ca, sym] = ($('#pcoin').value || '|').split('|');
+    const claim = $('#pclaim').value.trim();
+    const invalidation = $('#pinval').value.trim();
+    if (!sym || !claim) { alert('Pick a coin and write why you think it goes up.'); return; }
+    if (!invalidation && !confirm('You have not written what would make you sell. That is the most '
+      + 'useful line on the page. Save it anyway?')) return;
+    await window.mcii.saveThesis({ ca, sym, claim, invalidation,
+      mechanism: $('#pmech').value.trim(), timeStop: $('#pstop').value.trim(),
+      confidence: $('#pconf').value.trim() });
+    loadJournal();
+  });
 
   $('#fadd').addEventListener('click', async () => {
     const q = $('#fq').value.trim(), p = Number($('#fp').value), d = $('#fd').value;

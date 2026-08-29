@@ -51,3 +51,19 @@ the cron that never fired | the watchlist file nobody wrote | holder counts from
   invest**, two coins added on a laptop that the hourly job had never seen.
 - rug search hit its 50-post ceiling on the first page-walk and flagged itself truncated ∴ the true
   rate is above the ~44/hour I measured.
+
+## PART 3 — THE CRON WORKS, AND THE JOURNAL COULD NEVER BE WRITTEN TO
+- ✓✓ **the schedule fires now.** 7 scheduled runs, hourly at :37 (23:37, 00:37, 01:37, 02:37, 03:37...).
+  moving off the top of the hour WAS the fix — GitHub drops queued runs in its busiest slot.
+  conf was 40%; it was right. D-61's "best-effort, never a guarantee" still stands, and the 6-hour
+  loop now means a missed firing costs nothing.
+- ! journal: `saveThesis` existed in main and **nothing in the window ever called it.** ∴ no way to
+  write a position from the app at all. both 40-POS files empty since creation, listed as an open
+  item on the handoff for days — the cause was a missing form, not disuse.
+- ✓ added the form: coin, why it goes up, what has to happen, **what would make you sell**, time stop,
+  confidence. refuses quietly-ish if the exit trigger is blank (confirms first) ∵ that line is the
+  only one that helps when it is going wrong.
+- ! forecasts themselves were fine — `question`/`prob`/`resolveBy` all wired correctly. verified by
+  running add > resolve > calibration against the real module (test row removed afterwards).
+- ! the journal gates on "who is using this machine?" and RETURNS ∴ everything below is unreachable
+  until a name is set. correct (D-46/D-47) but it is why the tab looked empty. set to `connal` while testing.
