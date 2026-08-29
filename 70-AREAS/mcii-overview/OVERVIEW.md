@@ -13,8 +13,11 @@ plan), this file is right and 20-SPEC is describing something that was never bui
 ## WHAT THIS IS, IN ONE PARAGRAPH
 A read-only Electron desktop app that watches a small list of memecoins (and now other tokens on
 other chains) and tells Austin and Connal, in plain language, whether each one passes structural
-safety checks and how much of it could actually be sold before the price caves. It cannot trade —
-no wallet keys, no exchange keys, no code path that moves money. Two people, two Macs, kept in
+safety checks and how much of it could actually be sold before the price caves. The app itself
+holds no keys and has no code path that moves money — but as of 08-29 it EMBEDS the venues' own
+pages (see "the venue rooms" below), so trading is reachable from inside the window even though
+nothing in this codebase performs it. The old flat claim "it cannot trade" is no longer the whole
+truth and was corrected in the footer rather than left standing. Two people, two Macs, kept in
 sync by git rather than by a server. An in-app assistant (Orion) reads the vault and the app's live
 state and answers questions about it, using the operator's own Claude account, not a metered key.
 
@@ -113,6 +116,39 @@ that laptop is closed by the time the cron runs.
 The spatial 3D control-room UI (`renderer/station/`) — full detail in
 [[../observatory/README|70-AREAS/observatory/]]. Landing view of the app; the ordinary tabs
 (watchlist, market, sector, journal) live behind doors on a turnable ring.
+
+## THE PORTFOLIO + THE VENUE ROOMS (both added 08-29)
+- `main/portfolio.js` + `adapters/wallet.js` — what each venue's wallet holds, read from the chain
+  with `getTokenAccountsByOwner`. !! BOTH token programs are queried and merged; asking only the
+  legacy one returns an empty list that looks exactly like "holds nothing", and CATE is Token-2022.
+- both venues are NON-CUSTODIAL, so the positions live in wallets the operators control. That is
+  why the portfolio needs no venue login at all: the chain answers "what is in this address" for
+  free and cannot break when a venue redesigns. Addresses are PUBLIC and live in the per-machine
+  sidecar, never the repo (which is public). No key or seed phrase is accepted anywhere.
+- a wallet full of airdropped dust is normal (4,172 mints on the address used to test), so pricing
+  batches 30 per dexscreener call, caps the tail, and REPORTS what it skipped.
+- ! the value chart is a RECONSTRUCTION: what today's holdings would be worth at past prices, not
+  a record of what was held. The chain knows the current balance, never last week's. It says so
+  under the chart. `alignSeries()` starts the line where EVERY held coin has a price, so a
+  recently-launched coin cannot make the book appear to grow out of nothing.
+- 24h P&L is mark-to-market on the current book — not realised, not cost basis.
+- `main/venues.js` — fomo.family in a `WebContentsView`. !! NOT an iframe: both venues send
+  `x-frame-options` and `frame-ancestors`, and the app's own CSP is `default-src 'none'`. A
+  WebContentsView is a real top-level page, so neither policy has to be weakened.
+- !! A WebContentsView IS A NATIVE LAYER ABOVE THE DOM. CSS cannot cover it, so leaving the room
+  must DETACH it (`venues.hide`) — otherwise a trading terminal paints over the Observatory. Every
+  tab click routes through `switchView`, which is where that happens.
+- login is the operator's own, on the venue's own page, in a session partition keyed to `owner`
+  (`persist:venue-<id>-<owner>`). The app has no login form, never reads a credential field and
+  stores no password — the same hand-off shape as Orion with `claude auth login`. OAuth popups are
+  allowed (same partition, no node) because Apple/Google sign-in needs them.
+- ! AXIOM IS NOT BUILT. Every path tried on `axiom.trade` (/, /discover, /pulse, /portfolio,
+  /login, www.) returned 404 "RESOURCE NOT FOUND" from a WebContentsView that was NOT bot-blocked.
+  Its door stays SEALED and `VENUES.axiom.url` stays null until the operator supplies the real URL
+  — the same refusal-to-guess as `30-GRILL` G-09 about "the FOMO app". It is one line to enable.
+- the door ring is now SEVEN doors at 28° spacing. Eight at 24° overlapped by 1px (the same
+  failure as six-on-a-five-door ring), and the operator asked for door sizes to be kept, so the
+  unbuilt prediction-markets door gave up its slot.
 
 ## ORION — the in-app assistant (`main/orion.js`)
 Shells out to the **Claude CLI** (`claude -p`), NOT the Anthropic API. !! **no API key exists

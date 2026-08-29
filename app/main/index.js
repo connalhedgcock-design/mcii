@@ -15,6 +15,7 @@ const updater = require('./updater');
 const orion = require('./orion');
 const portfolio = require('./portfolio');
 const walletAdapter = require('./adapters/wallet');
+const venues = require('./venues');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
@@ -479,6 +480,19 @@ ipcMain.handle('portfolio:load', async () => {
   try { out.pnl24 = await portfolio.pnl24(out.combined?.positions || []); } catch { out.pnl24 = null; }
   return out;
 });
+
+// --- the venue rooms ---------------------------------------------------------------------
+// A WebContentsView floats above the page and cannot be covered by CSS, so the renderer tells us
+// exactly where to put it and, just as importantly, when to take it away.
+ipcMain.handle('venue:list', () => Object.keys(venues.VENUES).map((id) => venues.status(id)));
+ipcMain.handle('venue:open', (_e, { id, bounds }) => venues.open(win, id, store.owner, bounds));
+ipcMain.handle('venue:hide', (_e, id) => venues.hide(win, id));
+ipcMain.handle('venue:bounds', (_e, { id, bounds }) => { venues.setBounds(id, bounds); return { ok: true }; });
+ipcMain.handle('venue:status', (_e, id) => venues.status(id));
+ipcMain.handle('venue:reload', (_e, id) => venues.reload(id));
+ipcMain.handle('venue:back', (_e, id) => venues.goBack(id));
+ipcMain.handle('venue:external', (_e, id) => venues.openExternal(id));
+ipcMain.handle('venue:signOut', (_e, id) => venues.signOut(id, store.owner));
 
 ipcMain.handle('portfolio:series', async (_e, { days }) => {
   const positions = lastFolio?.combined?.positions || [];

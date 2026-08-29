@@ -24,7 +24,7 @@ if (root) {
   const paint = (view) => {
     tabs.forEach((t) => t.classList.toggle('active', t.dataset.view === view))
     const flat = view !== 'observatory'
-    document.querySelectorAll('.search, #results, #alerts, #collhealth, .foot, main.grid')
+    document.querySelectorAll('.search, #results, #alerts, #collhealth, .foot, main.grid, main.venue')
       .forEach((el) => { el.style.visibility = flat ? '' : 'hidden' })
     // The tab bar is exactly what the room replaces, so it is not shown inside
     // it — and reclaiming those 88px is what lets the full six-board wall fit on

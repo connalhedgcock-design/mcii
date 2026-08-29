@@ -39,6 +39,17 @@ contextBridge.exposeInMainWorld('mcii', {
   setWallet: (venue, address) => ipcRenderer.invoke('wallet:set', { venue, address }),
   portfolio: () => ipcRenderer.invoke('portfolio:load'),
   portfolioSeries: (days) => ipcRenderer.invoke('portfolio:series', { days }),
+  // The venue rooms. The renderer positions them and says when to hide; it never gets a handle
+  // on the page itself, and the venue page never gets a handle on this bridge.
+  venueList: () => ipcRenderer.invoke('venue:list'),
+  venueOpen: (id, bounds) => ipcRenderer.invoke('venue:open', { id, bounds }),
+  venueHide: (id) => ipcRenderer.invoke('venue:hide', id),
+  venueBounds: (id, bounds) => ipcRenderer.invoke('venue:bounds', { id, bounds }),
+  venueStatus: (id) => ipcRenderer.invoke('venue:status', id),
+  venueReload: (id) => ipcRenderer.invoke('venue:reload', id),
+  venueBack: (id) => ipcRenderer.invoke('venue:back', id),
+  venueExternal: (id) => ipcRenderer.invoke('venue:external', id),
+  venueSignOut: (id) => ipcRenderer.invoke('venue:signOut', id),
   onLive: (cb) => ipcRenderer.on('live', (_e, t) => cb(t)),
   onLiveAlert: (cb) => ipcRenderer.on('live-alert', (_e, a) => cb(a)),
   onRefreshed: (cb) => ipcRenderer.on('refreshed', () => cb()),

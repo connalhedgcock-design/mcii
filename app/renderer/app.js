@@ -670,13 +670,97 @@ function switchView(v) {
   $('#sector').hidden = v !== 'sector';
   $('#journal').hidden = v !== 'journal';
   $('#folio').hidden = v !== 'folio';
+  $('#fomo').hidden = v !== 'fomo';
+  $('#axiom').hidden = v !== 'axiom';
   $('.search').style.display = v === 'watch' ? 'flex' : 'none';
   $('#alerts').style.display = v === 'watch' ? '' : 'none';
   if (v === 'market') loadMarket();
   if (v === 'sector') loadSector();
   if (v === 'journal') loadJournal();
   if (v === 'folio') loadFolio();
+  // ⚠️ The venue view is a NATIVE layer above the page — CSS cannot cover it, so leaving a view
+  // means explicitly taking it off screen. Forgetting this paints a trading terminal over the
+  // Observatory, which is exactly the bug the hide() call exists to prevent.
+  if (VENUE_IDS.includes(v)) showVenue(v); else hideVenues();
 }
+
+// --- the venue rooms ---------------------------------------------------------------------
+const VENUE_IDS = ['fomo', 'axiom'];
+let venueOn = null;
+
+async function showVenue(id) {
+  const host = $('#' + id);
+  const st = await window.mcii.venueStatus(id);
+  host.innerHTML = venueChrome(id, st);
+  wireVenue(host, id);
+  if (!st.configured) { await hideVenues(); return; }
+  venueOn = id;
+  await window.mcii.venueOpen(id, venueRect(host));
+  // The rect is only right once the panel has actually laid out.
+  requestAnimationFrame(() => window.mcii.venueBounds(id, venueRect(host)));
+}
+
+async function hideVenues() {
+  if (!venueOn) return;
+  const id = venueOn; venueOn = null;
+  await window.mcii.venueHide(id);
+}
+
+// Where the native view should sit: over the .venue-host box, in window coordinates.
+//
+// The height is computed down to the footer rather than left to flex, because the native view
+// does not participate in layout at all -- if the host box collapses to its min-height, the page
+// inside is letterboxed into a strip with dead space beneath it and nothing about the DOM looks
+// wrong. Sizing the host explicitly keeps the box and the view that covers it in agreement.
+function venueRect(host) {
+  const el = host.querySelector('.venue-host') || host;
+  const foot = document.querySelector('.foot');
+  const top = el.getBoundingClientRect().top;
+  const floor = foot ? foot.getBoundingClientRect().top : window.innerHeight;
+  el.style.height = `${Math.max(320, Math.round(floor - top - 12))}px`;
+  const r = el.getBoundingClientRect();
+  return { x: r.left, y: r.top, width: r.width, height: r.height };
+}
+
+function venueChrome(id, st) {
+  if (!st.configured) {
+    return `<div class="venue-bar"><span class="st-label">${esc(st.label)}</span></div>
+      <div class="st-board venue-missing"><div class="st-board-screws"></div>
+        <div class="st-board-head"><span class="st-label">no address for this venue yet</span></div>
+        <div class="folio-empty">Every path tried on <b>axiom.trade</b> answered
+          “RESOURCE NOT FOUND”, and it was not a bot block — so rather than guess at the wrong
+          product, this door stays sealed until the real URL is known.</div>
+        <div class="folio-note">Tell Claude the address you actually open to use Axiom and this
+          room works immediately — it is one line of configuration.</div>
+      </div>`;
+  }
+  return `<div class="venue-bar">
+      <span class="st-label">${esc(st.label)}</span>
+      <span class="venue-url">${esc(st.currentUrl || st.url)}</span>
+      <button class="btn sm" data-venue-back>back</button>
+      <button class="btn sm" data-venue-reload>reload</button>
+      <button class="btn sm" data-venue-ext>open in browser</button>
+      <button class="btn sm" data-venue-out>sign out</button>
+    </div>
+    <div class="venue-host"></div>`;
+}
+
+function wireVenue(host, id) {
+  const on = (sel, fn) => host.querySelectorAll(sel).forEach((b) => b.onclick = fn);
+  on('[data-venue-back]', () => window.mcii.venueBack(id));
+  on('[data-venue-reload]', () => window.mcii.venueReload(id));
+  on('[data-venue-ext]', () => window.mcii.venueExternal(id));
+  on('[data-venue-out]', async () => {
+    await window.mcii.venueSignOut(id);
+    venueOn = null;
+    showVenue(id);
+  });
+}
+
+// The native view does not reflow with the page, so its rect is pushed on every resize.
+window.addEventListener('resize', () => {
+  if (venueOn) window.mcii.venueBounds(venueOn, venueRect($('#' + venueOn)));
+});
 
 // --- the portfolio -----------------------------------------------------------------------
 // Three readings of the same book: each venue's wallet on its own, and both together. The

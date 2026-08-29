@@ -488,3 +488,18 @@ td.is-up{color:var(--st-up) !important} td.is-down{color:var(--st-down) !importa
 .folio-chart.is-down .fl-area{fill:var(--st-down-dim);opacity:.30}
 .folio-axis{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;
   letter-spacing:.11em;text-transform:uppercase;color:var(--st-fg-faint)}
+
+/* --- the venue rooms -----------------------------------------------------
+   The page itself is a NATIVE WebContentsView floating above the document, so
+   .venue-host is only a measuring box — it is deliberately empty, and the view
+   is positioned over it from the main process. Nothing here can paint on top of
+   that view, which is why leaving the room detaches it rather than hiding it. */
+main.venue{display:flex;flex-direction:column;flex:1;min-height:0;padding:0 20px 20px}
+main.venue[hidden]{display:none !important}
+.venue-bar{display:flex;align-items:center;gap:10px;padding:12px 2px}
+.venue-bar .st-label{margin-right:2px}
+.venue-url{flex:1;font-family:var(--st-mono);font-size:11px;color:var(--st-fg-faint);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.venue-host{flex:1;min-height:320px;border-radius:8px;border:1px solid var(--st-edge);
+  background:var(--st-inset)}
+.venue-missing{max-width:680px}
