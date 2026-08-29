@@ -665,9 +665,30 @@ function sizeJ7() {
   if (!wv || !card || card.clientWidth === 0) return;
   wv.style.width = Math.max(200, card.clientWidth - 40) + 'px';
   wv.style.height = Math.max(520, Math.round(window.innerHeight * 0.7)) + 'px';
+  // Resizing the element is not always enough on its own -- some pages measure their own
+  // viewport once on load and only recompute on an actual 'resize' event, which growing the
+  // <webview> from the outside does not automatically fire on the inside. Nudge it.
+  try { wv.executeJavaScript('window.dispatchEvent(new Event("resize"))'); } catch {}
 }
 window.addEventListener('resize', sizeJ7);
-$('#j7view')?.addEventListener('dom-ready', sizeJ7);
+{
+  const wv = $('#j7view');
+  if (wv) {
+    // First attempt at only the top few pixels rendering fixed nothing on its own, so this adds
+    // real diagnostics instead of another guess: the webview is a SEPARATE process with its own
+    // console, invisible to the app's existing renderer-console-to-terminal forwarding
+    // (main/index.js) unless re-logged from here. Prefixed [j7] so it's easy to find.
+    wv.addEventListener('dom-ready', () => { sizeJ7(); console.error('[j7] dom-ready'); });
+    wv.addEventListener('did-finish-load', () => { sizeJ7(); console.error('[j7] did-finish-load'); });
+    wv.addEventListener('did-fail-load', (e) => {
+      if (e.errorCode === -3) return; // ERR_ABORTED -- routine (a redirect cancelling a request), not a fault
+      console.error(`[j7] did-fail-load: ${e.errorCode} ${e.errorDescription} (${e.validatedURL})`);
+    });
+    wv.addEventListener('crashed', () => console.error('[j7] guest process crashed'));
+    wv.addEventListener('console-message', (e) =>
+      console.error(`[j7] console: ${e.message}${e.sourceId ? `  (${e.sourceId}:${e.line})` : ''}`));
+  }
+}
 
 function switchView(v) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === v));
