@@ -124,3 +124,41 @@ anywhere in this codebase, so two correct answers looked like a contradiction. D
   server, not on a laptop that may be on battery. only surfaced while <6h old.
 
 ## TESTS 103
+
+## PART 5 (2026-08-29) — THE FIX ITSELF BECAME THE NEXT BUG, AND WENT UNCAUGHT UNTIL THE OPERATOR
+- operator: "'CATE is losing holders. Holder count fell 53.7% over 38 hours (252,283 to 116,808).
+  People are leaving, not arriving.' This is incorrect because your comparing 2 different numbers.
+  the 252000 is how many people have EVER owned cate not current holders so its incorrect to say
+  the holder count dropped 130,000 in the last 38 hours because CATE never had 252000 holders at
+  once." exactly right, and exactly the failure PART 3 thought it had closed.
+- root cause #1: `history.delta()`/`series()` for the `holders` field take the oldest and newest
+  non-null reading in a window and diff them with no idea the FIELD'S OWN DEFINITION changed
+  underneath it on 08-28. 252,283 was a real, correctly-recorded pre-fix reading (token accounts);
+  116,808 was a real, correctly-recorded post-fix reading (accounts with a balance). Both true,
+  never comparable, diffed anyway. same shape as PART 3's "sources disagree" bug, but across TIME
+  instead of across vendors -- the fix for one didn't think to guard the other.
+- root cause #2, found while fixing #1: `cloud-collect.js: collectMarket()` was never updated when
+  `rugcheck.js`'s field was renamed `totalHolders` -> `tokenAccounts` in the PART 4 fix. It has
+  been reading `safety?.totalHolders` -- now always `undefined` -- every hour since, writing
+  `holders: null` into `data/market.jsonl` for every row. The shared record has recorded ZERO real
+  holder counts since the fix that was supposed to make holder counts trustworthy. This is why the
+  trend the operator saw had nothing between the two contaminated pre-fix rows and one very recent
+  local reading to diff against -- there was nothing else to pick.
+- fix: `cloud-collect.js` now reads `meta.holderCount` from Jupiter, same as the live app already
+  does, restoring real hourly holder data going forward.
+- fix: `history.js` adds `HOLDERS_REDEFINED_AT` (the exact timestamp of the renaming commit,
+  ca27b2d, 2026-08-28T15:57:44Z) and excludes any `holders` row at or before it from `delta()`,
+  `series()`, and the sanity-guard's own prior-reading lookup in `record()`. A trend can no longer
+  span the boundary in either direction. Existing jsonl rows are left as written (append-only,
+  never rewritten -- same principle as the PART 1 quarantine) and simply age out of every window
+  that matters within a week.
+- test added: `test/history.test.js` reproduces this exact incident's numbers and asserts
+  `delta()`/`series()` return "not enough data" rather than a fabricated percentage, plus a
+  negative control that a genuine post-fix trend still fires normally.
+- ! THE LESSON, again, in a form that should have generalised the first time: a fix that redefines
+  what a field MEANS must also poison every value recorded under the old meaning, not just correct
+  the code path that produces new values. "when did this field's definition last change" is now a
+  question worth asking before trusting any diff across a wide time window, not only across
+  sources.
+
+## TESTS 106
