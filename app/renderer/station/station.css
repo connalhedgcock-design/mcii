@@ -728,11 +728,12 @@
   padding: 0 26px;
   border-top: 1px solid var(--st-edge);
 }
-/* Uppercase, matching the door plate above and every other header in this room -- the sill names
-   the same door the plate does, so the two must read as one voice, not two different styles for
-   the same fact. */
-.st-sill-door  { font-size: 15px; color: var(--st-fg); letter-spacing: 0.06em; text-transform: uppercase; }
-.st-sill-blurb { font-size: 12px; color: var(--st-fg-mute); letter-spacing: 0.03em; text-transform: uppercase; }
+/* ⚠️ NOT uppercase, on operator instruction 2026-08-29: the door plate is CAPS LOCK (a placard),
+   the sill is read as a sentence (a caption) -- deliberately two different registers for two
+   different jobs, not an inconsistency to be flattened. Source strings in station-geometry.js are
+   already properly cased (Title Case label, sentence-case blurb) and render as authored. */
+.st-sill-door  { font-size: 15px; color: var(--st-fg); letter-spacing: 0.01em; }
+.st-sill-blurb { font-size: 12px; color: var(--st-fg-mute); }
 .st-sill-go    { font-size: 12px; color: var(--st-holo-hot); letter-spacing: 0.06em; }
 .st-sill-sealed{ font-size: 12px; color: var(--st-fg-faint); font-style: italic; }
 .st-sill-keys  { margin-left: auto; font-size: 11px; color: var(--st-fg-faint); letter-spacing: 0.10em; }

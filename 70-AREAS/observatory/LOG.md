@@ -269,3 +269,13 @@ dated files; this is all of it, in one place, in order.
 - also fixed in passing: the flat tab bar's fomo/axiom buttons were left lowercase from when those
   doors were added, inconsistent with their Title Case siblings (Portfolio, Journal, Market) — now
   FOMO / Axiom.
+
+## 2026-08-29 — 18. CORRECTION: THE SILL IS A SENTENCE, THE PLATE IS A PLACARD
+- operator, immediately after #17 made both all-caps: "make the text under the doors caps lock but
+  the text in the bottom bar just like properly capitalized."
+- ! two different registers for two different jobs, not one voice repeated twice. `.st-portal-plate`
+  stays `text-transform: uppercase` (a placard, read at a glance across the room). `.st-sill-door`
+  and `.st-sill-blurb` reverted to no transform, rendering the already-proper-case source strings
+  from station-geometry.js as authored ("Your Coins" / "What you are holding and tracking").
+- verified on screen: doors read THE PORTFOLIO / YOUR COINS / THE MARKET; the sill directly below
+  reads "Your Coins" / "What you are holding and tracking" in the same pass.
