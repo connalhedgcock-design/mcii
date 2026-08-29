@@ -46,10 +46,19 @@
          #sectorbody so loadSector()'s innerHTML rewrite never reloads it -- it opens once and
          stays open, logged in, across every visit to this tab rather than restarting each time. -->
     <div class="card j7card">
-      <div class="chead"><b>J7 Tracker</b><span class="v">their site, embedded as-is</span></div>
+      <div class="chead"><b>J7 Tracker</b>
+        <span class="v">their site, embedded as-is —
+          <a href="https://j7tracker.io" target="_blank">open in your browser instead</a></span></div>
       <p class="note">Not part of MCII's own analysis — nothing you do here is read by, or shared
-        with, the rest of this app.</p>
-      <webview id="j7view" src="https://j7tracker.io" partition="persist:j7tracker" allowpopups></webview>
+        with, the rest of this app. Their Cloudflare bot-check sometimes blocks this embedded
+        window; the link above always works since it opens your real browser.</p>
+      <!-- Cloudflare's bot-check (Turnstile) on their site flags Electron's default user agent and
+         blocks past it -- only their header ever loaded, everything else stayed on the challenge
+         screen forever (confirmed from console.error("[j7] console: ...") logs showing Turnstile's
+         own script). A normal desktop Chrome UA is the standard mitigation; it is not guaranteed to
+         keep working since it is fighting a system built to catch exactly this. -->
+    <webview id="j7view" src="https://j7tracker.io" partition="persist:j7tracker" allowpopups
+      useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"></webview>
     </div>
   </main>
   <main id="journal" class="grid" hidden></main>

@@ -47,7 +47,39 @@ machine: connal
   the webview tab is covered by an automated test (it is a live third-party page; nothing to
   assert against from here), so this was verified by reading the wiring, not by a passing check.
 
+## 2026-08-29 — 2. THE EMBED ONLY EVER SHOWED THE TOP SLIVER — TWO WRONG GUESSES, THEN THE REAL CAUSE
+- machine: connal
+- Connal, after launching the built app: "this is what the j7 tracker looks like its broken" — a
+  screenshot showing their header/Login button rendering, then a large blank black area below.
+- guess 1: an Electron `<webview>` sizing/layout-timing issue (the guest not re-flowing when a
+  hidden tab becomes visible). Shipped a fix (real pixel width/height set via JS, re-applied on tab
+  switch) on the strength of it being a well-known class of bug. Connal: "it didnt work."
+- rather than guess a third time, added real diagnostics instead: the webview's `console-message` /
+  `did-fail-load` / `crashed` events re-logged from the host renderer (which the app already
+  forwards to the terminal — `main/index.js`'s existing renderer-console-to-terminal hook, reused
+  for free by logging from inside it rather than adding new plumbing).
+- ✓✓ Connal pasted the actual terminal output. Root cause, confirmed not guessed: the blank area is
+  **Cloudflare Turnstile** (`challenges.cloudflare.com/.../turnstile/...`) — J7's own bot-check,
+  stuck failing and blocking their real content from ever loading. The garbled console lines
+  (`YnxV2`, `%c%d font-size:0;color:transparent`, `[object HTMLAnchorElement]`) are Turnstile's own
+  obfuscated fingerprinting script, not a page bug. `No available adapters.` is a WebGPU probe
+  failing — one of the signals Cloudflare's challenge checks, and Electron's `<webview>` guest
+  fingerprints differently from a real browser tab in ways bot-checks are specifically built to
+  catch.
+- fix: `useragent` attribute on the `<webview>` set to a normal desktop Chrome UA string (Electron's
+  default reveals itself as Electron/Chromium, which is itself one of the signals). This is the
+  standard mitigation for this exact situation, but it is fighting a system DESIGNED to detect and
+  block automated-looking browser contexts — not guaranteed to keep working, and could break again
+  the next time Cloudflare's detection changes.
+- also added, regardless of whether the UA fix holds: an "open in your browser instead" link next
+  to the embed, which always works (Cloudflare trusts a real OS browser) — so this is never a dead
+  end for Connal even if the embed itself stays blocked.
+
 ## OPEN
 - Never wire a J7 "API key" into an adapter — it is a deploy-wallet credential, not read data.
 - If Connal later wants their social-tracking feed specifically (not deployment) as a chatter
   source, that is a different, unbuilt thing requiring real read-only API docs first.
+- The user-agent fix has not been confirmed working by Connal as of this entry — if it still fails
+  Turnstile, the honest next step is accepting the embed may never reliably work against a live
+  Cloudflare challenge and leaning on the "open in your browser instead" link as the real answer,
+  rather than continuing to chase Electron webview fingerprinting tweaks indefinitely.
