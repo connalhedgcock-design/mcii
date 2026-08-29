@@ -423,7 +423,44 @@ ipcMain.handle('shell:open', (_e, url) => { if (/^https:\/\//.test(url)) shell.o
 // Orion — the Claude CLI, not the API. No key, no per-token billing; whoever is
 // at the machine signs in with their own account.
 ipcMain.handle('orion:status', () => orion.status());
-ipcMain.handle('orion:ask', (_e, text) => orion.ask(text));
+ipcMain.handle('orion:ask', (_e, text) => orion.ask(text, liveContext()));
+
+// A compact picture of what the app is showing RIGHT NOW, for Orion.
+// Deliberately small: one line per coin plus the live alerts. The point is to
+// close the gap between what is on screen and what is on disk, not to paste the
+// whole store into a prompt.
+function liveContext() {
+  const n = (v) => (v == null || !Number.isFinite(v) ? '?' : Math.round(v).toLocaleString());
+  const lines = [];
+  for (const t of Object.values(store.tokens)) {
+    const m = t.market, g = t.gate;
+    lines.push([
+      `${t.sym || '?'}`,
+      m ? `price $${m.priceUsd}` : 'price ?',
+      m ? `mcap $${n(m.marketCap)}` : 'mcap ?',
+      m ? `liquidity $${n(m.totalLiquidityUsd)}` : 'liquidity ?',
+      m?.priceChange?.h24 != null ? `24h ${m.priceChange.h24}%` : '24h ?',
+      t.safety?.totalHolders != null ? `holders ${n(t.safety.totalHolders)}` : 'holders ?',
+      t.exit ? `sellable-before-5pct $${n(t.exit.usd)}` : 'sellable ?',
+      g ? `safety ${g.verdict}` : 'safety ?',
+      `readings ${t.trend?.recorded ?? 0}`,
+      t.position?.tokens ? `holding ${n(t.position.tokens)} tokens` : 'no position',
+      t.errors?.length ? `feed-errors: ${t.errors.join('; ')}` : '',
+    ].filter(Boolean).join(' · '));
+  }
+  const alerts = [];
+  for (const ca of Object.keys(store.tokens)) {
+    for (const a of store.tokens[ca].alerts || []) {
+      alerts.push(`${a.severity}: ${a.title} — ${a.detail}`);
+    }
+  }
+  return [
+    lines.length ? 'WATCHLIST:' : 'WATCHLIST: (empty)',
+    ...lines,
+    alerts.length ? '\nACTIVE ALERTS:' : '\nACTIVE ALERTS: none',
+    ...alerts,
+  ].join('\n');
+}
 ipcMain.handle('orion:login', () => orion.login());
 
 ipcMain.handle('update:check', () => updater.checkForUpdates());

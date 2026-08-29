@@ -96,6 +96,12 @@ const SYSTEM = [
   '',
   'You cannot place trades and must never tell them to buy or sell a specific',
   'asset. Describe what the evidence shows and what would change it.',
+  '',
+  'A <live-readings> block may accompany the question. That is the app\'s CURRENT',
+  'state and is more up to date than the files in the repo, which are the shared',
+  'historical record and can lag it by an hour. If the two disagree, prefer the',
+  'live block and say the record has not caught up yet. Never tell them there is',
+  'no data for a coin that appears in the live block.',
 ].join(' ');
 
 /**
@@ -103,15 +109,26 @@ const SYSTEM = [
  * `code` lets the renderer tell "not installed" from "not signed in" from
  * "it broke" — three different things that must never look the same.
  */
-function ask(text) {
+function ask(text, live) {
   return new Promise((resolve) => {
     const s = status();
     if (!s.installed) {
       return resolve({ ok: false, code: 'no-cli',
         error: 'The Claude CLI is not installed on this machine.' });
     }
+    // ⚠️ THE LIVE READINGS ARE NOT IN THE REPO. The app keeps them in its
+    // sidecar under Application Support; the repo only carries what the hourly
+    // cloud collector has written. A coin added an hour ago is fully populated on
+    // screen and completely absent from data/market.jsonl — so Orion, reading
+    // only files, would truthfully report "no market data" about a coin the
+    // operator is looking at. Truthful and useless is still useless. Hand it the
+    // current state alongside the question.
+    const prompt = live
+      ? `<live-readings note="what the app is showing right now; the repo files are the historical record and may lag this">\n${live}\n</live-readings>\n\n${text}`
+      : String(text);
+
     const child = execFile(s.path,
-      ['-p', String(text), '--append-system-prompt', SYSTEM],
+      ['-p', prompt, '--append-system-prompt', SYSTEM],
       { cwd: REPO, timeout: 180000, maxBuffer: 8 * 1024 * 1024,
         env: { ...process.env, CLAUDE_CODE_ENTRYPOINT: 'mcii-observatory' } },
       (err, stdout, stderr) => {
