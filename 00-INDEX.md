@@ -1,8 +1,9 @@
 ---
 id: idx
 t: index
-v: 1
-upd: 2026-08-23
+v: 2
+upd: 2026-08-29
+machine: austin
 ---
 # MCII VAULT — CLAUDE ENTRYPOINT
 
@@ -18,19 +19,32 @@ conf=N% = my calibrated confidence. Every claim in this vault carries one or is 
 1. [[mandate]]      — who I am here. NON-NEGOTIABLE. read first, every time.
 2. [[ops]]          — who I'm working with, skill level, failure modes
 3. [[constraints]]  — $ cap, legal, machine limits
-4. [[base-rates]]   — the numbers that kill bad ideas before they cost money
-5. [[grill]]        — every idea in this project, interrogated. THE core doc.
-6. [[spec]]         — the reprompt. what we're actually building.
-7. [[arch]] [[creds]] [[data-sources]] [[scoring]] [[ui]] [[sync]] — build detail
-8. 40-POS/*         — live positions + theses
-9. [[decisions]] — LOCKED calls. read before proposing anything. do not re-open a row.
-10. 50-LOG/* — trades, forecasts, calibration
+4. **[[70-AREAS/mcii-overview/OVERVIEW|70-AREAS/mcii-overview/OVERVIEW.md]]** — what MCII actually
+   IS, as-built, right now. ! read BEFORE item 8 below — 20-SPEC is the 08-23 PRE-BUILD plan and
+   parts of it (React, Postgres, Syncthing) were never built that way; OVERVIEW is current fact,
+   20-SPEC is historical intent. see [[70-AREAS/AREAS|70-AREAS/AREAS.md]] for how that tree works.
+5. [[base-rates]]   — the numbers that kill bad ideas before they cost money
+6. [[grill]]        — every idea in this project, interrogated. THE core doc.
+7. [[spec]]         — the reprompt. what we're actually building.
+8. [[arch]] [[creds]] [[data-sources]] [[scoring]] [[ui]] [[sync]] — PRE-BUILD PLAN. cross-check
+   against 70-AREAS/ and the real code where they disagree; do not treat as current fact.
+9. 40-POS/*         — live positions + theses
+10. [[decisions]] — LOCKED calls. read before proposing anything. do not re-open a row.
+11. 50-LOG/* — trades, forecasts, calibration, dated. for "everything about subject X" instead,
+    check `70-AREAS/<subject>/` first — see [[70-AREAS/AREAS|70-AREAS/AREAS.md]].
 
 ## STATE
-- phase: SPEC. nothing built. no code. no node/npm on host.
-- vault root = /Users/connalhedgcock/Documents/MCII (.obsidian lives here)
-- app code → ./app/ (add to obsidian userIgnoreFilters, else node_modules destroys indexer)
-- ! next action gate: operators must read GRILL + answer OPEN-Q block before any code
+- !! phase line below was WRONG for weeks ("nothing built, no code") while a full Electron app,
+  the Observatory spatial UI, Orion, and a working git-sync workflow existed. corrected 08-29
+  (machine: austin). if you are reading a stale copy of this file, trust 70-AREAS/ over this line.
+- phase: BUILT AND IN DAILY USE. Electron app in `app/`, two operators (Austin + Connal), synced by
+  git. see [[70-AREAS/mcii-overview/OVERVIEW|70-AREAS/mcii-overview/OVERVIEW.md]] for what exists.
+- vault root = `~/Documents/MCII` on WHICHEVER machine you're on (Austin's and Connal's paths
+  differ by username; do not hardcode one).
+- app code → `./app/` (kept out of Obsidian's indexer via `userIgnoreFilters` — node_modules kills it)
+- ! `.obsidian/workspace.json` must stay gitignored — it is per-person UI state, not shared data.
+- next action gate that mattered at SPEC phase (read GRILL before any code) is DONE and moot now;
+  the live gate is: read the OVERVIEW above before proposing anything that already exists.
 
 ## WRITE RULES (me)
 - one fact per file where it's a memory; one topic per file where it's spec
