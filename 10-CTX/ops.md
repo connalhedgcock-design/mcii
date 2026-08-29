@@ -1,8 +1,8 @@
 ---
 id: ctx.ops
 t: ctx
-v: 3
-upd: 2026-08-26
+v: 4
+upd: 2026-08-29
 prio: high
 ---
 # OPERATORS
@@ -17,6 +17,23 @@ prio: high
 ## peter — technical. helping + will use it. NOT present now, returns later. NO money in.
 - ∴ 3 devices eventually, not 2. see [[sync]]. ∴ D-13 (only connal+austin capital) UNCHANGED.
 - ∴ vault + spec staying technical is FINE — peter reads it later. the CHAT with connal is what must be plain.
+
+## !! WORK SPLIT — set 2026-08-29, read before starting any task
+Connal, verbatim: "me and austin came up with a new work split, i will be handling any issues with
+the scanners effectiveness, handling the interpretation of the data we collect from the scanner,
+writing any algorithms needed to analyze the data we collect, austin will be fixing issues within
+the app and adding to the app itself so new roooms or features within the app will mostly go
+through him."
+- **Connal's lane**: whether the scanner actually finds/ranks the right coins, what the collected
+  data MEANS, any new analysis/scoring algorithm.
+- **Austin's lane**: the app itself — bugs in it, new rooms/features/UI, the Observatory, anything
+  Electron/renderer-side that isn't about what the numbers mean.
+- ! not a hard wall — the two overlap constantly in practice (a scanner bug often IS an app bug;
+  an analysis change often needs a UI to show it). Read as: whose CALL it is when the two disagree
+  or when it's unclear who asked for something, not as "refuse to touch the other's files." If a
+  session on Austin's machine gets an analysis-shaped request, or a session with Connal gets asked
+  for a new room, that's a decent moment to check who's actually driving that piece before
+  building it — not a hard refusal.
 
 ## !! HOW I TALK TO CONNAL — non-negotiable
 ## ! REINFORCED 2026-08-28 — he asked AGAIN. I drifted back into jargon. this is now a standing failure of mine.
