@@ -150,9 +150,19 @@ The spatial 3D control-room UI (`renderer/station/`) — full detail in
   funds from software shaped exactly like this. Overriding the UA is one line and is NOT done —
   it circumvents an access control the venue chose, likely breaches their terms, and would train
   both operators to trust a trading terminal rendered inside third-party software, which is the
-  habit the block exists to prevent. The axiom door opens a real room that says so and launches
-  the SYSTEM BROWSER instead. Their Axiom holdings are still read on-chain in the portfolio, which
-  needs no login and no embedding at all.
+  habit the block exists to prevent. Walking through the axiom door instead launches a REAL
+  Chromium in app mode (`--app=<url>`, `main/venues.js: openAppWindow`) — a chromeless window with
+  no tab strip and no omnibox, unmodified user agent, the operator's own profile and login, so it
+  reads as a window of this app without anything being faked. Debounced 8s so stepping in and out
+  does not spawn a pile of windows; the room carries a reopen button. Their Axiom holdings are
+  still read on-chain in the portfolio, which needs no login and no embedding at all.
+- !! LOGIN BUG, FIXED 08-29 — DO NOT REINTRODUCE THE CAUSE. `will-navigate` carried an allowlist so
+  a venue room would not become a general-purpose browser. Signing into fomo with Apple navigates
+  to `appleid.apple.com`, which was not on it, so the whole auth flow was ejected into Safari: the
+  BROWSER ended up logged in while MCII sat on a logged-out page explaining nothing. An auth
+  allowlist cannot be maintained — Privy alone fronts Apple, Google, email and several wallets, and
+  every host missed breaks sign-in the same silent way. There is now NO allowlist; only non-http(s)
+  schemes are refused, and leaving on purpose is what the "open in browser" button is for.
 - the venue rooms hide the footer entirely (`display:none`, not `visibility`) — the view fills the
   window down to it, so an invisible footer would still eat that height. ! `.venue-host` must not
   be `flex:1`: that means `flex-basis:0%`, which beats the height JS computes, and the venue gets
