@@ -500,6 +500,9 @@ main.venue[hidden]{display:none !important}
 .venue-bar .st-label{margin-right:2px}
 .venue-url{flex:1;font-family:var(--st-mono);font-size:11px;color:var(--st-fg-faint);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.venue-host{flex:1;min-height:320px;border-radius:8px;border:1px solid var(--st-edge);
+/* ⚠️ NOT flex:1. `flex:1` means `flex-basis:0%`, which wins over the explicit height JS sets
+   here — the box then sat at its min-height while the native view covering it was sized to match,
+   letterboxing the venue into a strip. The height is computed in venueRect(); let it apply. */
+.venue-host{flex:0 0 auto;min-height:320px;border-radius:8px;border:1px solid var(--st-edge);
   background:var(--st-inset)}
 .venue-missing{max-width:680px}

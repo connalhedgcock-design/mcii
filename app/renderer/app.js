@@ -681,6 +681,10 @@ function switchView(v) {
   // ⚠️ The venue view is a NATIVE layer above the page — CSS cannot cover it, so leaving a view
   // means explicitly taking it off screen. Forgetting this paints a trading terminal over the
   // Observatory, which is exactly the bug the hide() call exists to prevent.
+  // The footer is DISPLAY:NONE in a venue room, not merely hidden: the venue fills the window
+  // down to it, so a footer that only goes invisible still eats that height for nothing.
+  const foot = document.querySelector('.foot');
+  if (foot) foot.style.display = VENUE_IDS.includes(v) ? 'none' : '';
   if (VENUE_IDS.includes(v)) showVenue(v); else hideVenues();
 }
 
@@ -693,7 +697,7 @@ async function showVenue(id) {
   const st = await window.mcii.venueStatus(id);
   host.innerHTML = venueChrome(id, st);
   wireVenue(host, id);
-  if (!st.configured) { await hideVenues(); return; }
+  if (!st.configured || !st.embeddable) { await hideVenues(); return; }
   venueOn = id;
   await window.mcii.venueOpen(id, venueRect(host));
   // The rect is only right once the panel has actually laid out.
@@ -716,13 +720,32 @@ function venueRect(host) {
   const el = host.querySelector('.venue-host') || host;
   const foot = document.querySelector('.foot');
   const top = el.getBoundingClientRect().top;
-  const floor = foot ? foot.getBoundingClientRect().top : window.innerHeight;
+  // The footer is hidden in here, so fall through to the window's own bottom rather than reading
+  // a collapsed box's top, which is 0 and would give the view a negative height.
+  const footShown = foot && foot.offsetParent !== null && foot.getBoundingClientRect().height > 0;
+  const floor = footShown ? foot.getBoundingClientRect().top : window.innerHeight;
   el.style.height = `${Math.max(320, Math.round(floor - top - 12))}px`;
   const r = el.getBoundingClientRect();
   return { x: r.left, y: r.top, width: r.width, height: r.height };
 }
 
 function venueChrome(id, st) {
+  // A venue that refuses to be embedded gets a real room anyway: what it is, why it is not drawn
+  // here, and a way straight into it. Better than a sealed door, and far better than defeating the
+  // block -- see the note in main/venues.js.
+  if (st.configured && !st.embeddable) {
+    return `<div class="venue-bar">
+        <span class="st-label">${esc(st.label)}</span>
+        <span class="venue-url">${esc(st.url)}</span>
+        <button class="btn sm" data-venue-ext>open axiom in your browser</button>
+      </div>
+      <div class="st-board venue-missing"><div class="st-board-screws"></div>
+        <div class="st-board-head"><span class="st-label">opens in your browser</span></div>
+        <div class="folio-empty">${esc(st.why || '')}</div>
+        <div class="folio-note">Your Axiom holdings are still read here — the portfolio room shows
+          them from the chain, which needs no login at all. This door is for the venue itself.</div>
+      </div>`;
+  }
   if (!st.configured) {
     return `<div class="venue-bar"><span class="st-label">${esc(st.label)}</span></div>
       <div class="st-board venue-missing"><div class="st-board-screws"></div>

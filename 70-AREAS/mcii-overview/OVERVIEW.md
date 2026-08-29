@@ -142,10 +142,21 @@ The spatial 3D control-room UI (`renderer/station/`) — full detail in
   (`persist:venue-<id>-<owner>`). The app has no login form, never reads a credential field and
   stores no password — the same hand-off shape as Orion with `claude auth login`. OAuth popups are
   allowed (same partition, no node) because Apple/Google sign-in needs them.
-- ! AXIOM IS NOT BUILT. Every path tried on `axiom.trade` (/, /discover, /pulse, /portfolio,
-  /login, www.) returned 404 "RESOURCE NOT FOUND" from a WebContentsView that was NOT bot-blocked.
-  Its door stays SEALED and `VENUES.axiom.url` stays null until the operator supplies the real URL
-  — the same refusal-to-guess as `30-GRILL` G-09 about "the FOMO app". It is one line to enable.
+- !! AXIOM IS DELIBERATELY NOT EMBEDDED, and this is not a bug awaiting a fix. Measured 08-29 on
+  the operator's own URL, same machine, same minute: **Electron's user agent -> HTTP 404
+  "RESOURCE NOT FOUND"; a Chrome user agent -> HTTP 200 and the real app.** Axiom's edge is
+  refusing embedded browser views on purpose. Wrapping a real trading site in a desktop webview is
+  how wallet-drainer and credential-phishing apps are built, so that block is protecting users'
+  funds from software shaped exactly like this. Overriding the UA is one line and is NOT done —
+  it circumvents an access control the venue chose, likely breaches their terms, and would train
+  both operators to trust a trading terminal rendered inside third-party software, which is the
+  habit the block exists to prevent. The axiom door opens a real room that says so and launches
+  the SYSTEM BROWSER instead. Their Axiom holdings are still read on-chain in the portfolio, which
+  needs no login and no embedding at all.
+- the venue rooms hide the footer entirely (`display:none`, not `visibility`) — the view fills the
+  window down to it, so an invisible footer would still eat that height. ! `.venue-host` must not
+  be `flex:1`: that means `flex-basis:0%`, which beats the height JS computes, and the venue gets
+  letterboxed into a 320px strip while everything in the DOM looks correct.
 - the door ring is now SEVEN doors at 28° spacing. Eight at 24° overlapped by 1px (the same
   failure as six-on-a-five-door ring), and the operator asked for door sizes to be kept, so the
   unbuilt prediction-markets door gave up its slot.

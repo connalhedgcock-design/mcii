@@ -41,12 +41,12 @@ export const DOORS = [
   { id: 'market',  view: 'market',  label: 'the market',       angle: -28.0, built: true,  blurb: 'everything the scanner has found',      tag: 'MKT' },
   { id: 'watch',   view: 'watch',   label: 'your coins',       angle:   0.0, built: true,  blurb: 'what you are holding and tracking',     tag: 'WCH' },
   { id: 'folio',   view: 'folio',   label: 'the portfolio',    angle:  28.0, built: true,  blurb: 'what you hold, across both venues',    tag: 'FOL' },
-  // ! axiom stays SEALED until its real URL is known -- `built` is the truth about the app, not
-  // a wish, and a door that opens onto nothing teaches distrust of the others. Every path tried
-  // on axiom.trade answered 404 and it was not a bot block, so guessing would build the wrong
-  // product (the mistake 30-GRILL G-09 refused to make about "the FOMO app").
+  // ! axiom's door opens onto a real room, but NOT onto an embedded Axiom: the venue answers 404
+  // to anything that is not a real browser (measured -- Electron UA 404, Chrome UA 200), which is
+  // a deliberate anti-phishing defence for a trading site. The room explains that and launches the
+  // system browser instead of defeating it. See main/venues.js.
   { id: 'fomo',    view: 'fomo',    label: 'fomo',             angle:  56.0, built: true,  blurb: 'the venue, live',                      tag: 'FMO' },
-  { id: 'axiom',   view: null,      label: 'axiom',            angle:  84.0, built: false, blurb: 'the venue, live',                      tag: 'AXM' },
+  { id: 'axiom',   view: 'axiom',   label: 'axiom',            angle:  84.0, built: true,  blurb: 'opens in your browser',                tag: 'AXM' },
 ]
 
 /** Where you land when the room opens. Not simply "the first built door" —

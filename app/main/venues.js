@@ -28,12 +28,29 @@ const VENUES = {
   },
   axiom: {
     label: 'axiom',
-    // ! NO URL YET. Every path tried on axiom.trade (/, /discover, /pulse, /portfolio, /login,
-    // and www.) returned 404 "RESOURCE NOT FOUND" from a WebContentsView that was NOT being
-    // bot-blocked. Rather than guess and build against the wrong product -- the mistake
-    // 30-GRILL/grill.md G-09 refused to make about "the FOMO app" -- this stays null and the
-    // door stays sealed until the operator gives the URL they actually use.
-    url: null,
+    // The operator's own URL, 2026-08-29.
+    url: 'https://axiom.trade/discover?chain=sol&pulseChains=sol,robinhood,bnb'
+       + '&trackerChains=sol,robinhood,bnb,eth',
+    // !! DELIBERATELY NOT EMBEDDED, AND THIS IS NOT A BUG TO FIX.
+    //
+    // Measured 2026-08-29, same URL, same machine, same moment:
+    //     Electron's own user agent -> HTTP 404 "RESOURCE NOT FOUND"
+    //     a Chrome user agent       -> HTTP 200, the real Axiom app
+    //
+    // So Axiom's edge is refusing embedded browser views on purpose. That is a defence
+    // worth respecting rather than defeating: wrapping a real trading site in a desktop webview is
+    // exactly how wallet-drainer and credential-phishing apps are built, and a venue that blocks
+    // it is protecting its users' funds from apps shaped like this one. Overriding the user agent
+    // would work in about one line and is precisely why it is not done here.
+    //
+    // ! If a future session is tempted: don't. Setting a Chrome UA here circumvents an access
+    // control the venue chose, likely breaches their terms, and trains the operators to trust a
+    // trading terminal rendered inside third-party software -- the habit the block exists to stop.
+    // The room opens Axiom in the real browser instead, where its own protections apply intact.
+    embeddable: false,
+    why: 'Axiom refuses to load inside embedded browser views — it answers 404 to anything that is '
+       + 'not a real browser. That block is a sensible anti-phishing defence for a trading site, '
+       + 'so this room opens Axiom in your own browser rather than working around it.',
   },
 };
 
@@ -43,6 +60,8 @@ let attached = null;          // which venue is currently on screen, if any
 const partitionFor = (id, owner) => `persist:venue-${id}-${owner || 'local'}`;
 
 function configured(id) { return !!(VENUES[id] && VENUES[id].url); }
+// Whether the venue may be drawn INSIDE the app, as opposed to handed to the system browser.
+function embeddable(id) { return configured(id) && VENUES[id].embeddable !== false; }
 
 // A venue page is ordinary untrusted web content. It gets no preload, no node, its own session,
 // and no ability to ask for hardware.
@@ -96,6 +115,7 @@ function build(id, owner) {
 function open(win, id, owner, bounds) {
   if (!win || win.isDestroyed()) return { ok: false, reason: 'no window' };
   if (!configured(id)) return { ok: false, reason: 'no url configured for this venue' };
+  if (!embeddable(id)) return { ok: false, external: true, reason: VENUES[id].why };
 
   let view = views.get(id);
   const fresh = !view;
@@ -135,6 +155,8 @@ function status(id) {
   return {
     id, label: VENUES[id]?.label || id,
     configured: configured(id),
+    embeddable: embeddable(id),
+    why: VENUES[id]?.why || null,
     url: VENUES[id]?.url || null,
     loaded: !!v && !v.webContents.isLoading(),
     currentUrl: v ? v.webContents.getURL() : null,
@@ -166,4 +188,4 @@ async function signOut(id, owner) {
   return { ok: true };
 }
 
-module.exports = { VENUES, open, hide, setBounds, status, reload, goBack, openExternal, signOut, configured };
+module.exports = { VENUES, open, hide, setBounds, status, reload, goBack, openExternal, signOut, configured, embeddable };
