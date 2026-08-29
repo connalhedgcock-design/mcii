@@ -7,25 +7,33 @@ on:
     #
     # ! the minute matters. This ran at :07 for a day and GitHub fired it ZERO times out of 27 —
     # scheduled runs are queued best-effort and the top of the hour is the busiest slot, where
-    # they are dropped rather than delayed. Moved to :37. If this still does not fire, the answer
-    # is not a different minute, it is that GitHub's scheduler cannot be relied on and collection
-    # has to be triggered by something we control.
+    # they are dropped rather than delayed. Moved to :37 on 08-28 and has fired on time every hour
+    # since (checked via the Actions API, not assumed). D-61's two-week bar isn't met yet, but the
+    # scheduler is no longer the suspect it once was.
     - cron: '37 * * * *'
-  workflow_dispatch:        # lets you run it by hand from the Actions tab
-    inputs:
-      hours:
-        description: 'How many hourly collections this run should do (max 6)'
-        default: '6'
+  workflow_dispatch:        # lets you run it by hand from the Actions tab, one pass
 
-# Only one collection at a time. Two runs appending to the same files would interleave lines.
+# Only one collection at a time -- two runs appending to the same files would interleave lines.
+# cancel-in-progress is TRUE on purpose: if a run ever hangs (a stuck network call, a wedged
+# runner), the next hourly trigger kills it and starts clean instead of queueing behind it
+# forever. Costs nothing in the normal case -- a healthy run finishes in minutes, long before the
+# next trigger arrives 60 minutes later.
 concurrency:
   group: collect
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 355     # just under GitHub's six-hour ceiling
+    # One pass, not six hours of sleeping in a loop. cloud-collect.js's own header says "runs once
+    # and exits" -- the old workflow loop contradicted that. The loop existed to make one firing
+    # cover a whole evening while the scheduler was suspected broken; instead it became a single
+    # long-lived job that could hang for hours and, via the concurrency lock above, block every
+    # scheduled run behind it. 08-29: a run hung 00:10-03:37 UTC (an un-timed-out RPC call, fixed
+    # in main/adapters/onchain.js) and every trigger in that window queued up and got cancelled
+    # without ever running. 15 minutes is generous for one pass; if it's not done by then something
+    # is actually stuck, and cutting it off frees the lock for the next hourly trigger.
+    timeout-minutes: 15
     permissions:
       contents: write       # needed to commit the collected data back
     steps:
@@ -35,30 +43,17 @@ jobs:
         with:
           node-version: '22'
 
-      # ! ONE TRIGGER BUYS SIX HOURS, NOT ONE.
-      #
-      # GitHub's scheduler fired this zero times out of twenty-seven, so the design stopped
-      # depending on it being reliable. Instead of collecting once and exiting, the job stays up
-      # and collects every hour for six hours -- GitHub's maximum job length -- committing after
-      # each pass. A single firing, from the schedule or from a person clicking Run workflow,
-      # now covers a whole evening rather than one hour.
-      #
-      # This does not make the timer work. It makes the timer matter six times less.
-      - name: Collect, hourly, for as long as the job may live
+      - name: Collect
         working-directory: app
         env:
           TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
           X_MONTHLY_CAP_USD: '12'
-          PASSES: ${{ github.event.inputs.hours || '6' }}
+        run: node main/cloud-collect.js
+
+      - name: Commit and push whatever was collected
         run: |
-          for i in $(seq 1 "$PASSES"); do
-            echo "=== pass $i of $PASSES ==="
-            node main/cloud-collect.js || echo "pass $i failed, carrying on"
-            cd .. && git add data/ && \
-              git -c user.name=mcii-collector -c user.email=collector@users.noreply.github.com \
-                  commit -q -m "data: collection $(date -u '+%Y-%m-%d %H:%M UTC')" 2>/dev/null && \
-              (git pull -q --rebase --autostash && git push -q) || echo "nothing new to commit"
-            cd app
-            # Skip the wait after the final pass so the job ends rather than idling for an hour.
-            [ "$i" -lt "$PASSES" ] && sleep 3600 || true
-          done
+          git add data/
+          git -c user.name=mcii-collector -c user.email=collector@users.noreply.github.com \
+              commit -q -m "data: collection $(date -u '+%Y-%m-%d %H:%M UTC')" 2>/dev/null || \
+              { echo "nothing new to commit"; exit 0; }
+          git pull -q --rebase --autostash && git push -q

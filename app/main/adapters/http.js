@@ -1,7 +1,7 @@
 // Shared fetch wrapper. Every gotcha we hit in live testing is handled here, once.
 const UA = 'MCII/0.1 (personal research dashboard)';
 
-async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {} } = {}) {
+async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {}, method = 'GET', body } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) await sleep(400 * Math.pow(2, attempt)); // exponential backoff
@@ -10,6 +10,8 @@ async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {} } = {
     try {
       // Explicit User-Agent: default agents get 403 from several of these hosts.
       const res = await fetch(url, {
+        method,
+        body,
         // Caller headers must merge, not be ignored. Dropping them silently sent unauthenticated
         // requests that failed with 403 and no clue why.
         headers: { 'User-Agent': UA, accept: 'application/json', ...headers },

@@ -17,13 +17,19 @@ const RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const TOKEN_2022 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 const TOKEN_LEGACY = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
+// Routed through the shared getJSON wrapper for its timeout + retry handling. A raw fetch() here
+// once hung the whole collector forever — this call alone returns ~62MB and a public RPC that
+// stalls mid-response has no other guard to stop it. Every other adapter already went through
+// getJSON; this was the one exception, and it was the one that froze the scanner for hours (see
+// 70-AREAS/multichain-market-data/LOG.md).
 async function rpc(method, params) {
-  const res = await fetch(RPC, {
+  const d = await getJSON(RPC, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'User-Agent': 'MCII/0.1' },
+    timeoutMs: 30000,   // this call is heavier than the rest (~62MB, ~6s normally); give it room
+    retries: 1,          // but don't retry a slow-but-working 62MB call three times over
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   });
-  const d = await res.json();
   if (d.error) throw new Error(d.error.message || 'rpc error');
   return d.result;
 }
