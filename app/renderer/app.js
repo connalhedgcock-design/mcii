@@ -653,6 +653,22 @@ async function loadSector() {
   box.innerHTML = head + shared + market + filtered + mood + tickers + recent;
 }
 
+// The J7 Tracker <webview> starts life inside a hidden (display:none) tab, and Electron's webview
+// does not reliably re-layout its guest page when CSS alone changes its box size later -- it showed
+// up as only whatever the page rendered at its near-zero starting size, with everything below
+// staying blank. Setting real pixel dimensions (not vh/%) and re-asserting them whenever the tab
+// actually becomes visible is what makes the guest recompute its own layout for the size it's
+// really getting.
+function sizeJ7() {
+  const wv = $('#j7view');
+  const card = wv && wv.closest('.j7card');
+  if (!wv || !card || card.clientWidth === 0) return;
+  wv.style.width = Math.max(200, card.clientWidth - 40) + 'px';
+  wv.style.height = Math.max(520, Math.round(window.innerHeight * 0.7)) + 'px';
+}
+window.addEventListener('resize', sizeJ7);
+$('#j7view')?.addEventListener('dom-ready', sizeJ7);
+
 function switchView(v) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === v));
   $('#grid').hidden = v !== 'watch';
@@ -662,7 +678,7 @@ function switchView(v) {
   $('.search').style.display = v === 'watch' ? 'flex' : 'none';
   $('#alerts').style.display = v === 'watch' ? '' : 'none';
   if (v === 'market') loadMarket();
-  if (v === 'sector') loadSector();
+  if (v === 'sector') { loadSector(); requestAnimationFrame(sizeJ7); }
   if (v === 'journal') loadJournal();
 }
 
