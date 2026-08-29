@@ -1,4 +1,6 @@
 const { WebContentsView, BrowserWindow, shell, session } = require('electron');
+const { spawn } = require('child_process');
+const fs = require('fs');
 
 // The venue rooms: a real browser view of fomo.family / axiom.trade, inside the app.
 //
@@ -47,10 +49,16 @@ const VENUES = {
     // control the venue chose, likely breaches their terms, and trains the operators to trust a
     // trading terminal rendered inside third-party software -- the habit the block exists to stop.
     // The room opens Axiom in the real browser instead, where its own protections apply intact.
+    //
+    // What that means concretely: a REAL Chromium launched in app mode (`--app=<url>`), which
+    // opens a chromeless window -- no tab strip, no omnibox -- so it reads as a window belonging
+    // to this app without anything being faked. Unmodified user agent, the operator's own profile
+    // and login. Verified 2026-08-29: the window opens and Axiom loads, title "Axiom".
+    appMode: true,
     embeddable: false,
-    why: 'Axiom refuses to load inside embedded browser views — it answers 404 to anything that is '
-       + 'not a real browser. That block is a sensible anti-phishing defence for a trading site, '
-       + 'so this room opens Axiom in your own browser rather than working around it.',
+    why: 'Axiom answers 404 to anything that is not a real browser — a deliberate defence, since '
+       + 'wrapping a trading site in a desktop webview is how drainer apps are built. So this door '
+       + 'opens Axiom in a dedicated Chrome window: no tabs, no address bar, your own login.',
   },
 };
 
@@ -96,16 +104,20 @@ function build(id, owner) {
     };
   });
 
-  // A link that would leave the venue entirely goes to the system browser, so the room stays a
-  // room and never becomes a general-purpose browser.
+  // ⚠️ NO ALLOWLIST HERE, DELIBERATELY, AND DO NOT REINTRODUCE ONE.
+  //
+  // This used to send any "unrelated" host to the system browser to keep the room from becoming a
+  // general-purpose browser. It broke login outright: signing in with Apple navigates to
+  // appleid.apple.com, which was not on the list, so the whole auth flow was ejected into Safari.
+  // The operator finished signing in there -- and the BROWSER ended up logged in while MCII sat on
+  // a logged-out page, with nothing on screen explaining why.
+  //
+  // An auth allowlist cannot be maintained: Privy alone fronts Apple, Google, email, and several
+  // wallets, each with their own redirect hosts, and every one we miss silently breaks sign-in the
+  // same way. A browser room navigates where the page sends it. Only non-web schemes are refused;
+  // leaving on purpose is what the "open in browser" button is for.
   view.webContents.on('will-navigate', (e, url) => {
-    try {
-      const host = new URL(url).hostname;
-      const home = new URL(VENUES[id].url).hostname;
-      const related = host === home || host.endsWith('.' + home.replace(/^www\./, ''))
-        || /privy\.io|cloudflare\.com|google\.com|x\.com|twitter\.com|phantom\.app|solflare\.com/.test(host);
-      if (!related) { e.preventDefault(); shell.openExternal(url); }
-    } catch { /* leave it alone rather than trap the operator */ }
+    if (!/^https?:/i.test(url)) e.preventDefault();
   });
 
   return view;
@@ -156,6 +168,7 @@ function status(id) {
     id, label: VENUES[id]?.label || id,
     configured: configured(id),
     embeddable: embeddable(id),
+    appMode: !!VENUES[id]?.appMode,
     why: VENUES[id]?.why || null,
     url: VENUES[id]?.url || null,
     loaded: !!v && !v.webContents.isLoading(),
@@ -177,6 +190,33 @@ function openExternal(id) {
   return { ok: true };
 }
 
+// Chromium browsers, in preference order. `--app=` is a first-class Chromium flag, not a trick:
+// it opens an ordinary browsing window with the tab strip and omnibox removed.
+const APP_MODE_BROWSERS = [
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+];
+
+function openAppWindow(id) {
+  const url = VENUES[id]?.url;
+  if (!url) return { ok: false, reason: 'no url for this venue' };
+  const bin = APP_MODE_BROWSERS.find((b) => { try { return fs.existsSync(b); } catch { return false; } });
+  // No Chromium installed is not an error worth surfacing -- a normal tab is a worse frame but a
+  // working one, and better than a complaint about a browser nobody asked to care about.
+  if (!bin) { shell.openExternal(url); return { ok: true, mode: 'default-browser' }; }
+  try {
+    // detached + unref: the window outlives this app on purpose. Quitting MCII must never yank a
+    // trading window away from someone mid-order.
+    const child = spawn(bin, [`--app=${url}`], { detached: true, stdio: 'ignore' });
+    child.unref();
+    return { ok: true, mode: 'app-window', browser: bin.split('/').pop() };
+  } catch (e) {
+    shell.openExternal(url);
+    return { ok: true, mode: 'default-browser', note: e.message };
+  }
+}
+
 // Signing out is the venue's own business, but clearing the local session is ours -- and it is the
 // only "logout" this app can honestly offer, since it never held a credential to begin with.
 async function signOut(id, owner) {
@@ -188,4 +228,4 @@ async function signOut(id, owner) {
   return { ok: true };
 }
 
-module.exports = { VENUES, open, hide, setBounds, status, reload, goBack, openExternal, signOut, configured, embeddable };
+module.exports = { VENUES, open, hide, setBounds, status, reload, goBack, openExternal, openAppWindow, signOut, configured, embeddable };

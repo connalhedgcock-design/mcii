@@ -691,13 +691,23 @@ function switchView(v) {
 // --- the venue rooms ---------------------------------------------------------------------
 const VENUE_IDS = ['fomo', 'axiom'];
 let venueOn = null;
+let lastAppWindowAt = 0;
 
 async function showVenue(id) {
   const host = $('#' + id);
   const st = await window.mcii.venueStatus(id);
   host.innerHTML = venueChrome(id, st);
   wireVenue(host, id);
-  if (!st.configured || !st.embeddable) { await hideVenues(); return; }
+  if (!st.configured || !st.embeddable) {
+    await hideVenues();
+    // Walking through the door IS the click. Debounced: stepping in and out must not leave a pile
+    // of identical windows behind, but closing one and coming back should reopen it.
+    if (st.appMode && Date.now() - lastAppWindowAt > 8000) {
+      lastAppWindowAt = Date.now();
+      window.mcii.venueAppWindow(id);
+    }
+    return;
+  }
   venueOn = id;
   await window.mcii.venueOpen(id, venueRect(host));
   // The rect is only right once the panel has actually laid out.
@@ -737,13 +747,13 @@ function venueChrome(id, st) {
     return `<div class="venue-bar">
         <span class="st-label">${esc(st.label)}</span>
         <span class="venue-url">${esc(st.url)}</span>
-        <button class="btn sm" data-venue-ext>open axiom in your browser</button>
+        <button class="btn sm" data-venue-appwin>reopen axiom window</button>
       </div>
       <div class="st-board venue-missing"><div class="st-board-screws"></div>
-        <div class="st-board-head"><span class="st-label">opens in your browser</span></div>
+        <div class="st-board-head"><span class="st-label">opened in its own window</span></div>
         <div class="folio-empty">${esc(st.why || '')}</div>
-        <div class="folio-note">Your Axiom holdings are still read here — the portfolio room shows
-          them from the chain, which needs no login at all. This door is for the venue itself.</div>
+        <div class="folio-note">Walking through this door opens it. Your Axiom holdings are read
+          here too — the portfolio room takes them straight from the chain, needing no login.</div>
       </div>`;
   }
   if (!st.configured) {
@@ -773,6 +783,7 @@ function wireVenue(host, id) {
   on('[data-venue-back]', () => window.mcii.venueBack(id));
   on('[data-venue-reload]', () => window.mcii.venueReload(id));
   on('[data-venue-ext]', () => window.mcii.venueExternal(id));
+  on('[data-venue-appwin]', () => { lastAppWindowAt = Date.now(); window.mcii.venueAppWindow(id); });
   on('[data-venue-out]', async () => {
     await window.mcii.venueSignOut(id);
     venueOn = null;

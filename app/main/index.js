@@ -492,6 +492,7 @@ ipcMain.handle('venue:status', (_e, id) => venues.status(id));
 ipcMain.handle('venue:reload', (_e, id) => venues.reload(id));
 ipcMain.handle('venue:back', (_e, id) => venues.goBack(id));
 ipcMain.handle('venue:external', (_e, id) => venues.openExternal(id));
+ipcMain.handle('venue:appWindow', (_e, id) => venues.openAppWindow(id));
 ipcMain.handle('venue:signOut', (_e, id) => venues.signOut(id, store.owner));
 
 ipcMain.handle('portfolio:series', async (_e, { days }) => {

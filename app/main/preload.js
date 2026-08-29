@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('mcii', {
   venueReload: (id) => ipcRenderer.invoke('venue:reload', id),
   venueBack: (id) => ipcRenderer.invoke('venue:back', id),
   venueExternal: (id) => ipcRenderer.invoke('venue:external', id),
+  venueAppWindow: (id) => ipcRenderer.invoke('venue:appWindow', id),
   venueSignOut: (id) => ipcRenderer.invoke('venue:signOut', id),
   onLive: (cb) => ipcRenderer.on('live', (_e, t) => cb(t)),
   onLiveAlert: (cb) => ipcRenderer.on('live-alert', (_e, a) => cb(a)),
