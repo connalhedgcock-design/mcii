@@ -75,11 +75,34 @@ machine: connal
   to the embed, which always works (Cloudflare trusts a real OS browser) — so this is never a dead
   end for Connal even if the embed itself stays blocked.
 
+## 2026-08-29 — 3. USER-AGENT FIX DID NOT WORK EITHER — EMBED REMOVED, LINK KEPT
+- machine: connal
+- Connal tried the useragent fix and pasted the terminal output again: identical Turnstile
+  challenge output, same `No available adapters.` WebGPU probe failure. Confirms the block is not
+  UA-based alone — Cloudflare is checking something the useragent string cannot spoof (most likely
+  the WebGPU/device-capability probe itself, which genuinely differs between a real browser and an
+  Electron `<webview>` guest).
+- Told Connal directly this looked unwinnable by continuing to patch the embed: Turnstile exists
+  specifically to distinguish real browsers from automated/embedded ones, and each further fix
+  would be a narrower, more fragile workaround against a system built to catch exactly that. Asked
+  whether to keep the (permanently non-functional) embed with the fallback link, or remove it.
+  Connal: "yes" — read as agreeing with the recommendation to remove it, since a box that can never
+  show anything is worse than not having it.
+- ✓ removed: `<webview id="j7view">`, `sizeJ7()` and all its event wiring (`dom-ready`,
+  `did-finish-load`, `did-fail-load`, `crashed`, `console-message`), `webviewTag: true` from
+  `main/index.js`'s `webPreferences` (no longer needed by anything — removed rather than left as
+  unused surface). The `#sectorbody` split in `loadSector()` also reverted — it existed only to
+  protect a stateful webview from reloading, which no longer applies now the J7 card is a plain,
+  regenerable link.
+- what's left: a `.card` at the end of the "What's happening" tab with one link,
+  `https://j7tracker.io`, opened via `target="_blank"` (routes through the existing
+  `setWindowOpenHandler` → `shell.openExternal`, same mechanism already used for every other
+  outbound link in the app). Nothing stored, nothing embedded, nothing to keep fighting.
+- tests: full suite green after removal (all files, no failures).
+
 ## OPEN
 - Never wire a J7 "API key" into an adapter — it is a deploy-wallet credential, not read data.
 - If Connal later wants their social-tracking feed specifically (not deployment) as a chatter
   source, that is a different, unbuilt thing requiring real read-only API docs first.
-- The user-agent fix has not been confirmed working by Connal as of this entry — if it still fails
-  Turnstile, the honest next step is accepting the embed may never reliably work against a live
-  Cloudflare challenge and leaning on the "open in your browser instead" link as the real answer,
-  rather than continuing to chase Electron webview fingerprinting tweaks indefinitely.
+- Do not re-attempt an embedded `<webview>` for J7 without new information suggesting Cloudflare's
+  block has actually changed on their end.

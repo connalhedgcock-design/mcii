@@ -521,10 +521,7 @@ async function loadJournal() {
 // to slow down. Coins here are ordered by when they were found, tickers by how many different
 // people said them.
 async function loadSector() {
-  // Targets the sub-container, not the whole #sector -- the J7 Tracker embed lives as a sibling
-  // outside this div specifically so a rewrite here never touches it (see index.html: reloading a
-  // <webview> on every tab visit would sign it out and restart it each time).
-  const box = $('#sectorbody');
+  const box = $('#sector');
   box.innerHTML = '<div class="skel">READING THE RECORD…</div>';
   let d;
   try { d = await window.mcii.sector(); } catch (e) { box.innerHTML = `<div class="quiet">Could not read the record: ${esc(e.message)}</div>`; return; }
@@ -650,44 +647,20 @@ async function loadSector() {
       the name alone is set aside instead.</p>`).join('')}
   </div>` : '';
 
-  box.innerHTML = head + shared + market + filtered + mood + tickers + recent;
-}
+  // J7 Tracker was tried as an embedded <webview> here and removed 2026-08-29 -- their Cloudflare
+  // bot-check (Turnstile) blocked it permanently, confirmed from the guest's own console output,
+  // and a normal-Chrome useragent (the standard mitigation) didn't clear it either. See
+  // 70-AREAS/j7-tracker/LOG.md for the full attempt. A plain link is the only thing that reliably
+  // works -- a real browser passes their check fine.
+  const j7 = `<div class="card">
+    <div class="chead"><b>J7 Tracker</b><span class="v">their site — not part of MCII</span></div>
+    <p class="note">Opens in your regular browser. Their site couldn't be shown inside MCII itself
+      — their bot-check blocks embedded windows like this one.</p>
+    <a class="btn accent" href="https://j7tracker.io" target="_blank"
+      style="margin:0 20px 20px;display:inline-block;width:fit-content;text-decoration:none">Open j7tracker.io</a>
+  </div>`;
 
-// The J7 Tracker <webview> starts life inside a hidden (display:none) tab, and Electron's webview
-// does not reliably re-layout its guest page when CSS alone changes its box size later -- it showed
-// up as only whatever the page rendered at its near-zero starting size, with everything below
-// staying blank. Setting real pixel dimensions (not vh/%) and re-asserting them whenever the tab
-// actually becomes visible is what makes the guest recompute its own layout for the size it's
-// really getting.
-function sizeJ7() {
-  const wv = $('#j7view');
-  const card = wv && wv.closest('.j7card');
-  if (!wv || !card || card.clientWidth === 0) return;
-  wv.style.width = Math.max(200, card.clientWidth - 40) + 'px';
-  wv.style.height = Math.max(520, Math.round(window.innerHeight * 0.7)) + 'px';
-  // Resizing the element is not always enough on its own -- some pages measure their own
-  // viewport once on load and only recompute on an actual 'resize' event, which growing the
-  // <webview> from the outside does not automatically fire on the inside. Nudge it.
-  try { wv.executeJavaScript('window.dispatchEvent(new Event("resize"))'); } catch {}
-}
-window.addEventListener('resize', sizeJ7);
-{
-  const wv = $('#j7view');
-  if (wv) {
-    // First attempt at only the top few pixels rendering fixed nothing on its own, so this adds
-    // real diagnostics instead of another guess: the webview is a SEPARATE process with its own
-    // console, invisible to the app's existing renderer-console-to-terminal forwarding
-    // (main/index.js) unless re-logged from here. Prefixed [j7] so it's easy to find.
-    wv.addEventListener('dom-ready', () => { sizeJ7(); console.error('[j7] dom-ready'); });
-    wv.addEventListener('did-finish-load', () => { sizeJ7(); console.error('[j7] did-finish-load'); });
-    wv.addEventListener('did-fail-load', (e) => {
-      if (e.errorCode === -3) return; // ERR_ABORTED -- routine (a redirect cancelling a request), not a fault
-      console.error(`[j7] did-fail-load: ${e.errorCode} ${e.errorDescription} (${e.validatedURL})`);
-    });
-    wv.addEventListener('crashed', () => console.error('[j7] guest process crashed'));
-    wv.addEventListener('console-message', (e) =>
-      console.error(`[j7] console: ${e.message}${e.sourceId ? `  (${e.sourceId}:${e.line})` : ''}`));
-  }
+  box.innerHTML = head + shared + market + filtered + mood + tickers + recent + j7;
 }
 
 function switchView(v) {
@@ -699,7 +672,7 @@ function switchView(v) {
   $('.search').style.display = v === 'watch' ? 'flex' : 'none';
   $('#alerts').style.display = v === 'watch' ? '' : 'none';
   if (v === 'market') loadMarket();
-  if (v === 'sector') { loadSector(); requestAnimationFrame(sizeJ7); }
+  if (v === 'sector') loadSector();
   if (v === 'journal') loadJournal();
 }
 
