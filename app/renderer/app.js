@@ -669,12 +669,122 @@ function switchView(v) {
   $('#market').hidden = v !== 'market';
   $('#sector').hidden = v !== 'sector';
   $('#journal').hidden = v !== 'journal';
+  $('#folio').hidden = v !== 'folio';
   $('.search').style.display = v === 'watch' ? 'flex' : 'none';
   $('#alerts').style.display = v === 'watch' ? '' : 'none';
   if (v === 'market') loadMarket();
   if (v === 'sector') loadSector();
   if (v === 'journal') loadJournal();
+  if (v === 'folio') loadFolio();
 }
+
+// --- the portfolio -----------------------------------------------------------------------
+// Three readings of the same book: each venue's wallet on its own, and both together. The
+// combined one is the only place either operator can see their real concentration, because
+// neither venue can see the other.
+const VENUES = [
+  { id: 'fomo',  label: 'fomo' },
+  { id: 'axiom', label: 'axiom' },
+];
+let folioTab = 'combined';
+
+async function loadFolio() {
+  const box = $('#folio');
+  const { wallets } = await window.mcii.wallets();
+  const known = VENUES.filter((v) => wallets[v.id]);
+
+  if (!known.length) { box.innerHTML = folioEmpty(); return wireFolio(box); }
+
+  box.innerHTML = `<div class="card"><p class="muted">Reading both wallets from the chain…</p></div>`;
+  let data;
+  try { data = await window.mcii.portfolio(); }
+  catch (e) { box.innerHTML = `<div class="card"><p class="bad">Could not read the chain: ${esc(e.message)}</p></div>`; return; }
+  box.innerHTML = folioMarkup(data, wallets);
+  wireFolio(box);
+}
+
+function folioEmpty() {
+  return `<div class="card">
+    <h2>Your portfolio</h2>
+    <p>Paste the wallet address you use on each venue and this reads your holdings straight from
+       the chain — no login, and nothing here can move funds.</p>
+    <p class="muted">A public address only. Never paste a private key or seed phrase, here or
+       anywhere else — this app has no use for one and will refuse it.</p>
+    ${VENUES.map((v) => `<p><button class="btn" data-setwallet="${v.id}">Set ${v.label} wallet</button></p>`).join('')}
+  </div>`;
+}
+
+function folioMarkup(data, wallets) {
+  const tabs = [...VENUES.filter((v) => wallets[v.id]).map((v) => ({ id: v.id, label: v.label })),
+                { id: 'combined', label: 'combined' }];
+  if (!tabs.some((t) => t.id === folioTab)) folioTab = 'combined';
+
+  const head = `<div class="card">
+    <div class="folio-tabs">${tabs.map((t) =>
+      `<button class="btn ${t.id === folioTab ? 'on' : ''}" data-folio="${t.id}">${esc(t.label)}</button>`).join('')}</div>
+  </div>`;
+
+  if (folioTab === 'combined') {
+    const c = data.combined;
+    if (!c || !c.positions.length) return head + `<div class="card"><p class="muted">Nothing priced yet.</p></div>`;
+    const conc = c.topWeightPct != null
+      ? `<p class="${c.topWeightPct > 60 ? 'warn' : 'muted'}">Your largest position is
+         ${c.topWeightPct.toFixed(0)}% of the book${c.topWeightPct > 60
+           ? ' — this is one bet, not a portfolio.' : '.'}</p>` : '';
+    return head + `<div class="card">
+      <h2>Both venues — ${fmtUsd(c.totalUsd)}</h2>
+      ${conc}
+      ${c.venuesFailed ? `<p class="bad">${c.venuesFailed} wallet could not be read. This total is incomplete.</p>` : ''}
+      ${posTable(c.positions, true)}
+    </div>`;
+  }
+
+  const v = data.venues.find((x) => x.venue === folioTab);
+  if (!v) return head + `<div class="card"><p class="muted">No wallet set for this venue.</p></div>`;
+  if (v.error) return head + `<div class="card"><p class="bad">Could not read this wallet: ${esc(v.error)}</p></div>`;
+  return head + `<div class="card">
+    <h2>${esc(v.venue)} — ${fmtUsd(v.totalUsd)}</h2>
+    <p class="muted">${shortAddr(v.address)}${v.sol != null ? ` · ${v.sol.toFixed(3)} SOL` : ''}</p>
+    ${posTable(v.positions, false)}
+    ${(v.dustCount || v.unpricedCount) ? `<p class="muted">Also holds ${v.dustCount + v.unpricedCount}
+      mints worth nothing tradeable (airdrops and dust), not counted above.</p>` : ''}
+  </div>`;
+}
+
+function posTable(positions, showVenues) {
+  if (!positions.length) return `<p class="muted">Nothing here.</p>`;
+  return `<table class="folio">
+    <tr><th>coin</th><th>held</th><th>price</th><th>value</th><th>24h</th>${showVenues ? '<th>where</th>' : ''}</tr>
+    ${positions.map((p) => `<tr>
+      <td><strong>${esc(p.sym)}</strong></td>
+      <td>${fmtNum(p.tokens)}</td>
+      <td>$${p.priceUsd < 0.01 ? p.priceUsd.toPrecision(3) : p.priceUsd.toFixed(4)}</td>
+      <td>${fmtUsd(p.valueUsd)}</td>
+      <td class="${p.change24h > 0 ? 'good' : p.change24h < 0 ? 'bad' : 'muted'}">${
+        p.change24h == null ? '—' : (p.change24h > 0 ? '+' : '') + p.change24h.toFixed(1) + '%'}</td>
+      ${showVenues ? `<td class="muted">${esc(Object.keys(p.byVenue || {}).join(' + '))}</td>` : ''}
+    </tr>`).join('')}
+  </table>`;
+}
+
+function wireFolio(box) {
+  box.querySelectorAll('[data-folio]').forEach((b) => b.onclick = () => {
+    folioTab = b.dataset.folio; loadFolio();
+  });
+  box.querySelectorAll('[data-setwallet]').forEach((b) => b.onclick = async () => {
+    const venue = b.dataset.setwallet;
+    // askText, never window.prompt -- prompt() throws in an Electron renderer and kills the
+    // handler silently, which is the single most repeated bug in this project.
+    const addr = await askText(`Your ${venue} wallet address`, {
+      placeholder: 'public Solana address', ok: 'Save',
+    });
+    if (addr == null) return;
+    try { await window.mcii.setWallet(venue, addr.trim()); loadFolio(); }
+    catch (e) { alert(e.message); }
+  });
+}
+
+const shortAddr = (a) => a ? a.slice(0, 4) + '…' + a.slice(-4) : '';
 
 // The shared record is the only thing filling in while both laptops are closed. When it stops,
 // nothing in the app used to change -- every age on screen was of data fetched seconds earlier,

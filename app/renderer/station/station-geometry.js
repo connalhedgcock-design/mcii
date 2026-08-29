@@ -36,12 +36,17 @@
  */
 export const DOORS = [
   //                                                          screen position →
-  { id: 'sector',  view: 'sector',  label: "what's happening", angle: -75.0, built: true,  blurb: 'the sector, and what moved it',        tag: 'SEC' },
-  { id: 'journal', view: 'journal', label: 'the journal',      angle: -45.0, built: true,  blurb: 'what you decided, and whether it held', tag: 'LOG' },
-  { id: 'market',  view: 'market',  label: 'the market',       angle: -15.0, built: true,  blurb: 'everything the scanner has found',      tag: 'MKT' },
-  { id: 'watch',   view: 'watch',   label: 'your coins',       angle:  15.0, built: true,  blurb: 'what you are holding and tracking',     tag: 'WCH' },
-  { id: 'wallets', view: null,      label: 'the wallets',      angle:  45.0, built: false, blurb: 'who is moving size',                    tag: 'WAL' },
-  { id: 'predict', view: null,      label: 'prediction markets', angle:  75.0, built: false, blurb: 'kalshi, polymarket',                   tag: 'PRD' },
+  { id: 'sector',  view: 'sector',  label: "what's happening", angle: -84.0, built: true,  blurb: 'the sector, and what moved it',        tag: 'SEC' },
+  { id: 'journal', view: 'journal', label: 'the journal',      angle: -56.0, built: true,  blurb: 'what you decided, and whether it held', tag: 'LOG' },
+  { id: 'market',  view: 'market',  label: 'the market',       angle: -28.0, built: true,  blurb: 'everything the scanner has found',      tag: 'MKT' },
+  { id: 'watch',   view: 'watch',   label: 'your coins',       angle:   0.0, built: true,  blurb: 'what you are holding and tracking',     tag: 'WCH' },
+  { id: 'folio',   view: 'folio',   label: 'the portfolio',    angle:  28.0, built: true,  blurb: 'what you hold, across both venues',    tag: 'FOL' },
+  // Both venue rooms stay SEALED until the embedded view behind them exists. `built` is the
+  // truth about the app, not a wish -- a door that opens onto nothing teaches distrust of the
+  // other five. fomo.family is verified to load in a WebContentsView; axiom is awaiting its
+  // real URL (every path tried on axiom.trade returned 404).
+  { id: 'fomo',    view: null,      label: 'fomo',             angle:  56.0, built: false, blurb: 'the venue, live',                      tag: 'FMO' },
+  { id: 'axiom',   view: null,      label: 'axiom',            angle:  84.0, built: false, blurb: 'the venue, live',                      tag: 'AXM' },
 ]
 
 /** Where you land when the room opens. Not simply "the first built door" —

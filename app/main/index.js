@@ -13,6 +13,8 @@ const hype = require('../shared/hype');
 const journal = require('./journal');
 const updater = require('./updater');
 const orion = require('./orion');
+const portfolio = require('./portfolio');
+const walletAdapter = require('./adapters/wallet');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
@@ -28,7 +30,11 @@ const SEED_WATCHLIST = [
 // Rolling snapshot, not a database. Bounded by construction: one small object per token, so
 // storage grows with the number of tokens, not with time or with how often we poll.
 const SIDECAR = path.join(app.getPath('userData'), 'snapshot.json');
-let store = { tokens: {}, positions: {}, watchlist: null, owner: null };
+// `wallets` is venue -> PUBLIC address ({ fomo: '...', axiom: '...' }). It lives here, in the
+// per-machine sidecar, and never in the repo: the GitHub repo is public, and which addresses an
+// operator holds is not something to publish on their behalf. Public addresses only -- no key or
+// seed phrase is accepted anywhere in this app, and none is needed to read a balance.
+let store = { tokens: {}, positions: {}, watchlist: null, owner: null, wallets: {} };
 try { store = { ...store, ...JSON.parse(fs.readFileSync(SIDECAR, 'utf8')) }; } catch {}
 if (!Array.isArray(store.watchlist)) store.watchlist = SEED_WATCHLIST.slice();
 const save = () => { try { fs.writeFileSync(SIDECAR + '.tmp', JSON.stringify(store)); fs.renameSync(SIDECAR + '.tmp', SIDECAR); } catch {} };
@@ -440,6 +446,32 @@ ipcMain.handle('journal:resolve', (_e, { id, outcome, lesson }) => journal.resol
 ipcMain.handle('journal:calibration', (_e, owner) => journal.calibration(owner || store.owner));
 ipcMain.handle('journal:notes', (_e, owner) => journal.readNotes(owner === undefined ? store.owner : owner));
 ipcMain.handle('journal:addNote', (_e, n) => journal.addNote({ ...n, owner: store.owner }));
+
+// --- the portfolio -----------------------------------------------------------------------
+// Read from the chain, per venue wallet. No venue login is involved and none is needed: both
+// venues are non-custodial, so the holdings are in addresses the operator controls.
+ipcMain.handle('wallet:list', () => ({ wallets: store.wallets || {}, owner: store.owner }));
+ipcMain.handle('wallet:set', (_e, { venue, address }) => {
+  const v = String(venue || '').trim().toLowerCase();
+  if (!v) throw new Error('which venue?');
+  const a = String(address || '').trim();
+  // Refuse anything that is not an address rather than storing it and failing later at the RPC,
+  // where the error would read as a network problem instead of a typo.
+  if (a && !walletAdapter.isAddress(a)) throw new Error('that does not look like a Solana address');
+  store.wallets = { ...(store.wallets || {}) };
+  if (a) store.wallets[v] = a; else delete store.wallets[v];
+  save();
+  return store.wallets;
+});
+ipcMain.handle('portfolio:load', async () => {
+  const wallets = store.wallets || {};
+  if (!Object.keys(wallets).length) return { venues: [], combined: null, empty: true };
+  // Cost basis the operator entered by hand, if any. The chain cannot know it.
+  const costBasis = {};
+  for (const [ca, p] of Object.entries(store.positions || {}))
+    if (p && p.costBasisUsd != null) costBasis[ca] = p.costBasisUsd;
+  return portfolio.load(wallets, { costBasis });
+});
 
 ipcMain.handle('history:series', (_e, { ca, field, days }) =>
   history.series(ca, field, (days || 30) * 864e5));

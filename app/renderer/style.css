@@ -412,3 +412,18 @@ a{color:var(--accent); cursor:pointer}
    clicking Market appended the market below the watchlist rather than replacing it, which looks
    exactly like the tab not working. */
 [hidden]{display:none !important}
+
+/* --- the portfolio -------------------------------------------------------
+   Numbers right-aligned and monospaced so magnitudes line up down the column:
+   a portfolio is read by comparing sizes, and proportional digits make
+   $9,000 and $90,000 look the same width. */
+.folio-tabs{display:flex;gap:8px}
+.folio-tabs .btn.on{border-color:var(--accent);color:var(--accent)}
+table.folio{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+table.folio th{text-align:right;font-family:var(--mono);font-size:9px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--rule)}
+table.folio th:first-child{text-align:left}
+table.folio td{text-align:right;padding:6px 8px;font-family:var(--mono);
+  border-bottom:1px solid rgba(255,255,255,.04)}
+table.folio td:first-child{text-align:left;font-family:inherit}
+.muted{color:var(--muted)} .good{color:var(--ok)} .bad{color:var(--crit)} .warn{color:var(--warn)}

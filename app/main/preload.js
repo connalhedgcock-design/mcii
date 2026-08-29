@@ -33,6 +33,11 @@ contextBridge.exposeInMainWorld('mcii', {
   orionAsk: (text) => ipcRenderer.invoke('orion:ask', text),
   orionLogin: () => ipcRenderer.invoke('orion:login'),
   historySeries: (ca, field, days) => ipcRenderer.invoke('history:series', { ca, field, days }),
+  // Portfolio. Public wallet addresses in, holdings out -- the renderer never sees a key,
+  // because no key exists anywhere in this app.
+  wallets: () => ipcRenderer.invoke('wallet:list'),
+  setWallet: (venue, address) => ipcRenderer.invoke('wallet:set', { venue, address }),
+  portfolio: () => ipcRenderer.invoke('portfolio:load'),
   onLive: (cb) => ipcRenderer.on('live', (_e, t) => cb(t)),
   onLiveAlert: (cb) => ipcRenderer.on('live-alert', (_e, a) => cb(a)),
   onRefreshed: (cb) => ipcRenderer.on('refreshed', () => cb()),

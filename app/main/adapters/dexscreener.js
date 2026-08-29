@@ -67,6 +67,54 @@ async function fetchMarket(ca) {
 
 module.exports = { fetchMarket };
 
+// Price many mints at once, for the portfolio.
+//
+// A wallet cannot be valued one fetchMarket() at a time. Measured against a real address on
+// 2026-08-29: 4,172 distinct mints, nearly all of them airdropped dust worth nothing. Pricing
+// those individually would be 4,172 requests to answer a question about maybe a dozen real
+// positions, so this batches (30 per call, the endpoint's documented ceiling) and the caller caps
+// how many it is willing to ask about at all.
+//
+// Returns a Map keyed by the address AS GIVEN, so a caller can look up what it asked for. Mints
+// with no market simply do not appear -- absence means "nothing trades this", which for a
+// portfolio is a real answer (worthless dust) rather than a failure.
+const BATCH = 30;
+
+async function fetchPrices(mints, { chain = 'solana' } = {}) {
+  const out = new Map();
+  const list = [...new Set((mints || []).filter(Boolean))];
+  for (let i = 0; i < list.length; i += BATCH) {
+    const chunk = list.slice(i, i + BATCH);
+    let pairs;
+    try { pairs = await getJSON(`https://api.dexscreener.com/tokens/v1/${chain}/${chunk.join(',')}`); }
+    catch { continue; }   // a failed chunk prices nothing; it never prices something wrongly
+    if (!Array.isArray(pairs)) continue;
+
+    // Same base-token filtering and case-insensitivity rules as fetchMarket, for the same reasons.
+    for (const p of pairs) {
+      const addr = p?.baseToken?.address;
+      if (!addr) continue;
+      const key = chunk.find((c) => String(c).toLowerCase() === String(addr).toLowerCase());
+      if (!key) continue;
+      const price = parseFloat(p.priceUsd);
+      if (!(price > 0)) continue;
+      const prev = out.get(key);
+      const liq = p.liquidity?.usd || 0;
+      // Keep the deepest pool's quote. Liquidity across every pool is a fetchMarket question;
+      // here we only need a price that a real market actually supports.
+      if (!prev || liq > prev.liquidityUsd) {
+        out.set(key, {
+          priceUsd: price, symbol: p.baseToken.symbol, name: p.baseToken.name,
+          chain: p.chainId || chain, liquidityUsd: liq, marketCap: p.marketCap ?? null,
+          priceChange: p.priceChange || {},
+        });
+      }
+    }
+  }
+  return out;
+}
+module.exports.fetchPrices = fetchPrices;
+
 // --- Discovery -------------------------------------------------------------
 // Searching by name returns impersonators as readily as the real thing: a search for "CATE"
 // returns Catecoin on Solana AND a separate CateCoin on BSC. We surface all of them with the
