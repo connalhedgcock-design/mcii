@@ -1,47 +1,47 @@
 {
-  "checkedAt": 1787976393714,
+  "checkedAt": 1787981907216,
   "tokens": {
     "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
       "sym": "CATE",
-      "holders": 116927,
-      "tokenAccounts": 261242,
-      "emptyAccounts": 144315,
+      "holders": 116862,
+      "tokenAccounts": 261373,
+      "emptyAccounts": 144511,
       "top1Pct": 2.8,
-      "top10Pct": 14.35,
-      "top100Pct": 39.51,
+      "top10Pct": 14.34,
+      "top100Pct": 39.31,
       "program": "token-2022",
       "source": "onchain",
-      "fetchedAt": 1787976400059,
-      "jupiter": 116767,
-      "driftPct": -0.1368375140044643
-    },
-    "GNGhPhcLt5HJ6WjUHQSYoY3KhBFsksxu6FpvLpCFpump": {
-      "sym": "invest",
-      "holders": 4238,
-      "tokenAccounts": 4656,
-      "emptyAccounts": 418,
-      "top1Pct": 12.43,
-      "top10Pct": 20.56,
-      "top100Pct": 43.69,
-      "program": "token-2022",
-      "source": "onchain",
-      "fetchedAt": 1787976400379,
-      "jupiter": 4236,
-      "driftPct": -0.04719207173194903
+      "fetchedAt": 1787981912459,
+      "jupiter": 116703,
+      "driftPct": -0.13605791446321303
     },
     "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump": {
       "sym": "ANSEM",
-      "holders": 137115,
-      "tokenAccounts": 304366,
-      "emptyAccounts": 167251,
+      "holders": 137079,
+      "tokenAccounts": 304420,
+      "emptyAccounts": 167341,
       "top1Pct": 49.22,
       "top10Pct": 65.36,
-      "top100Pct": 78.02,
+      "top100Pct": 77.97,
       "program": "token-2022",
       "source": "onchain",
-      "fetchedAt": 1787976403728,
-      "jupiter": 136527,
-      "driftPct": -0.42883710753746856
+      "fetchedAt": 1787981916238,
+      "jupiter": 136494,
+      "driftPct": -0.42676121068872697
+    },
+    "DuVgdHeEk7ejWPxWY5G3PQA99oEGGLmnbWuWWxpEpump": {
+      "sym": "ANTSEM",
+      "holders": 2537,
+      "tokenAccounts": 7338,
+      "emptyAccounts": 4801,
+      "top1Pct": 8.59,
+      "top10Pct": 34.11,
+      "top100Pct": 69.48,
+      "program": "token-2022",
+      "source": "onchain",
+      "fetchedAt": 1787981916897,
+      "jupiter": 2538,
+      "driftPct": 0.039416633819471816
     }
   }
 }
