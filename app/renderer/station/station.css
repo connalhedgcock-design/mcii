@@ -801,7 +801,14 @@
   transform: translateX(-50%);
   pointer-events: auto;          /* the layer above is inert; this is not */
   width: min(520px, 46vw);
-  transform-style: preserve-3d;
+  /* ⚠️ NO `transform-style: preserve-3d` here. With it, Chromium hit-tests the
+     3D-rotated pane against this ancestor instead of the pane itself, so every
+     click on the input and the sign-in button landed on .st-projector and did
+     nothing — the button looked alive, highlighted its own label, and could not
+     be pressed. Verified with elementFromPoint, which is the only thing that
+     shows it: a swallowed click is invisible in the inspector.
+     It buys nothing regardless — the pane is the only 3D child and has no 3D
+     children of its own, so flattening it is exactly what we want. */
   perspective: 700px;
   transition: opacity 220ms var(--st-ease), transform 220ms var(--st-ease);
 }
@@ -820,15 +827,20 @@
   padding: 14px 16px;
   border-radius: 4px;
   border: 1px solid oklch(0.62 0.08 238 / 0.34);
+  /* ⚠️ Opaque enough to read against the FLOOR. The pane used to sit over the lit
+     doorway, which lent it a bright backdrop; now that it clears the door plates
+     it hangs over dark deck instead, and the old 0.30 alpha left the prompt and
+     the sign-in button barely legible. A projection still, just one you can read. */
   background:
     repeating-linear-gradient(to bottom,
-      oklch(0.72 0.145 235 / 0.05) 0 1px, transparent 1px 4px),
-    linear-gradient(to bottom, oklch(0.24 0.030 245 / 0.30), oklch(0.14 0.014 250 / 0.42));
-  box-shadow: 0 0 40px -12px oklch(0.72 0.145 235 / 0.45);
+      oklch(0.72 0.145 235 / 0.06) 0 1px, transparent 1px 4px),
+    linear-gradient(to bottom, oklch(0.26 0.032 245 / 0.86), oklch(0.15 0.016 250 / 0.92));
+  box-shadow: 0 0 44px -10px oklch(0.72 0.145 235 / 0.5),
+              0 10px 30px -18px oklch(0.02 0.004 250);
   /* Edges that FALL OFF rather than terminate in a rectangle — the difference
      between projected light and a floating card. */
-  mask-image: radial-gradient(ellipse 92% 130% at 50% 60%, #000 52%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 92% 130% at 50% 60%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 106% 150% at 50% 55%, #000 72%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 106% 150% at 50% 55%, #000 72%, transparent 100%);
 }
 .st-prompt-row { display: flex; align-items: center; gap: 9px; }
 .st-mode {
@@ -853,6 +865,7 @@
 .st-prompt::placeholder { color: var(--st-fg-faint); }
 .st-signin {
   flex: none;
+  user-select: none;             /* a control, not a label to drag-select */
   font-family: var(--st-mono);
   font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
   padding: 5px 10px; border-radius: 2px; cursor: pointer;

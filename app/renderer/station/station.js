@@ -164,9 +164,22 @@ function measure() {
     const a = arch.getBoundingClientRect()
     const cy = a.top + a.height / 2 - box.top
     hub.style.setProperty('--globe-y', `${Math.round(cy)}px`)
-    // The prompt hangs beneath the sphere with a fixed gap, so the two read as
-    // one instrument and the console never rides up over the globe.
-    hub.style.setProperty('--proj-y', `${Math.round(cy + gd / 2 + 20)}px`)
+
+    // The prompt hangs beneath the sphere — but it must also clear the DOOR
+    // PLATES, which sit lower than the globe does and are the labels telling you
+    // where each door goes. Take whichever constraint is lower. Measured, again,
+    // because the plates are 3D-projected and their screen position moves with
+    // the room's height and the heading.
+    let projY = cy + gd / 2 + 20
+    const plates = [...stage.querySelectorAll('.st-portal:not(.is-offscreen) .st-portal-plate')]
+    for (const pl of plates) {
+      const r = pl.getBoundingClientRect()
+      if (!r.height) continue
+      projY = Math.max(projY, r.bottom - box.top + 14)
+    }
+    // Never so low that it collides with the sill.
+    const maxY = box.height - 96
+    hub.style.setProperty('--proj-y', `${Math.round(Math.min(projY, maxY))}px`)
   }
 
   globe?.resize()
@@ -452,6 +465,18 @@ export function initObservatory(root) {
       canvas: r('.st-globe canvas'), facingArch: r('.st-portal.is-facing .st-portal-arch'),
       facingLight: r('.st-portal.is-facing .st-portal-light'), proj: r('.st-projector'),
     }))
+    // What actually receives a click where the controls are? elementFromPoint is
+    // the only thing that answers this: a transparent overlay looks like nothing
+    // in the inspector and swallows every press.
+    const hit = (sel) => {
+      const e = stage.querySelector(sel); if (!e) return `${sel}: MISSING`
+      const b = e.getBoundingClientRect()
+      if (!b.width || !b.height) return `${sel}: ZERO-SIZE`
+      const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)
+      return `${sel} -> ${t ? t.className || t.tagName : 'null'}`
+    }
+    console.warn('[hit] ' + ['.st-signin', '.st-prompt', '.st-projector-pane']
+      .map(hit).join('  |  '))
   }, 1200)
 
   globe = mountGlobe(globeHost)
