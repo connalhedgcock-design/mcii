@@ -13,15 +13,6 @@ const sanity = require('../shared/sanity');
 // GeckoTerminal at any time; what a token's exitable value or holder count was on a given day
 // exists only if we wrote it down as it happened.
 
-// RugCheck's "totalHolders" used to mean token accounts including empty ones; the fix that
-// renamed it (commit ca27b2d, "define holders, compute ground truth from chain") landed here.
-// Any row recorded at or before this moment measured a DIFFERENT quantity than "holders" means
-// today, so a trend or delta that spans this boundary is comparing two different metrics and will
-// report a fake collapse (or surge) that never happened -- exactly what produced "CATE lost 53.7%
-// of its holders" from a real reading of 252,283 token accounts against a real reading of 116,808
-// actual holders. Never let 'holders' rows from either side of this line be diffed together.
-const HOLDERS_REDEFINED_AT = 1787932664000; // 2026-08-28T15:57:44.000Z
-
 let dir, sharedDir;
 function init(userDataPath, repoRoot) {
   dir = path.join(userDataPath, 'history');
@@ -77,13 +68,35 @@ function haveSocialBuckets(ca) {
   return new Set(readSocial(ca).map((r) => r.ts));
 }
 
+// A vendor-reported "holders" number has been wrong before in ways no single-row check catches:
+// RugCheck's index has re-scanned itself from zero, and its field once meant token accounts
+// rather than holders entirely (see 50-LOG/2026-08-28-data-integrity.md). A row can be perfectly
+// well-formed and still measure the wrong thing. Ground truth read straight from the chain
+// (onchain.js, run hourly by the cloud collector into holders-onchain.jsonl) is the one source
+// immune to that -- so any 'holders' row more than 2x off the nearest ground-truth check, in
+// either direction, is excluded before it can be diffed into a trend or alert. This is deliberately
+// NOT a date cutoff: a fix landing in git does not mean every running process picked it up at that
+// instant, and a contaminated row can and did keep arriving for minutes afterward with a timestamp
+// after the fix. Checking the VALUE against reality catches that regardless of when it was written.
+function holdersGroundTruth(ca) {
+  return readShared('holders-onchain.jsonl', ca).filter((r) => r.holders != null);
+}
+function plausibleHolders(ca, rows, truth = holdersGroundTruth(ca)) {
+  if (!truth.length) return rows;
+  return rows.filter((r) => {
+    const nearest = truth.reduce((a, b) => (Math.abs(b.ts - r.ts) < Math.abs(a.ts - r.ts) ? b : a));
+    const ratio = r.holders / nearest.holders;
+    return ratio > 0.5 && ratio < 2;
+  });
+}
+
 function record(ca, token) {
   const m = token.market, s = token.safety, x = token.exit;
   if (!m) return;
 
   // Guard before writing. A reading that claims something physically impossible is evidence about
   // the SOURCE, not the token, and storing it corrupts every trend and alert computed afterwards.
-  const prior = readLocal(ca).filter((r) => r.holders != null && r.ts > HOLDERS_REDEFINED_AT).pop();
+  const prior = plausibleHolders(ca, readLocal(ca).filter((r) => r.holders != null)).pop();
   let holders = s?.totalHolders ?? null;
   let holdersSuspect = null;
   if (prior && holders != null) {
@@ -146,7 +159,7 @@ function delta(ca, field, windowMs) {
   // produce a trend line or fire an alert.
   let rows = read(ca, windowMs)
     .filter((r) => r[field] != null && !r[`${field}Suspect`]);
-  if (field === 'holders') rows = rows.filter((r) => r.ts > HOLDERS_REDEFINED_AT);
+  if (field === 'holders') rows = plausibleHolders(ca, rows);
   if (rows.length < 2) return null;
   const first = rows[0][field], last = rows[rows.length - 1][field];
   if (!first) return null;
@@ -160,7 +173,7 @@ function delta(ca, field, windowMs) {
 
 function series(ca, field, windowMs) {
   let rows = read(ca, windowMs).filter((r) => r[field] != null);
-  if (field === 'holders') rows = rows.filter((r) => r.ts > HOLDERS_REDEFINED_AT);
+  if (field === 'holders') rows = plausibleHolders(ca, rows);
   return rows.map((r) => ({ ts: r.ts, v: r[field] }));
 }
 

@@ -162,3 +162,40 @@ anywhere in this codebase, so two correct answers looked like a contradiction. D
   sources.
 
 ## TESTS 106
+
+## PART 6 (2026-08-29, same session) — THE PART 5 FIX WAS ALSO WRONG, WITHIN THE HOUR
+- operator restarted the app expecting the alert gone. it wasn't. asked plainly: "are you saying it
+  worked and it just wont happen again or should it be gone" -- the right question, and the answer
+  was it should have been gone and was not.
+- root cause: `HOLDERS_REDEFINED_AT` used the RENAMING COMMIT'S timestamp as the boundary between
+  contaminated and trustworthy `holders` rows. That assumes every running process reloads the fix
+  the instant git records it. It does not. The operator's own app process was still running the
+  PRE-fix rugcheck.js in memory for several minutes after the commit landed, and kept writing the
+  contaminated 258,820-style reading with wall-clock timestamps AFTER the cutoff. A timestamp
+  cutoff cannot distinguish "written under the old code" from "written under the new code" when
+  both can happen on either side of the moment git recorded the fix -- it can only distinguish
+  before-the-commit from after-the-commit, which is not the same line.
+- ! this is the SAME generalised lesson as PART 3 and PART 5, missed a third time in a row: don't
+  trust a proxy for the thing you actually need to know. A commit timestamp is a proxy for "when
+  did the definition change everywhere" and it is a bad one, for the same reason a vendor index is
+  a bad proxy for "how many holders exist."
+- real fix: stopped using any date at all. `history.js` now checks every `holders` reading against
+  on-chain ground truth (`data/holders-onchain.jsonl`, already written hourly for the holders-exodus
+  alert) and excludes any reading more than 2x off the nearest ground-truth check, in either
+  direction, regardless of when it was written. This is immune to the process-restart-timing
+  problem because it asks "does this number match reality" instead of "when was this written."
+  Verified against the operator's actual local history file: the contaminated 258,820 rows (several
+  with timestamps after the PART 5 cutoff) are excluded; the genuine 115,933->116,770 drift across
+  74 real readings is kept and correctly reads as a +0.7% change, not an alert.
+- when there is no ground truth yet for a token (never checked on chain), the filter is a no-op --
+  it must not make trend detection worse than before for a token it cannot yet verify.
+- test rewritten (`test/history.test.js`) to reproduce exactly this: a contaminated reading
+  timestamped AFTER a hypothetical fix commit, sitting between two genuine ground-truth checks, to
+  make sure nobody re-introduces a date-based version of this bug later.
+- ! THE LESSON, restated a third time because twice wasn't enough: when a fix depends on "when did
+  X happen", ask whether X is observable directly before reaching for a clock. It almost always is
+  here -- ground truth existed the whole time and should have been the first idea, not the second.
+
+## TESTS
+- `test/history.test.js`: 3 (rewritten from PART 5's version to test ground truth instead of a date)
+- full suite: 257 passing, 0 failed, after this change
