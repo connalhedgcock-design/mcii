@@ -521,7 +521,10 @@ async function loadJournal() {
 // to slow down. Coins here are ordered by when they were found, tickers by how many different
 // people said them.
 async function loadSector() {
-  const box = $('#sector');
+  // Targets the sub-container, not the whole #sector -- the J7 Tracker embed lives as a sibling
+  // outside this div specifically so a rewrite here never touches it (see index.html: reloading a
+  // <webview> on every tab visit would sign it out and restart it each time).
+  const box = $('#sectorbody');
   box.innerHTML = '<div class="skel">READING THE RECORD…</div>';
   let d;
   try { d = await window.mcii.sector(); } catch (e) { box.innerHTML = `<div class="quiet">Could not read the record: ${esc(e.message)}</div>`; return; }
