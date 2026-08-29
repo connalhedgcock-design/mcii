@@ -247,9 +247,11 @@ ipcMain.handle('tokens:list', async () => {
     return cached;
   }
   // Nothing remembered for at least one coin -- a first run, or a newly added coin. Wait, because
-  // an empty card is worse than a slow one.
+  // an empty card is worse than a slow one. try/catch per token, unlike a bare loop: one coin
+  // stuck in a way loadToken() itself didn't catch must never block every other coin from ever
+  // showing up on startup.
   const results = [];
-  for (const e of store.watchlist) results.push(await loadToken(e));
+  for (const e of store.watchlist) { try { results.push(await loadToken(e)); } catch {} }
   progress(null);
   return results;
 });

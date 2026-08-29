@@ -154,6 +154,14 @@ silently killing the click handler before it ever reached the git code).
   collector for 3h46m on 08-29 when that public endpoint stalled mid-response (D-87). Combined with
   `collect.yml`'s single-run concurrency lock, one hang blocked every hourly trigger behind it —
   see `50-LOG/2026-08-29-scanner-hang.md`. Check any new adapter for this before trusting it.
+- A loop that makes several network calls, each individually bounded by `getJSON()`'s default
+  timeout/retries, is NOT itself bounded — the per-call budget just multiplies. `jupiter.js:
+  maxExitable()` runs a 17-round binary search, one Jupiter call per round; at the default policy
+  (3 retries, 20s each) a degraded Jupiter turned one coin's "sellable amount" simulation into a
+  ~24-minute wait, which read as the whole app hanging on every launch (08-29,
+  `50-LOG/2026-08-29-app-freeze-exit-sim.md`). Any loop of network calls needs its OWN overall
+  wall-clock budget and an early exit on repeated failures — the per-call timeout alone is not
+  enough once the call happens more than once.
 - This terminal (Claude Code, this session) has **no macOS accessibility permission** — cannot
   click, type into, or send keystrokes to the running app from outside. Verification of anything
   requiring a real user click/keypress is done by driving it FROM INSIDE the page
