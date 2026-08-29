@@ -87,7 +87,7 @@ function build(root) {
               <div class="st-prompt-row">
                 <span class="st-mode is-on">orion</span>
                 <input class="st-prompt" type="text" autocomplete="off"
-                       placeholder="talk to orion — your coins, your notes, the market…">
+                       placeholder="ask orion anything — your coins, your notes, or whatever else…">
                 <button class="st-signin" hidden>log in to anthropic</button>
               </div>
               <div class="st-reply"></div>
@@ -424,7 +424,7 @@ function wirePrompt(root) {
         : 'Orion is installed but this machine is not signed in. Click "log in to anthropic" — '
           + 'it opens a terminal and your browser. The app never sees your account.')
     } else {
-      input.placeholder = 'talk to orion — your coins, your notes, the market…'
+      input.placeholder = 'ask orion anything — your coins, your notes, or whatever else…'
       setNotice('')
     }
     return { installed, ready }

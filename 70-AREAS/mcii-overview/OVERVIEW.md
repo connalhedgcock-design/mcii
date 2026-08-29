@@ -172,6 +172,17 @@ The spatial 3D control-room UI (`renderer/station/`) — full detail in
   unbuilt prediction-markets door gave up its slot.
 
 ## ORION — the in-app assistant (`main/orion.js`)
+!! ORION IS A GENERAL CLAUDE ASSISTANT THAT HAPPENS TO LIVE HERE — NOT A REPO QUERY TOOL. The
+first system prompt told it to give "readings backed by the data in this repo" and to say it did
+not have anything absent from it. It obeyed, and answered a plain question about moving USDC with
+"that's an Axiom/wallet mechanics question, not something in this repo's data — I'm scoped to
+reading the observatory's records." Refusing a question you can answer, because of where the
+answer lives, is not caution; it is a worse assistant. Rewritten 08-29: answer anything, on any
+subject. The repo and the live block are Orion's PRIVILEGE (two sources nobody else has), never
+its CEILING. The never-invent-a-number rule is scoped to THEIR data and explicitly does not apply
+to general knowledge. Kept: no trade recommendations and no position sizing — two beginners with
+real money — and never being a yes-man.
+
 Shells out to the **Claude CLI** (`claude -p`), NOT the Anthropic API. !! **no API key exists
 anywhere in this project** — whoever is at the machine signs in with their own Claude account
 (`claude auth login`), and there is no per-token billing. Runs with `cwd = REPO`, so it can read
