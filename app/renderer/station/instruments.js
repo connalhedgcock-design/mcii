@@ -182,7 +182,7 @@ function odo(snap) {
   // The label is the value alone: prefixed with "avg " it ran past the tape's
   // own right edge and was clipped mid-word by the strip's overflow.
   return `<div class="st-odo">${digits}</div>
-    <div class="st-tape" style="margin-top:10px">
+    <div class="st-tape" style="margin-top:8px">
       <span class="st-tape-scale" style="--tape:${offset}px"></span>
       <span class="st-tape-now" data-v="${fmtUsd(total / t.length)}"></span>
     </div>`

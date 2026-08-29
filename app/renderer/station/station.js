@@ -293,6 +293,8 @@ async function refresh() {
   colL.replaceChildren(...boards.filter((b) => b.side === 'left').map((b) => renderBoard(b, snap)))
   colR.replaceChildren(...boards.filter((b) => b.side === 'right').map((b) => renderBoard(b, snap)))
 
+  fitArcs()
+
   // ⚠️ The caution panel is a SELECTOR, not a readout. Clicking a coin's lamp
   // points the rest of the wall at that coin; clicking it again releases it back
   // to the whole watchlist. Wired after every rebuild, because the lamps are
@@ -314,6 +316,20 @@ async function refresh() {
       winId = WINDOWS[(i + 1) % WINDOWS.length].id
       refresh()
     })
+  })
+}
+
+/** Size each dial to the panel it is actually in, in real pixels.
+ *  A dial must be ROUND, so its one dimension has to be computed where both
+ *  axes are known — CSS percentages resolve against a different box for width
+ *  than for height and quietly produce an ellipse. Leaves room beneath for the
+ *  readout and the range endpoints, which are the parts that were being clipped. */
+function fitArcs() {
+  stage.querySelectorAll('.st-arc').forEach((a) => {
+    const body = a.closest('.st-board-body')
+    if (!body) return
+    const room = body.clientHeight - 40      // readout + endpoints + gaps
+    a.style.setProperty('--arc-d', `${Math.round(Math.max(52, Math.min(86, room)))}px`)
   })
 }
 
@@ -544,6 +560,14 @@ export function initObservatory(root) {
       const t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2)
       return `${sel} -> ${t ? t.className || t.tagName : 'null'}`
     }
+    // Does every instrument actually FIT its panel? The body clips, so anything
+    // taller than its box is silently sliced off — a readout you cannot see.
+    console.warn('[fit] ' + [...stage.querySelectorAll('.st-board')].map((b) => {
+      const body = b.querySelector('.st-board-body')
+      const over = body.scrollHeight - body.clientHeight
+      return `${b.dataset.board}:${over > 1 ? 'CUT by ' + over + 'px' : 'ok'}`
+    }).join('  '))
+
     console.warn('[hit] ' + ['.st-signin', '.st-prompt', '.st-projector-pane']
       .map(hit).join('  |  '))
 
