@@ -150,7 +150,25 @@ function measure() {
   const colH = columnHeight(h)
   colL.style.height = `${colH}px`
   colR.style.height = `${colH}px`
-  hub.style.setProperty('--globe-d', `${globeSize(h)}px`)
+  const gd = globeSize(h)
+  hub.style.setProperty('--globe-d', `${gd}px`)
+
+  // ⚠️ The globe is placed on the DOORWAY, measured, not on a percentage that
+  // looks about right. The arch is a 3D-projected element: where it actually
+  // lands depends on the ring radius, the perspective and the room's height, so
+  // any constant is correct at exactly one window size. Reading the rendered box
+  // is the only thing that stays true when those change.
+  const arch = stage.querySelector('.st-portal.is-facing .st-portal-arch')
+  const box = stage.getBoundingClientRect()
+  if (arch) {
+    const a = arch.getBoundingClientRect()
+    const cy = a.top + a.height / 2 - box.top
+    hub.style.setProperty('--globe-y', `${Math.round(cy)}px`)
+    // The prompt hangs beneath the sphere with a fixed gap, so the two read as
+    // one instrument and the console never rides up over the globe.
+    hub.style.setProperty('--proj-y', `${Math.round(cy + gd / 2 + 20)}px`)
+  }
+
   globe?.resize()
   return h
 }
@@ -256,8 +274,16 @@ function backBtn() {
   _back.className = 'st-back'
   _back.type = 'button'
   _back.hidden = true
-  _back.innerHTML = '← the observatory'
-  _back.style.cssText = 'position:fixed;left:20px;bottom:20px;z-index:30;margin:0'
+  _back.textContent = '← observatory'
+  // Explicit and compact. Inheriting the room's .st-back sizing here produced a
+  // slab floating over the flat views; this is a control, not a panel.
+  _back.style.cssText = [
+    'position:fixed', 'left:14px', 'bottom:14px', 'z-index:30', 'margin:0',
+    'width:auto', 'height:auto', 'padding:5px 10px', 'line-height:1.2',
+    'font-size:11px', 'letter-spacing:0.06em', 'border-radius:4px',
+    'border:1px solid rgba(150,170,195,.34)', 'background:rgba(18,24,33,.94)',
+    'color:#AEBAC7', 'cursor:pointer', 'font-family:inherit',
+  ].join(';')
   _back.addEventListener('click', leave)
   document.body.appendChild(_back)
   return _back
@@ -301,42 +327,43 @@ function wirePrompt(root) {
     reply.scrollTop = 0
   }
 
-  // Three states, and they must never look like one another: no CLI installed,
-  // installed but not signed in, and ready. The first two have different
-  // answers and only one of them is a button.
+  // ⚠️ Readiness cannot be probed: the CLI keeps credentials in the Keychain, so
+  // there is no file to look at. So the button is OFFERED whenever the CLI is
+  // present and we have not yet had a real answer — never hidden behind a guess
+  // that could be wrong in the direction that blocks the user.
+  let confirmed = false
   async function refreshAuth() {
-    const s = await window.mcii?.orionStatus?.().catch(() => null)
-    const installed = !!s?.installed
-    const ready = !!s?.ready
-    signin.hidden = !installed || ready
+    const st = await window.mcii?.orionStatus?.().catch(() => null)
+    const installed = !!st?.installed
+    signin.hidden = !installed || confirmed
     input.disabled = !installed
     if (!installed) {
       input.placeholder = 'orion needs the claude cli'
       setNotice('Orion is not connected: the Claude CLI is not installed. In Terminal run  '
-        + 'npm install -g @anthropic-ai/claude-code  then reopen the app. No API key, no billing '
-        + '— it signs in with your own Claude account.')
-    } else if (!ready) {
-      input.placeholder = 'sign in to talk to orion'
-      setNotice('Orion is installed but not signed in. Click "log in to anthropic" — it opens '
-        + 'Terminal and your browser. The app never sees your account.')
+        + 'npm install -g @anthropic-ai/claude-code  then reopen the app. No API key and no '
+        + 'billing — it signs in with your own Claude account.')
     } else {
       input.placeholder = 'talk to orion — your coins, your notes, the market…'
-      setNotice('')
+      setNotice(confirmed ? '' : 'Orion is installed. If it says you are not signed in, use '
+        + '"log in to anthropic" — it opens a terminal, and the app never sees your account.')
     }
-    return { installed, ready }
+    return installed
   }
 
   signin.addEventListener('click', async () => {
     signin.disabled = true
-    await window.mcii?.orionLogin?.()
-    say('A terminal is opening. Finish signing in there, then come back — I will check again.')
-    // Poll rather than make them tell us: the sign-in finishes somewhere else.
-    let tries = 0
-    const t = setInterval(async () => {
-      const s = await refreshAuth()
-      if (s.ready || ++tries > 60) { clearInterval(t); signin.disabled = false; if (s.ready) say('Signed in. Ask me something.') }
-    }, 2000)
+    const r = await window.mcii?.orionLogin?.()
+    say(r && r.ok === false
+      ? 'Could not open a terminal. Open one yourself and run:  claude  then /login'
+      : 'A terminal is opening. Type  /login  there and follow the browser. '
+        + 'Come back when it is done and just ask me something.')
+    signin.disabled = false
   })
+
+  // Coming back from the terminal is the moment to re-check, and it costs
+  // nothing: the user has almost certainly just changed the thing we are asking
+  // about.
+  window.addEventListener('focus', () => { if (active) refreshAuth() })
 
   // Reaching for the keyboard is an unambiguous statement that you have
   // finished navigating, so the yield ends immediately.
@@ -359,8 +386,13 @@ function wirePrompt(root) {
       const res = await window.mcii.orionAsk(text)
       // ⚠️ A failure is REPORTED. A blank answer is indistinguishable from
       // "there is nothing to say", and the two must never look the same.
-      if (res?.ok) say(res.reply)
-      else if (res?.code === 'auth') { await refreshAuth(); say('Not signed in yet — use the button.', true) }
+      if (res?.ok) { confirmed = true; signin.hidden = true; setNotice(''); say(res.reply) }
+      else if (res?.code === 'auth') {
+        confirmed = false
+        await refreshAuth()
+        say('You are not signed in to Claude yet. Click "log in to anthropic", type /login in the '
+          + 'terminal that opens, finish in the browser, then ask me again.', true)
+      }
       else if (res?.code === 'no-cli') { await refreshAuth(); say('The Claude CLI is not installed on this machine.', true) }
       else say(res?.error || 'Orion did not answer.', true)
     } catch (err) {
@@ -411,6 +443,16 @@ export function initObservatory(root) {
   active = true
   render()
   measure()
+
+  if (location.hash === '#measure') setTimeout(() => {
+    const r = (sel) => { const e = stage.querySelector(sel); if (!e) return null
+      const b = e.getBoundingClientRect(); return { cx: +(b.left + b.width / 2).toFixed(1), w: +b.width.toFixed(1) } }
+    console.warn('[measure]', JSON.stringify({
+      bridge: r('.st-bridge'), hub: r('.st-hub'), globe: r('.st-globe'),
+      canvas: r('.st-globe canvas'), facingArch: r('.st-portal.is-facing .st-portal-arch'),
+      facingLight: r('.st-portal.is-facing .st-portal-light'), proj: r('.st-projector'),
+    }))
+  }, 1200)
 
   globe = mountGlobe(globeHost)
   if (!globe) globeHost.classList.add('is-fallback')

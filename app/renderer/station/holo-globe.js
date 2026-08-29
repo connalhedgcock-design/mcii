@@ -326,7 +326,15 @@ export function mountGlobe(host, opts = {}) {
     && matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const canvas = document.createElement('canvas')
-  canvas.style.cssText = 'display:block;width:100%;height:100%'
+  // ⚠️ NO inline width/height. The host stylesheet deliberately oversizes this
+  // canvas (inset -45%, 190%) so the atmosphere shell and the breathing limb are
+  // never clipped square. An inline `width:100%` beats that rule while the
+  // stylesheet's `left:-45%` still applies — so the canvas ends up ORIGINAL SIZE
+  // but SHIFTED LEFT by 45% of the globe. That is exactly what made the sphere
+  // sit off-centre from the doorway it is supposed to be standing in, and it was
+  // invisible to reading: two correct rules, one silently overriding half of the
+  // other. Sizing belongs to the stylesheet alone.
+  canvas.style.display = 'block'
   const gl = canvas.getContext('webgl2', {
     alpha: true,
     premultipliedAlpha: true,
@@ -394,8 +402,16 @@ export function mountGlobe(host, opts = {}) {
   gl.uniform3fv(uHolo, C.holo)
   gl.uniform3fv(uHot,  C.hot)
 
-  const DIST = 3.2
-  gl.uniform3f(uEye, 0, 0, DIST)
+  // ⚠️ The canvas is deliberately LARGER than the globe box so the atmosphere
+  // shell and the breathing limb are never clipped. That margin must not become
+  // scale: if the camera ignores it, the sphere simply grows to fill the bigger
+  // buffer and the globe doubles in size for no reason anyone asked for.
+  //
+  // So the camera distance is DERIVED from the measured oversize each resize —
+  // pull the eye back by exactly as much as the buffer was widened, and the
+  // sphere lands at the host element's own width whatever the margin becomes.
+  const FOVY = 0.62
+  let DIST = 3.2
 
   gl.disable(gl.DEPTH_TEST)
   gl.disable(gl.CULL_FACE)          // ⚠️ both faces. See the header note.
@@ -418,12 +434,21 @@ export function mountGlobe(host, opts = {}) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2)   // clamped: a 3× retina
     const w = Math.max(1, Math.round(canvas.clientWidth  * dpr))  // globe is 9× the
     const h = Math.max(1, Math.round(canvas.clientHeight * dpr))  // fill rate for no
-    if (canvas.width !== w || canvas.height !== h) {              // visible gain
-      canvas.width = w; canvas.height = h
-      gl.viewport(0, 0, w, h)
-      mPerspective(P, 0.62, w / h, 0.1, 20)
-      mMul(PV, P, Vm)
-    }
+    if (canvas.width === w && canvas.height === h) return         // visible gain
+    canvas.width = w; canvas.height = h
+    gl.viewport(0, 0, w, h)
+
+    // How much wider the drawing buffer is than the element the globe is
+    // supposed to occupy. 1 when they match; ~1.9 with the current margin.
+    const hostW = host.clientWidth || canvas.clientWidth || 1
+    const over = Math.max(1, (canvas.clientWidth || hostW) / hostW)
+    // Half-angle the sphere should subtend, then the distance that produces it.
+    DIST = 1 / Math.sin(Math.max(0.02, Math.min(1.2, (FOVY / 2) / over)))
+
+    gl.uniform3f(uEye, 0, 0, DIST)
+    mTranslate(Vm, 0, 0, -DIST)
+    mPerspective(P, FOVY, w / h, 0.1, DIST + 8)
+    mMul(PV, P, Vm)
   }
 
   function draw(nowMs) {

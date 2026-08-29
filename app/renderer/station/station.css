@@ -381,10 +381,10 @@
      globe standing in front of it, which is the whole requirement: the arch must
      FRAME the sphere, never be hidden behind it. Change globeSize() and these
      move with it. */
-  left: -310px;
-  top: -520px;
-  width: 620px;
-  height: 740px;
+  left: -210px;
+  top: -400px;
+  width: 420px;
+  height: 560px;
   transform-style: preserve-3d;
   cursor: pointer;
   opacity: 0.62;
@@ -403,7 +403,7 @@
 .st-portal-arch {
   position: absolute;
   inset: 0;
-  border-radius: 280px 280px 8px 8px;
+  border-radius: 210px 210px 8px 8px;
   border: 3px solid oklch(0.62 0.045 246 / 0.85);
   border-bottom-color: oklch(0.36 0.016 250 / 0.5);
   background: linear-gradient(to bottom,
@@ -455,7 +455,7 @@
 .st-portal-view {
   position: absolute;
   inset: 6px;                 /* inside the jamb — the frame stays the frame */
-  border-radius: 274px 274px 6px 6px;
+  border-radius: 206px 206px 6px 6px;
   overflow: hidden;           /* ← a LEAF. Safe. */
   pointer-events: none;
   opacity: 0.55;
@@ -745,27 +745,36 @@
    shipped at 2200ms against a 420ms turn elsewhere, the fix for occlusion read
    as the globe being broken. §9.10
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ⚠️ The hub is a full-bleed LAYER, not a positioned column. Centring a column
+   that contains the globe AND the prompt centres the pair, which puts the globe
+   somewhere above the target and the prompt somewhere below it — neither on the
+   doorway. The globe is placed directly instead, on coordinates MEASURED from
+   the arch it is supposed to be standing in (see measure() in station.js), so
+   "centred in the doors" is true by construction on both axes rather than by a
+   percentage that happens to look close. */
 .st-hub {
   position: absolute;
-  /* ⚠️ Anchored on BOTH edges rather than left:50% + translate(-50%). The hub is
-     a flex column whose width comes from its widest child, so a fractional
-     sub-pixel width made translate(-50%) land the globe a couple of pixels off
-     the room's own axis — visible as the sphere sitting left of the doorway it
-     is supposed to be standing in. left:0/right:0 centres against the room
-     itself and cannot drift.
-     Lowered from 46% to 54%: the operator wanted the globe and the prompt to
-     sit further down the frame. */
-  left: 0; right: 0; top: 54%;
-  transform: translateY(-50%);
+  inset: 0;
   z-index: 4;
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  transition: opacity 220ms var(--st-ease), transform 220ms var(--st-ease);
+  pointer-events: none;
+  transition: opacity 220ms var(--st-ease);
 }
-.st-hub.is-yielded { opacity: 0.24; transform: translateY(-50%) scale(0.94); }
-.st-hub.is-yielded .st-projector { opacity: 0; transform: translateY(10px); }
+.st-hub.is-yielded { opacity: 0.24; }
 
-.st-globe { position: relative; width: var(--globe-d, 170px); height: var(--globe-d, 170px); }
-.st-globe canvas { position: absolute; inset: -22%; width: 144%; height: 144%; }
+.st-globe {
+  position: absolute;
+  left: 50%; top: var(--globe-y, 46%);
+  transform: translate(-50%, -50%);
+  width: var(--globe-d, 170px); height: var(--globe-d, 170px);
+  transition: transform 220ms var(--st-ease);
+}
+.st-hub.is-yielded .st-globe { transform: translate(-50%, -50%) scale(0.94); }
+/* ⚠️ The canvas must be far bigger than the sphere. The atmosphere shell is
+   1.16x the body and the body itself breathes; at 144% the shell reached the
+   edge of the drawing buffer and the limb was clipped flat every few seconds --
+   a square appearing around a round object. 190% clears both with room to spare,
+   and the cost is fill rate on a transparent margin. */
+.st-globe canvas { position: absolute; inset: -45%; width: 190%; height: 190%; }
 .st-globe-fallback { display: none; }
 .st-globe.is-fallback .st-globe-fallback {
   display: block;
@@ -787,7 +796,10 @@
    translucency in the app and it is earned: a projection has to be see-through
    to be a projection. Not precedent for blurring a sidebar. */
 .st-projector {
-  position: relative;
+  position: absolute;
+  left: 50%; top: var(--proj-y, 62%);
+  transform: translateX(-50%);
+  pointer-events: auto;          /* the layer above is inert; this is not */
   width: min(520px, 46vw);
   transform-style: preserve-3d;
   perspective: 700px;

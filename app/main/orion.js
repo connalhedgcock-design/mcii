@@ -54,17 +54,22 @@ function findClaude({ refresh = false } = {}) {
   return cached;
 }
 
-/** Is the CLI present, and does it already have a signed-in account? */
+/** Is the CLI present?
+ *
+ * ⚠️ It deliberately does NOT try to answer "is it signed in". On macOS the CLI
+ * keeps its credentials in the Keychain, not in a file, so every file-based
+ * check reports "not signed in" forever — which would leave a working install
+ * permanently behind a login button it does not need. Readiness is discovered
+ * the only honest way: by asking, and reading what comes back. */
 function status() {
   const bin = findClaude({ refresh: true });
-  if (!bin) return { installed: false, ready: false };
-  // Presence of the credential store is the cheap check. Asking the CLI itself
-  // would cost a round trip on every window focus.
-  const signedIn = ['.credentials.json', 'credentials.json']
-    .some((f) => fs.existsSync(path.join(os.homedir(), '.claude', f)))
-    || fs.existsSync(path.join(os.homedir(), '.config', 'claude', 'credentials.json'));
-  return { installed: true, ready: signedIn, path: bin };
+  return bin ? { installed: true, path: bin } : { installed: false };
 }
+
+// The CLI says this on stdout, with EXIT CODE 0. Treated as a normal answer it
+// would be printed as though Orion had said it -- a login prompt rendered as
+// analysis. Match it before anything else.
+const NOT_SIGNED_IN = /not logged in|please run \/login|\/login\b|unauthor|authenticat|invalid api key|credential/i;
 
 const SYSTEM = [
   'You are Orion, the voice of the MCII Observatory — a memecoin research station',
@@ -99,13 +104,12 @@ function ask(text) {
       (err, stdout, stderr) => {
         const out = String(stdout || '').trim();
         const msg = String(stderr || err?.message || '');
-        if (!err && out) return resolve({ ok: true, reply: out });
-        // Auth failures are the common case and deserve their own path: the
-        // answer is a button, not an apology.
-        if (/log ?in|unauthor|authenticat|api key|credential|not signed/i.test(msg)) {
+        // ⚠️ Check the OUTPUT for a login prompt before treating it as an answer.
+        if (NOT_SIGNED_IN.test(out) || NOT_SIGNED_IN.test(msg)) {
           return resolve({ ok: false, code: 'auth',
             error: 'Not signed in to Claude on this machine.' });
         }
+        if (!err && out) return resolve({ ok: true, reply: out });
         if (err?.killed) {
           return resolve({ ok: false, code: 'timeout', error: 'Orion took too long and was stopped.' });
         }
@@ -125,9 +129,12 @@ function login() {
   const s = status();
   if (!s.installed) return { ok: false, code: 'no-cli' };
   return new Promise((resolve) => {
+    // `/login` is a slash command INSIDE the interactive session, not a CLI
+    // argument -- passing it as one just asks Claude about the word "/login".
+    // Open a real interactive session; it prompts for sign-in on its own.
     execFile('osascript', [
       '-e', 'tell application "Terminal" to activate',
-      '-e', `tell application "Terminal" to do script "${s.path} /login"`,
+      '-e', `tell application "Terminal" to do script "cd ${JSON.stringify(REPO)} && ${s.path}"`,
     ], (err) => resolve(err ? { ok: false, error: String(err.message) } : { ok: true }));
   });
 }

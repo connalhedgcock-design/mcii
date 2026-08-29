@@ -110,6 +110,13 @@ const check = (n, c, x = '') => {
     `door ${doorPx.toFixed(0)}px vs globe ${g.globeSize(2000)}px at the cap`);
   check('...and the globe is never smaller than legible', g.globeSize(400) >= 150);
 
+  // ⚠️ Six doors on a ring spaced for five overlap. Asserted against the real
+  // projection, at every heading, so widening a door or adding a seventh fails
+  // here instead of looking like a rendering fault.
+  const gap = g.tightestDoorGap();
+  check('neighbouring doors never overlap, at any heading', gap > doorPx,
+    `tightest gap ${gap.toFixed(0)}px vs door ${doorPx.toFixed(0)}px`);
+
   console.log(`\n  ${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();

@@ -18,13 +18,15 @@
  * ascends by angle, which means index rises RIGHT-TO-LEFT on screen. Read the
  * comment column, not the array order, to know where a door appears.
  *
- * ±62 rather than a full semicircle: turning to the outermost door yaws the
- * room 62°, which is a real turn of the head and still leaves the opposite wall
- * in frame, so you never lose your sense of where you are standing.
+ * ±75 across six doors, so 30° apart. The handoff specified ±62 — but that was
+ * for FIVE doors. At six, ±62 puts the arches 197px apart on screen while each
+ * one renders 201px wide, and every door clips its neighbour. The spread is a
+ * function of how many doors there are, never a constant to copy across.
+ * `tightestDoorGap()` asserts it; do not tune these by eye.
  *
- * ⚠️ Do not narrow below about ±50. At ±44 the middle doors cluster behind the
- * globe, and the single most important fact on screen — "where does ↑ take me"
- * — becomes the thing the globe is standing in front of.
+ * ⚠️ Do not narrow the spacing below about 25°. Tighter and the middle doors
+ * cluster behind the globe, and the single most important fact on screen —
+ * "where does ↑ take me" — becomes the thing the globe is standing in front of.
  *
  * `built` is the TRUTH about the app, not a wish. An unbuilt door renders
  * sealed and refuses to open, because a door that opens onto nothing teaches
@@ -34,12 +36,12 @@
  */
 export const DOORS = [
   //                                                          screen position →
-  { id: 'sector',  view: 'sector',  label: "what's happening", angle: -62.0, built: true,  blurb: 'the sector, and what moved it',        tag: 'SEC' },
-  { id: 'journal', view: 'journal', label: 'the journal',      angle: -37.2, built: true,  blurb: 'what you decided, and whether it held', tag: 'LOG' },
-  { id: 'market',  view: 'market',  label: 'the market',       angle: -12.4, built: true,  blurb: 'everything the scanner has found',      tag: 'MKT' },
-  { id: 'watch',   view: 'watch',   label: 'your coins',       angle:  12.4, built: true,  blurb: 'what you are holding and tracking',     tag: 'WCH' },
-  { id: 'wallets', view: null,      label: 'the wallets',      angle:  37.2, built: false, blurb: 'who is moving size',                    tag: 'WAL' },
-  { id: 'predict', view: null,      label: 'prediction markets', angle: 62.0, built: false, blurb: 'kalshi, polymarket',                   tag: 'PRD' },
+  { id: 'sector',  view: 'sector',  label: "what's happening", angle: -75.0, built: true,  blurb: 'the sector, and what moved it',        tag: 'SEC' },
+  { id: 'journal', view: 'journal', label: 'the journal',      angle: -45.0, built: true,  blurb: 'what you decided, and whether it held', tag: 'LOG' },
+  { id: 'market',  view: 'market',  label: 'the market',       angle: -15.0, built: true,  blurb: 'everything the scanner has found',      tag: 'MKT' },
+  { id: 'watch',   view: 'watch',   label: 'your coins',       angle:  15.0, built: true,  blurb: 'what you are holding and tracking',     tag: 'WCH' },
+  { id: 'wallets', view: null,      label: 'the wallets',      angle:  45.0, built: false, blurb: 'who is moving size',                    tag: 'WAL' },
+  { id: 'predict', view: null,      label: 'prediction markets', angle:  75.0, built: false, blurb: 'kalshi, polymarket',                   tag: 'PRD' },
 ]
 
 /** Where you land when the room opens. Not simply "the first built door" —
@@ -195,7 +197,7 @@ export function boardsFor(roomHeight) {
  *  relationship between two numbers, and a relationship kept in prose drifts the
  *  moment either number is touched. `--st-perspective` and the .st-portal box in
  *  station.css must match these. */
-export const DOOR_W = 620
+export const DOOR_W = 420
 export const PERSPECTIVE = 900
 
 /** How wide the door actually renders on screen at the ring. */
@@ -203,12 +205,42 @@ export function doorScreenWidth() {
   return DOOR_W * (PERSPECTIVE / (PERSPECTIVE + RING))
 }
 
+/** Where a door's centre lands on screen, in px from the room's axis.
+ *  The full projection, not the small-angle approximation: a door off to the
+ *  side is FURTHER AWAY as well as further across, and ignoring that overstates
+ *  how much room there is between neighbours. */
+export function doorScreenPx(doorIndex, facingIndex) {
+  const t = (offsetFor(doorIndex, facingIndex) * Math.PI) / 180
+  const x = SCREEN_SIGN * RING * Math.sin(t)
+  const z = -RING * Math.cos(t)
+  return x * (PERSPECTIVE / (PERSPECTIVE + -z))
+}
+
+/** The tightest gap between two neighbouring doors, over every heading.
+ *  ⚠️ This is what six doors on a ring sized for five gets you: at the old
+ *  spacing the arches were 197px apart while each rendered 201px wide, so every
+ *  door clipped its neighbour. Kept as a function so the test can assert it
+ *  rather than someone re-deriving it after the next change. */
+export function tightestDoorGap() {
+  let min = Infinity
+  for (let f = 0; f < DOORS.length; f++) {
+    for (let i = 0; i + 1 < DOORS.length; i++) {
+      if (!doorVisible(i, f) || !doorVisible(i + 1, f)) continue
+      min = Math.min(min, Math.abs(doorScreenPx(i, f) - doorScreenPx(i + 1, f)))
+    }
+  }
+  return min
+}
+
 /** The globe's diameter as a share of the room — never a constant.
  *  Raised from the handoff's 0.185 because the operator asked for a bigger
- *  Earth; the doorway was widened to match. The cap is not a taste value: it is
- *  82% of the projected door, so the arch always FRAMES the sphere instead of
- *  being swallowed by it, whatever either number becomes later. */
-export const GLOBE_MAX_OF_DOOR = 0.82
+ *  Earth. The door stays at its original 420 and the RING SPREAD widened instead
+ *  (see DOORS): at six doors across the old +/-62 the arches were 197px apart on
+ *  screen while each rendered 201px wide, so every neighbour overlapped its
+ *  neighbour. The globe is capped at the projected door width -- it may match the
+ *  arch, never exceed it, and it sits lower in the frame than the arch's centre
+ *  so the two read as separate objects rather than one halo. */
+export const GLOBE_MAX_OF_DOOR = 1.0
 
 export function globeSize(roomHeight) {
   const cap = doorScreenWidth() * GLOBE_MAX_OF_DOOR
