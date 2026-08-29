@@ -414,16 +414,64 @@ a{color:var(--accent); cursor:pointer}
 [hidden]{display:none !important}
 
 /* --- the portfolio -------------------------------------------------------
-   Numbers right-aligned and monospaced so magnitudes line up down the column:
-   a portfolio is read by comparing sizes, and proportional digits make
-   $9,000 and $90,000 look the same width. */
-.folio-tabs{display:flex;gap:8px}
-.folio-tabs .btn.on{border-color:var(--accent);color:var(--accent)}
-table.folio{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
-table.folio th{text-align:right;font-family:var(--mono);font-size:9px;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--rule)}
-table.folio th:first-child{text-align:left}
-table.folio td{text-align:right;padding:6px 8px;font-family:var(--mono);
-  border-bottom:1px solid rgba(255,255,255,.04)}
-table.folio td:first-child{text-align:left;font-family:inherit}
-.muted{color:var(--muted)} .good{color:var(--ok)} .bad{color:var(--crit)} .warn{color:var(--warn)}
+   Wears the Observatory's own vocabulary: station.css is loaded globally and
+   its --st-* tokens sit on :root, so .st-board / .st-label / .st-board-num
+   are reused directly rather than re-invented here. This is the flat cousin of
+   the room — same instrument panels, same station voice, none of the 3D. Only
+   the layout is local. */
+#folio{display:block;padding:0 20px 26px}
+.folio-room{max-width:1180px;margin:0 auto}
+.folio-strip{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 2px 12px;border-bottom:1px solid oklch(0.40 0.014 250 / 0.34);margin-bottom:16px}
+.folio-wall{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+.folio-wide{grid-column:1 / -1}
+.folio-stat{min-height:96px;justify-content:flex-start}
+.folio-stat .st-board-num{font-size:26px;margin-top:2px}
+.folio-sub{margin-top:6px;font-size:11px;color:var(--st-fg-faint);
+  text-transform:uppercase;letter-spacing:.13em}
+
+/* Venue selection as lamps — the same gesture the room's caution panel uses. */
+.folio-lamps{display:flex;gap:6px}
+.folio-lamp{display:flex;align-items:center;gap:7px;cursor:pointer;
+  padding:6px 12px;border-radius:6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--st-fg-mute);background:var(--st-inset);border:1px solid var(--st-edge)}
+.folio-lamp:hover{color:var(--st-fg-2)}
+.folio-lamp.is-sel{color:var(--st-holo-hot);border-color:var(--st-holo);
+  box-shadow:0 0 0 1px var(--st-holo-glow), inset 0 0 14px -6px var(--st-holo-glow)}
+.folio-lamp-tag{font-family:var(--st-mono);font-size:9px;letter-spacing:.08em;
+  padding:2px 4px;border-radius:3px;background:oklch(0.30 0.010 250 / .8);color:var(--st-fg-faint)}
+.folio-lamp.is-sel .folio-lamp-tag{color:var(--st-holo);background:oklch(0.30 0.030 240 / .9)}
+
+/* Numbers right-aligned and tabular so magnitudes line up down the column: a
+   portfolio is read by comparing sizes, and proportional digits make $9,000
+   and $90,000 look the same width. */
+table.folio-tbl{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px}
+table.folio-tbl th{text-align:right;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--st-fg-faint);padding:5px 9px;font-weight:400;
+  border-bottom:1px solid oklch(0.40 0.014 250 / 0.34)}
+table.folio-tbl th:first-child{text-align:left}
+table.folio-tbl td{text-align:right;padding:7px 9px;font-family:var(--st-mono);
+  font-variant-numeric:tabular-nums;color:var(--st-fg-2);
+  border-bottom:1px solid oklch(0.40 0.014 250 / 0.16)}
+table.folio-tbl td:first-child{text-align:left;font-family:inherit}
+table.folio-tbl tr:last-child td{border-bottom:0}
+.folio-sym{color:var(--st-fg);letter-spacing:.04em}
+.folio-where{color:var(--st-fg-faint) !important;font-size:11px;letter-spacing:.08em}
+td.is-up{color:var(--st-up) !important} td.is-down{color:var(--st-down) !important}
+
+.folio-empty{padding:18px 2px;color:var(--st-fg-faint);font-size:13px}
+.folio-empty.is-bad{color:var(--st-down)}
+
+/* The wallet bench renders on every path, set or unset — adding the first
+   wallet must never hide the way to add the second. */
+.folio-bench{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.folio-slot{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:6px;
+  background:var(--st-inset);border:1px solid var(--st-edge)}
+.folio-slot.is-set{border-color:oklch(0.42 0.030 245 / .7)}
+.folio-slot-name{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--st-fg-2)}
+.folio-slot-addr{flex:1;font-family:var(--st-mono);font-size:12px;color:var(--st-fg-faint)}
+.folio-slot.is-set .folio-slot-addr{color:var(--st-holo)}
+.folio-note{margin-top:12px;font-size:11px;line-height:1.5;color:var(--st-fg-faint);
+  padding-top:10px;border-top:1px solid oklch(0.40 0.014 250 / 0.24)}
+
+@media (max-width:900px){.folio-wall{grid-template-columns:1fr}}

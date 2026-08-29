@@ -682,89 +682,141 @@ function switchView(v) {
 // Three readings of the same book: each venue's wallet on its own, and both together. The
 // combined one is the only place either operator can see their real concentration, because
 // neither venue can see the other.
+//
+// Dressed in the Observatory's own vocabulary (station.css is loaded globally and its --st-*
+// tokens sit on :root, so .st-board / .st-label / .st-board-num are reusable here). This is the
+// flat, readable cousin of the room -- same instrument panels and station voice, none of the 3D.
 const VENUES = [
-  { id: 'fomo',  label: 'fomo' },
-  { id: 'axiom', label: 'axiom' },
+  { id: 'fomo',  label: 'fomo',  tag: 'FMO' },
+  { id: 'axiom', label: 'axiom', tag: 'AXM' },
 ];
 let folioTab = 'combined';
 
 async function loadFolio() {
   const box = $('#folio');
-  const { wallets } = await window.mcii.wallets();
+  let wallets = {};
+  try { ({ wallets } = await window.mcii.wallets()); } catch {}
   const known = VENUES.filter((v) => wallets[v.id]);
 
-  if (!known.length) { box.innerHTML = folioEmpty(); return wireFolio(box); }
+  // ⚠️ The wallet bench renders on EVERY path, set or unset. The first version only offered the
+  // "set wallet" buttons when NO wallet existed at all, so adding the first one hid the way to
+  // add the second -- a dead end you could only escape by clearing the first.
+  if (!known.length) { box.innerHTML = folioShell(walletBench(wallets), null); return wireFolio(box); }
 
-  box.innerHTML = `<div class="card"><p class="muted">Reading both wallets from the chain…</p></div>`;
+  box.innerHTML = folioShell(`<div class="st-board folio-wide"><div class="st-board-screws"></div>
+    <div class="st-board-head"><span class="st-label">reading the chain</span></div>
+    <div class="folio-empty">querying both token programs…</div></div>`, wallets);
+
   let data;
   try { data = await window.mcii.portfolio(); }
-  catch (e) { box.innerHTML = `<div class="card"><p class="bad">Could not read the chain: ${esc(e.message)}</p></div>`; return; }
-  box.innerHTML = folioMarkup(data, wallets);
+  catch (e) {
+    box.innerHTML = folioShell(`<div class="st-board folio-wide"><div class="st-board-screws"></div>
+      <div class="st-board-head"><span class="st-label">chain unreachable</span></div>
+      <div class="folio-empty is-bad">${esc(e.message)}</div></div>` + walletBench(wallets), wallets);
+    return wireFolio(box);
+  }
+  box.innerHTML = folioShell(folioBoards(data, wallets) + walletBench(wallets), wallets);
   wireFolio(box);
 }
 
-function folioEmpty() {
-  return `<div class="card">
-    <h2>Your portfolio</h2>
-    <p>Paste the wallet address you use on each venue and this reads your holdings straight from
-       the chain — no login, and nothing here can move funds.</p>
-    <p class="muted">A public address only. Never paste a private key or seed phrase, here or
-       anywhere else — this app has no use for one and will refuse it.</p>
-    ${VENUES.map((v) => `<p><button class="btn" data-setwallet="${v.id}">Set ${v.label} wallet</button></p>`).join('')}
+// The frame: station header strip, then whatever boards belong to the current reading.
+function folioShell(inner, wallets) {
+  return `<div class="folio-room">
+    <div class="folio-strip">
+      <span class="st-label">the portfolio</span>
+      ${wallets ? folioPicker(wallets) : ''}
+    </div>
+    <div class="folio-wall">${inner}</div>
   </div>`;
 }
 
-function folioMarkup(data, wallets) {
-  const tabs = [...VENUES.filter((v) => wallets[v.id]).map((v) => ({ id: v.id, label: v.label })),
-                { id: 'combined', label: 'combined' }];
-  if (!tabs.some((t) => t.id === folioTab)) folioTab = 'combined';
+// Venue selection as lamps, the same gesture the room's caution panel uses.
+function folioPicker(wallets) {
+  const opts = [...VENUES.filter((v) => wallets[v.id]), { id: 'combined', label: 'combined', tag: 'ALL' }];
+  return `<div class="folio-lamps">${opts.map((o) => `
+    <button class="folio-lamp ${o.id === folioTab ? 'is-sel' : ''}" data-folio="${o.id}">
+      <span class="folio-lamp-tag">${o.tag}</span>${esc(o.label)}
+    </button>`).join('')}</div>`;
+}
 
-  const head = `<div class="card">
-    <div class="folio-tabs">${tabs.map((t) =>
-      `<button class="btn ${t.id === folioTab ? 'on' : ''}" data-folio="${t.id}">${esc(t.label)}</button>`).join('')}</div>
-  </div>`;
-
+function folioBoards(data, wallets) {
   if (folioTab === 'combined') {
     const c = data.combined;
-    if (!c || !c.positions.length) return head + `<div class="card"><p class="muted">Nothing priced yet.</p></div>`;
-    const conc = c.topWeightPct != null
-      ? `<p class="${c.topWeightPct > 60 ? 'warn' : 'muted'}">Your largest position is
-         ${c.topWeightPct.toFixed(0)}% of the book${c.topWeightPct > 60
-           ? ' — this is one bet, not a portfolio.' : '.'}</p>` : '';
-    return head + `<div class="card">
-      <h2>Both venues — ${fmtUsd(c.totalUsd)}</h2>
-      ${conc}
-      ${c.venuesFailed ? `<p class="bad">${c.venuesFailed} wallet could not be read. This total is incomplete.</p>` : ''}
-      ${posTable(c.positions, true)}
-    </div>`;
+    if (!c || !c.positions.length) return emptyBoard('nothing priced yet');
+    const hot = c.topWeightPct != null && c.topWeightPct > 60;
+    return `
+      ${statBoard('total, both venues', fmtUsd(c.totalUsd), null)}
+      ${statBoard('largest position', c.topWeightPct == null ? '—' : c.topWeightPct.toFixed(0) + '%',
+        hot ? 'down' : null, hot ? 'one bet, not a portfolio' : 'of the whole book')}
+      ${statBoard('coins held', String(c.positions.length), null,
+        c.venuesFailed ? `${c.venuesFailed} wallet unreadable — total is incomplete` : 'across both venues')}
+      ${posBoard('every position', c.positions, true)}`;
   }
-
   const v = data.venues.find((x) => x.venue === folioTab);
-  if (!v) return head + `<div class="card"><p class="muted">No wallet set for this venue.</p></div>`;
-  if (v.error) return head + `<div class="card"><p class="bad">Could not read this wallet: ${esc(v.error)}</p></div>`;
-  return head + `<div class="card">
-    <h2>${esc(v.venue)} — ${fmtUsd(v.totalUsd)}</h2>
-    <p class="muted">${shortAddr(v.address)}${v.sol != null ? ` · ${v.sol.toFixed(3)} SOL` : ''}</p>
-    ${posTable(v.positions, false)}
-    ${(v.dustCount || v.unpricedCount) ? `<p class="muted">Also holds ${v.dustCount + v.unpricedCount}
-      mints worth nothing tradeable (airdrops and dust), not counted above.</p>` : ''}
+  if (!v) return emptyBoard('no wallet set for this venue');
+  if (v.error) return emptyBoard(esc(v.error), true);
+  const dust = (v.dustCount || 0) + (v.unpricedCount || 0);
+  return `
+    ${statBoard(`${v.venue} total`, fmtUsd(v.totalUsd), null, shortAddr(v.address))}
+    ${statBoard('sol', v.sol == null ? '—' : v.sol.toFixed(3), null, 'native balance')}
+    ${statBoard('coins held', String(v.positions.length), null,
+      dust ? `${dust.toLocaleString()} dust mints ignored` : 'all priced')}
+    ${posBoard(`${v.venue} positions`, v.positions, false)}`;
+}
+
+function statBoard(label, value, dir, sub) {
+  return `<div class="st-board folio-stat">
+    <div class="st-board-screws"></div>
+    <div class="st-board-head"><span class="st-label">${esc(label)}</span></div>
+    <div class="st-board-num ${dir ? 'is-' + dir : ''}">${esc(value)}</div>
+    ${sub ? `<div class="folio-sub">${esc(sub)}</div>` : ''}
   </div>`;
 }
 
-function posTable(positions, showVenues) {
-  if (!positions.length) return `<p class="muted">Nothing here.</p>`;
-  return `<table class="folio">
-    <tr><th>coin</th><th>held</th><th>price</th><th>value</th><th>24h</th>${showVenues ? '<th>where</th>' : ''}</tr>
-    ${positions.map((p) => `<tr>
-      <td><strong>${esc(p.sym)}</strong></td>
-      <td>${fmtNum(p.tokens)}</td>
-      <td>$${p.priceUsd < 0.01 ? p.priceUsd.toPrecision(3) : p.priceUsd.toFixed(4)}</td>
-      <td>${fmtUsd(p.valueUsd)}</td>
-      <td class="${p.change24h > 0 ? 'good' : p.change24h < 0 ? 'bad' : 'muted'}">${
-        p.change24h == null ? '—' : (p.change24h > 0 ? '+' : '') + p.change24h.toFixed(1) + '%'}</td>
-      ${showVenues ? `<td class="muted">${esc(Object.keys(p.byVenue || {}).join(' + '))}</td>` : ''}
-    </tr>`).join('')}
-  </table>`;
+function emptyBoard(msg, bad) {
+  return `<div class="st-board folio-wide"><div class="st-board-screws"></div>
+    <div class="st-board-head"><span class="st-label">no reading</span></div>
+    <div class="folio-empty ${bad ? 'is-bad' : ''}">${msg}</div></div>`;
+}
+
+function posBoard(label, positions, showVenues) {
+  if (!positions.length) return emptyBoard('nothing here');
+  return `<div class="st-board folio-wide">
+    <div class="st-board-screws"></div>
+    <div class="st-board-head"><span class="st-label">${esc(label)}</span>
+      <span class="st-board-num">${positions.length}</span></div>
+    <table class="folio-tbl">
+      <tr><th>coin</th><th>held</th><th>price</th><th>value</th><th>24h</th>${showVenues ? '<th>where</th>' : ''}</tr>
+      ${positions.map((p) => `<tr>
+        <td class="folio-sym">${esc(p.sym)}</td>
+        <td>${fmtNum(Math.round(p.tokens))}</td>
+        <td>$${p.priceUsd < 0.01 ? p.priceUsd.toPrecision(3) : p.priceUsd.toFixed(4)}</td>
+        <td>${fmtUsd(p.valueUsd)}</td>
+        <td class="${p.change24h > 0 ? 'is-up' : p.change24h < 0 ? 'is-down' : ''}">${
+          p.change24h == null ? '—' : (p.change24h > 0 ? '+' : '') + p.change24h.toFixed(1) + '%'}</td>
+        ${showVenues ? `<td class="folio-where">${esc(Object.keys(p.byVenue || {}).join(' + '))}</td>` : ''}
+      </tr>`).join('')}
+    </table>
+  </div>`;
+}
+
+// Always present, whatever else is on screen: every venue, its address or the lack of one, and
+// the way to change it. This is the board that makes the second wallet reachable.
+function walletBench(wallets) {
+  return `<div class="st-board folio-wide">
+    <div class="st-board-screws"></div>
+    <div class="st-board-head"><span class="st-label">wallets</span></div>
+    <div class="folio-bench">${VENUES.map((v) => `
+      <div class="folio-slot ${wallets[v.id] ? 'is-set' : ''}">
+        <span class="folio-lamp-tag">${v.tag}</span>
+        <span class="folio-slot-name">${esc(v.label)}</span>
+        <span class="folio-slot-addr">${wallets[v.id] ? esc(shortAddr(wallets[v.id])) : 'not set'}</span>
+        <button class="btn sm" data-setwallet="${v.id}">${wallets[v.id] ? 'change' : 'set'}</button>
+        ${wallets[v.id] ? `<button class="btn sm" data-clearwallet="${v.id}">clear</button>` : ''}
+      </div>`).join('')}</div>
+    <div class="folio-note">Public address only. Never paste a private key or seed phrase —
+      here or anywhere. This app has no use for one and refuses anything that is not an address.</div>
+  </div>`;
 }
 
 function wireFolio(box) {
@@ -779,7 +831,11 @@ function wireFolio(box) {
       placeholder: 'public Solana address', ok: 'Save',
     });
     if (addr == null) return;
-    try { await window.mcii.setWallet(venue, addr.trim()); loadFolio(); }
+    try { await window.mcii.setWallet(venue, addr.trim()); folioTab = venue; loadFolio(); }
+    catch (e) { alert(e.message); }
+  });
+  box.querySelectorAll('[data-clearwallet]').forEach((b) => b.onclick = async () => {
+    try { await window.mcii.setWallet(b.dataset.clearwallet, ''); folioTab = 'combined'; loadFolio(); }
     catch (e) { alert(e.message); }
   });
 }
