@@ -336,6 +336,13 @@ a{color:var(--accent); cursor:pointer}
 .yn button{font-family:var(--mono);font-size:10px;padding:4px 9px;background:none;
   border:1px solid var(--rule2);color:var(--ink2);cursor:pointer}
 .yn button:hover{border-color:var(--accent);color:var(--ink)}
+.jbox textarea{background:var(--ground);border:1px solid var(--rule2);color:var(--ink);
+  padding:9px 11px;font-family:inherit;font-size:13.5px;width:100%;resize:vertical}
+.jbox textarea:focus{outline:none;border-color:var(--accent)}
+.noterow{border:1px solid var(--rule);background:var(--plate);padding:11px 14px;margin-bottom:6px}
+.nomh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.notext{font-size:13.5px;line-height:1.55;color:var(--ink2);white-space:pre-wrap}
 .thesis{border:1px solid var(--rule);background:var(--plate);padding:15px 18px;margin-bottom:8px}
 .thesis h4{font-family:var(--mono);font-size:15px;margin-bottom:6px}
 .thesis dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}

@@ -65,6 +65,20 @@ check('...and explains why', /describes neither/.test(j.calibration().verdict));
 check('resolving finds the right file without being told the owner',
   j.resolveForecast(j.addForecast({ owner: 'austin', question: 'a3', prob: 50, resolveBy: '2026-09-02' }).id, true).ok === true);
 
+// --- open journal ------------------------------------------------------------
+check('no notes yet', j.readNotes('connal').length === 0);
+const n1 = j.addNote({ owner: 'connal', text: 'watching CATE liquidity, feels thin today' });
+check('note saved', n1.ok && n1.note.text.length > 0);
+check('empty note refused', j.addNote({ owner: 'connal', text: '   ' }).ok === false);
+j.addNote({ owner: 'connal', text: 'second thought' });
+j.addNote({ owner: 'austin', text: 'austin thinking out loud' });
+const cn = j.readNotes('connal');
+check('notes read back for connal', cn.length === 2);
+check('newest first', cn[0].text === 'second thought');
+check("austin's notes stay in austin's own file",
+  j.readNotes('austin').length === 1 && j.readNotes('austin')[0].text === 'austin thinking out loud');
+check("connal's notes are unaffected by austin's", j.readNotes('connal').length === 2);
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 fs.rmSync(tmp, { recursive: true, force: true });
 process.exit(fail ? 1 : 0);

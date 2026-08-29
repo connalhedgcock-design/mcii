@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('mcii', {
   addForecast: (f) => ipcRenderer.invoke('journal:addForecast', f),
   resolveForecast: (id, outcome, lesson) => ipcRenderer.invoke('journal:resolve', { id, outcome, lesson }),
   calibration: (owner) => ipcRenderer.invoke('journal:calibration', owner),
+  notes: () => ipcRenderer.invoke('journal:notes'),
+  addNote: (text) => ipcRenderer.invoke('journal:addNote', { text }),
   screenLatest: () => ipcRenderer.invoke('screen:latest'),
   socialFor: (ca) => ipcRenderer.invoke('social:token', ca),
   allAlerts: () => ipcRenderer.invoke('alerts:all'),

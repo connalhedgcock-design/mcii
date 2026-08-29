@@ -186,4 +186,32 @@ function calibration(owner) {
     beatsMarket: marketBrier != null ? brier < marketBrier : null, verdict };
 }
 
-module.exports = { init, saveThesis, listTheses, addForecast, readForecasts, resolveForecast, calibration, owners };
+// --- open journal -----------------------------------------------------------
+// Free-form notes -- a thought, a doubt, something to check later -- that isn't yet worth a
+// dated forecast or a full thesis. One file per person, same reasoning as the forecast log:
+// these are personal, not a joint diary, so Connal's notes and Austin's notes stay in separate
+// files rather than interleaved in one.
+const NOTES = (owner) => path.join(REPO, '50-LOG', `notes-${slug(owner || 'unknown')}.jsonl`);
+
+function addNote(n) {
+  const text = String(n.text || '').trim();
+  if (!text) return { ok: false, error: 'empty note' };
+  const owner = n.owner || 'unknown';
+  const seen = new Set(readNotes(owner).map((r) => r.id));
+  const row = { id: newId(seen), owner, ts: Date.now(), text };
+  fs.mkdirSync(path.join(REPO, '50-LOG'), { recursive: true });
+  fs.appendFileSync(NOTES(owner), JSON.stringify(row) + '\n');
+  return { ok: true, note: row };
+}
+
+function readNotes(owner) {
+  try {
+    // Reversed before the (stable) sort so two notes written in the same millisecond still come
+    // back most-recently-added first, rather than in on-disk order.
+    return fs.readFileSync(NOTES(owner), 'utf8').trim().split('\n')
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean)
+      .reverse().sort((a, b) => b.ts - a.ts);
+  } catch { return []; }
+}
+
+module.exports = { init, saveThesis, listTheses, addForecast, readForecasts, resolveForecast, calibration, owners, addNote, readNotes };
