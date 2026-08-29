@@ -57,6 +57,10 @@ function createWindow() {
       contextIsolation: true,   // renderer cannot reach node
       nodeIntegration: false,
       sandbox: true,
+      // Only for the J7 Tracker <webview> tab, which loads a third-party site. That page never
+      // gets a preload script (no window.mcii bridge for it to find), so it stays exactly as
+      // isolated from the app as a browser tab would be -- it can look at itself, nothing else.
+      webviewTag: true,
     },
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'),

@@ -38,7 +38,20 @@
   <section id="alerts" class="alerts"></section>
   <main id="grid" class="grid"></main>
   <main id="market" class="grid" hidden></main>
-  <main id="sector" class="grid" hidden></main>
+  <main id="sector" class="grid" hidden>
+    <div id="sectorbody"></div>
+    <!-- A separate site, not part of MCII's own analysis -- see 70-AREAS/j7-tracker/README.md for
+         why this is a plain embedded window and not a data integration. No preload here: this page
+         gets none of window.mcii, same as any other tab open in a real browser. Kept OUTSIDE
+         #sectorbody so loadSector()'s innerHTML rewrite never reloads it -- it opens once and
+         stays open, logged in, across every visit to this tab rather than restarting each time. -->
+    <div class="card j7card">
+      <div class="chead"><b>J7 Tracker</b><span class="v">their site, embedded as-is</span></div>
+      <p class="note">Not part of MCII's own analysis — nothing you do here is read by, or shared
+        with, the rest of this app.</p>
+      <webview id="j7view" src="https://j7tracker.io" partition="persist:j7tracker" allowpopups></webview>
+    </div>
+  </main>
   <main id="journal" class="grid" hidden></main>
   <footer class="foot">
     <span>Read-only. This app cannot trade, and holds no wallet or exchange keys.</span>
