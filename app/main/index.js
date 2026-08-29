@@ -117,39 +117,45 @@ async function loadToken(entry) {
   out.chain = out.market?.chain || null;
   const solana = !out.chain || out.chain === 'solana';
   if (solana) {
-    try {
-      progress(`${sym}: running safety checks`);
-      out.safety = await fetchSafety(ca);
-    } catch (e) { out.errors.push(`safety check unavailable (${e.message})`); }
-    try {
-      progress(`${sym}: finding token details`);
-      out.meta = await fetchTokenMeta(ca);
-    } catch (e) { out.errors.push(`token details unavailable (${e.message})`); }
+    // ⚠️ Fired together, not one after another. Safety, token details, and price history don't
+    // depend on each other's results -- awaiting each in turn was the biggest single reason a coin
+    // took ~10s to load and a growing watchlist took proportionally longer. This alone doesn't
+    // touch any single service's request RATE (still one call each, same as before), just how the
+    // waits overlap -- so it doesn't reopen the "several sources are rate limited" concern that
+    // keeps loading tokens themselves sequential (see refreshAllTokens() below).
+    progress(`${sym}: running safety checks, token details, and price history`);
+    const safetyP = fetchSafety(ca)
+      .catch((e) => { out.errors.push(`safety check unavailable (${e.message})`); return null; });
+    const metaP = fetchTokenMeta(ca)
+      .catch((e) => { out.errors.push(`token details unavailable (${e.message})`); return null; });
+    // GeckoTerminal is queried against networks/solana too. It DOES serve other networks, but
+    // under slugs we have not confirmed -- and a wrong slug returns someone else's chart rather
+    // than an error, which is the worst outcome available. Skipped rather than guessed until each
+    // chain's slug is verified.
+    const historyP = fetchHistory(ca)
+      .catch((e) => { out.errors.push(`price history unavailable (${e.message})`); return null; });
+
+    out.meta = await metaP;
+    // Needs meta + market only -- started as soon as those are ready rather than waiting on
+    // safety or history too, since exit simulation depends on neither of them.
+    const exitP = (out.meta && out.market)
+      ? maxExitable(ca, out.meta.decimals, out.market.priceUsd)
+          .catch((e) => { out.errors.push(`exit simulation failed (${e.message})`); return null; })
+      : Promise.resolve(null);
+
+    out.safety = await safetyP;
+    // Holders and token accounts are different quantities and are kept apart deliberately.
+    if (out.safety && out.meta) out.safety.totalHolders = out.meta.holderCount ?? null;
+    if (out.safety) out.gate = evaluateSafety(out.safety, out.market);
+
+    out.history = await historyP;
+    if (out.meta && out.market) progress(`${sym}: simulating a real sale (this takes a moment)`);
+    out.exit = await exitP;
   } else {
     out.limited = `${sym} trades on ${out.chain}, not Solana. Price, market cap, liquidity, `
       + `volume and 24h change are live and correct. The rug-pull safety checks, the `
       + `"how much can I actually sell" figure and the price chart are Solana-only, so they `
       + `are blank for this coin — not broken, just not covered yet.`;
-  }
-
-  // Holders and token accounts are different quantities and are kept apart deliberately.
-  if (out.safety && out.meta) out.safety.totalHolders = out.meta.holderCount ?? null;
-  if (out.safety) out.gate = evaluateSafety(out.safety, out.market);
-
-  if (solana && out.meta && out.market) {
-    progress(`${sym}: simulating a real sale (this takes a moment)`);
-    try { out.exit = await maxExitable(ca, out.meta.decimals, out.market.priceUsd); }
-    catch (e) { out.errors.push(`exit simulation failed (${e.message})`); }
-  }
-  // GeckoTerminal is queried against networks/solana too. It DOES serve other
-  // networks, but under slugs we have not confirmed — and a wrong slug returns
-  // someone else's chart rather than an error, which is the worst outcome
-  // available. Skipped rather than guessed until each chain's slug is verified.
-  if (solana) {
-    try {
-      progress(`${sym}: loading price history`);
-      out.history = await fetchHistory(ca);
-    } catch (e) { out.errors.push(`price history unavailable (${e.message})`); }
   }
 
   // Write this reading to the permanent record before anything else can fail.
@@ -208,6 +214,28 @@ async function loadToken(entry) {
   return out;
 }
 
+// Loads several tokens with a SMALL bounded concurrency, not fully serial and not fully parallel.
+// Fully serial is what made a growing watchlist take proportionally longer to load (2026-08-29 --
+// Connal was worried adding more coins would make this too slow to use). Fully parallel would
+// multiply, by watchlist size, the request rate against Jupiter specifically -- maxExitable()
+// already runs its own 17-round search deliberately throttled to "stay well inside Jupiter's
+// free-tier limits" (jupiter.js), and N of those running at once would undo that on purpose. 3 at
+// a time gets most of the speedup from overlapping coins' waits without turning that throttle into
+// a lie.
+const LOAD_CONCURRENCY = 3;
+async function loadTokensBounded(watchlist) {
+  const results = [];
+  let next = 0;
+  async function worker() {
+    while (next < watchlist.length) {
+      const i = next++;
+      try { results[i] = await loadToken(watchlist[i]); } catch { results[i] = null; }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(LOAD_CONCURRENCY, watchlist.length) }, worker));
+  return results.filter(Boolean);
+}
+
 // ! opens with what we already know, then refreshes behind the window.
 //
 // This used to fetch every coin before showing anything. Each coin costs a market call, a safety
@@ -228,9 +256,9 @@ async function refreshAllTokens() {
   refreshing = true;
   lastRefresh = Date.now();
   try {
-    // Sequential on purpose: several of these sources are rate limited, and three of this
-    // project's worst bugs came from processes that each assumed they were the only caller.
-    for (const e of store.watchlist) { try { await loadToken(e); } catch {} }
+    // Bounded concurrency, not fully sequential and not fully parallel -- see
+    // loadTokensBounded()'s own comment for why (Jupiter's exit-simulation throttle, specifically).
+    await loadTokensBounded(store.watchlist);
     progress(null);
     if (win && !win.isDestroyed()) win.webContents.send('refreshed');
   } finally { refreshing = false; }
@@ -243,11 +271,8 @@ ipcMain.handle('tokens:list', async () => {
     return cached;
   }
   // Nothing remembered for at least one coin -- a first run, or a newly added coin. Wait, because
-  // an empty card is worse than a slow one. try/catch per token, unlike a bare loop: one coin
-  // stuck in a way loadToken() itself didn't catch must never block every other coin from ever
-  // showing up on startup.
-  const results = [];
-  for (const e of store.watchlist) { try { results.push(await loadToken(e)); } catch {} }
+  // an empty card is worse than a slow one.
+  const results = await loadTokensBounded(store.watchlist);
   progress(null);
   return results;
 });
@@ -543,7 +568,7 @@ let autoTimer = null;
 function startAutoRefresh() {
   if (autoTimer) return;
   autoTimer = setInterval(async () => {
-    for (const e of store.watchlist) { try { await loadToken(e); } catch {} }
+    await loadTokensBounded(store.watchlist);
     progress(null);
     if (win && !win.isDestroyed()) win.webContents.send('refreshed');
   }, 10 * 60 * 1000);
