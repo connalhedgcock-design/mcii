@@ -51,19 +51,52 @@ async function searchTokens(query) {
     if (!p.baseToken) continue;
     const key = `${p.chainId}:${p.baseToken.address}`;
     const liq = p.liquidity?.usd || 0;
-    const prev = byToken.get(key);
-    if (!prev || liq > prev.liquidityUsd) {
-      byToken.set(key, {
+    const vol = p.volume?.h24 || 0;
+    let t = byToken.get(key);
+    if (!t) {
+      t = {
         ca: p.baseToken.address, chain: p.chainId,
         symbol: p.baseToken.symbol, name: p.baseToken.name,
         priceUsd: parseFloat(p.priceUsd), marketCap: p.marketCap || 0,
-        liquidityUsd: liq, volume24h: p.volume?.h24 || 0,
+        liquidityUsd: 0, volume24h: 0, pools: 0,
         change24h: p.priceChange?.h24 ?? null,
         ageDays: p.pairCreatedAt ? (Date.now() - p.pairCreatedAt) / 86400000 : null,
-      });
+      };
+      byToken.set(key, t);
     }
+    // ⚠️ SUM across pools, do not keep only the deepest. Keeping one pool threw
+    // away the single clearest difference between a real token and a copycat:
+    // the real ANSEM trades across 30 pools, the impostor has 1. Collapsing to
+    // the biggest pool made a 30-pool token look like a 3M one and let a single
+    // fabricated pool outrank it.
+    t.liquidityUsd += liq;
+    t.volume24h += vol;
+    t.pools += 1;
+    if (p.marketCap && p.marketCap > t.marketCap) t.marketCap = p.marketCap;
+    if (liq > (t._deepest || 0)) { t._deepest = liq; t.priceUsd = parseFloat(p.priceUsd); }
   }
-  return [...byToken.values()].sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, 25);
+
+  const rows = [...byToken.values()];
+  for (const t of rows) {
+    delete t._deepest;
+    // A pool holding nearly the token's whole market cap is not a market, it is
+    // a deposit: nobody has sold into it and nobody can. The real ANSEM carries
+    // 2% of its cap as liquidity; the impostor claimed 100%.
+    t.liqRatio = t.marketCap > 0 ? t.liquidityUsd / t.marketCap : null;
+    t.suspect = t.liqRatio != null && t.liqRatio > 0.5 && t.pools <= 2;
+  }
+
+  // ⚠️ Ranked on REAL TRADING, not on a claimed reserve. Anyone can write a
+  // number into one pool; nobody can fake millions of dollars of daily volume
+  // across dozens of pools without spending it. Sorting by liquidity alone put
+  // an impostor with $118k of daily volume above the token it was imitating,
+  // and it was added to the watchlist because it sat at the top of the results.
+  rows.sort((a, b) =>
+    (a.suspect - b.suspect) ||
+    (b.volume24h - a.volume24h) ||
+    (b.pools - a.pools) ||
+    (b.liquidityUsd - a.liquidityUsd));
+  return rows.slice(0, 25);
 }
 
 // Newest tokens with a profile, and the paid-promotion feed. The boost feed is not a quality
