@@ -195,7 +195,7 @@ a{color:var(--accent); cursor:pointer}
 .rhead{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
   color:var(--muted); padding:6px 0 8px; display:flex; justify-content:space-between}
 .rrow{
-  display:grid; grid-template-columns:70px 1fr 110px 110px 92px 78px auto; gap:12px;
+  display:grid; grid-template-columns:70px 1fr 104px 104px 104px 84px 70px auto; gap:12px;
   align-items:center; padding:10px 12px; border:1px solid var(--rule); background:var(--plate);
   margin-bottom:6px; font-size:13px;
 }
@@ -209,6 +209,11 @@ a{color:var(--accent); cursor:pointer}
   border:1px solid var(--warn); background:var(--warn-bg); color:var(--warn);
   padding:9px 13px; font-size:12.5px; margin-bottom:8px; line-height:1.5;
 }
+.chain.offchain{color:var(--warn); border-color:var(--warn)}
+/* A pool holding nearly the whole market cap is a deposit, not a market. Marked
+   rather than hidden: the operator should see what was rejected and why. */
+.chain.sus{color:var(--crit); border-color:var(--crit); margin-left:5px}
+.rrow.is-sus{opacity:.72}
 .btn.sm{padding:5px 11px; font-size:10px}
 .btn.danger:hover{border-color:var(--crit); color:var(--crit)}
 

@@ -95,6 +95,7 @@ function card(t) {
       <span class="pill ${cls}">${g ? g.verdict : 'NO DATA'}</span>
     </div>
     <p class="verdict">${esc(t.sentence || 'Not enough data to give a verdict yet.')}</p>
+    ${t.limited ? `<div class="warnbar" style="margin:0 20px 14px">${esc(t.limited)}</div>` : ''}
     <div class="stats primary">
       <div class="stat hero" data-field="price"><span class="k">Price</span>
         <span class="v">$${m ? m.priceUsd.toPrecision(4) : '—'}</span>
@@ -671,7 +672,8 @@ async function search() {
       <span class="rnm">${esc(mine.get(r.ca)?.nick || r.name)} <span class="chain">${esc(r.chain)}</span>
         <span class="tail">…${esc(String(r.ca).slice(-4))}</span></span>
       <span class="rn">${fmtUsd(r.marketCap)}<br><span style="color:var(--muted);font-size:10px">mkt cap</span></span>
-      <span class="rn">${fmtUsd(r.liquidityUsd)}<br><span style="color:var(--muted);font-size:10px">liquidity</span></span>
+      <span class="rn">${fmtUsd(r.liquidityUsd)}<br><span style="color:var(--muted);font-size:10px">liq · ${r.pools ?? '?'} pool${r.pools === 1 ? '' : 's'}</span></span>
+      <span class="rn">${fmtUsd(r.volume24h)}<br><span style="color:var(--muted);font-size:10px">vol 24h</span></span>
       <span class="rn ${r.change24h >= 0 ? 'up' : 'down'}">${r.change24h != null ? r.change24h.toFixed(1) + '%' : '—'}</span>
       <span class="rn">${r.ageDays != null ? Math.round(r.ageDays) + 'd' : '—'}</span>
       <button class="btn sm add">Add</button>

@@ -6,23 +6,51 @@ const { getJSON } = require('./http');
 //   The response also contains pairs where our token is the QUOTE side; filtering by baseToken is
 //   required or liquidity totals come out wrong.
 async function fetchMarket(ca) {
-  let pairs;
+  let pairs = null;
+
+  // Solana first: under load the token-pairs endpoint stays reliable where the
+  // multichain one intermittently returns {"pairs":null}.
   try {
-    pairs = await getJSON(`https://api.dexscreener.com/token-pairs/v1/solana/${ca}`);
-  } catch {
+    const r = await getJSON(`https://api.dexscreener.com/token-pairs/v1/solana/${ca}`);
+    if (Array.isArray(r) && r.length) pairs = r;
+  } catch { /* fall through */ }
+
+  // ⚠️ AN EMPTY ARRAY IS NOT AN ERROR, and that is why this fallback never ran.
+  // The old code only reached it when the Solana call THREW; for a token on any
+  // other chain the Solana endpoint answers `[]` quite happily, so the app
+  // reported "token not found in any pool" about CASHCAT — a coin trading $22M
+  // a day on Robinhood's chain. The app is Solana-first, not Solana-only, and
+  // the difference has to be in the control flow rather than in a comment.
+  if (!pairs || !pairs.length) {
     const d = await getJSON(`https://api.dexscreener.com/latest/dex/tokens/${ca}`);
-    pairs = d && d.pairs;
+    pairs = (d && d.pairs) || [];
   }
   if (!Array.isArray(pairs)) throw new Error('no pair data returned');
 
-  const mine = pairs.filter((p) => p.baseToken && p.baseToken.address === ca);
+  // ⚠️ Case-insensitive. EVM addresses are case-insensitive and DexScreener does
+  // not promise the same casing back that you sent: a checksummed address
+  // compared with === silently matches nothing.
+  const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+  let mine = pairs.filter((p) => p.baseToken && same(p.baseToken.address, ca));
   if (!mine.length) throw new Error('token not found in any pool');
+
+  // The same address can list on more than one chain. Keep the chain carrying
+  // the real market rather than summing liquidity across chains, which would
+  // invent depth that cannot be sold into from any one of them.
+  const byChain = new Map();
+  for (const p of mine) {
+    const k = p.chainId || 'unknown';
+    byChain.set(k, (byChain.get(k) || 0) + (p.liquidity?.usd || 0));
+  }
+  const chain = [...byChain.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  mine = mine.filter((p) => (p.chainId || 'unknown') === chain);
   mine.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
 
   const main = mine[0];
   return {
     name: main.baseToken.name,
     symbol: main.baseToken.symbol,
+    chain,
     priceUsd: parseFloat(main.priceUsd),
     marketCap: main.marketCap,
     poolCount: mine.length,
@@ -36,6 +64,7 @@ async function fetchMarket(ca) {
     fetchedAt: Date.now(),
   };
 }
+
 module.exports = { fetchMarket };
 
 // --- Discovery -------------------------------------------------------------

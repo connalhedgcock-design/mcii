@@ -110,28 +110,47 @@ async function loadToken(entry) {
     progress(`${sym}: reading market data`);
     out.market = await fetchMarket(ca);
   } catch (e) { out.errors.push(`market data unavailable (${e.message})`); }
-  try {
-    progress(`${sym}: running safety checks`);
-    out.safety = await fetchSafety(ca);
-  } catch (e) { out.errors.push(`safety check unavailable (${e.message})`); }
-  try {
-    progress(`${sym}: finding token details`);
-    out.meta = await fetchTokenMeta(ca);
-  } catch (e) { out.errors.push(`token details unavailable (${e.message})`); }
+  // ⚠️ RugCheck and Jupiter are SOLANA-ONLY. Calling them with an address from
+  // another chain returns HTTP 400 and "not found", which the app then reported
+  // as three separate mysterious failures — so a perfectly healthy coin on
+  // another chain looked broken rather than partly-supported. Say which it is.
+  out.chain = out.market?.chain || null;
+  const solana = !out.chain || out.chain === 'solana';
+  if (solana) {
+    try {
+      progress(`${sym}: running safety checks`);
+      out.safety = await fetchSafety(ca);
+    } catch (e) { out.errors.push(`safety check unavailable (${e.message})`); }
+    try {
+      progress(`${sym}: finding token details`);
+      out.meta = await fetchTokenMeta(ca);
+    } catch (e) { out.errors.push(`token details unavailable (${e.message})`); }
+  } else {
+    out.limited = `${sym} trades on ${out.chain}, not Solana. Price, market cap, liquidity, `
+      + `volume and 24h change are live and correct. The rug-pull safety checks, the `
+      + `"how much can I actually sell" figure and the price chart are Solana-only, so they `
+      + `are blank for this coin — not broken, just not covered yet.`;
+  }
 
   // Holders and token accounts are different quantities and are kept apart deliberately.
   if (out.safety && out.meta) out.safety.totalHolders = out.meta.holderCount ?? null;
   if (out.safety) out.gate = evaluateSafety(out.safety, out.market);
 
-  if (out.meta && out.market) {
+  if (solana && out.meta && out.market) {
     progress(`${sym}: simulating a real sale (this takes a moment)`);
     try { out.exit = await maxExitable(ca, out.meta.decimals, out.market.priceUsd); }
     catch (e) { out.errors.push(`exit simulation failed (${e.message})`); }
   }
-  try {
-    progress(`${sym}: loading price history`);
-    out.history = await fetchHistory(ca);
-  } catch (e) { out.errors.push(`price history unavailable (${e.message})`); }
+  // GeckoTerminal is queried against networks/solana too. It DOES serve other
+  // networks, but under slugs we have not confirmed — and a wrong slug returns
+  // someone else's chart rather than an error, which is the worst outcome
+  // available. Skipped rather than guessed until each chain's slug is verified.
+  if (solana) {
+    try {
+      progress(`${sym}: loading price history`);
+      out.history = await fetchHistory(ca);
+    } catch (e) { out.errors.push(`price history unavailable (${e.message})`); }
+  }
 
   // Write this reading to the permanent record before anything else can fail.
   history.record(ca, out);
