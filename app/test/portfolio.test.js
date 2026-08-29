@@ -46,5 +46,29 @@ check('...and does not drag the total to zero', withFailure.totalUsd === 6000);
 // different and false claim.
 check('unknown cost basis stays null, never 0', cate.costBasisUsd === null);
 
+// --- the value line ---------------------------------------------------------------------
+// The subtle part: a coin that only started trading partway through the window must not make the
+// book look like it grew. The line starts where EVERY held coin has a price.
+const H = 36e5;
+const rows = (start, n, price) => Array.from({ length: n }, (_, i) => ({ ts: start + i * H, c: price }));
+
+const old = { p: { sym: 'OLD', tokens: 10 }, rows: rows(0, 5, 2) };        // 5 hours of history
+const young = { p: { sym: 'NEW', tokens: 4 }, rows: rows(3 * H, 2, 5) };   // only the last 2 hours
+const aligned = pf.alignSeries([old, young]);
+
+check('the line starts where every coin has a price, not where the oldest does',
+  aligned.length === 2 && aligned[0].ts === 3 * H, JSON.stringify(aligned.map((x) => x.ts / H)));
+check('...so a young coin never makes the book look like it grew',
+  aligned.every((x) => x.usd === 10 * 2 + 4 * 5), JSON.stringify(aligned.map((x) => x.usd)));
+check('one coin alone spans its own whole history',
+  pf.alignSeries([old]).length === 5);
+check('nothing priced draws nothing', pf.alignSeries([]).length === 0);
+
+// A price is carried forward until the next candle -- a gap is not a drop to zero.
+const gappy = { p: { sym: 'GAP', tokens: 1 }, rows: [{ ts: 0, c: 100 }, { ts: 4 * H, c: 50 }] };
+const carried = pf.alignSeries([gappy, { p: { sym: 'B', tokens: 1 }, rows: rows(0, 5, 1) }]);
+check('a gap carries the last price forward rather than reading as zero',
+  carried[1].usd === 101, JSON.stringify(carried.map((x) => x.usd)));
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

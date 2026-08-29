@@ -691,6 +691,9 @@ const VENUES = [
   { id: 'axiom', label: 'axiom', tag: 'AXM' },
 ];
 let folioTab = 'combined';
+let folioDays = 1;          // chart window: 1 | 7 | 30
+let folioSeries = null;     // last drawn series, kept so a tab switch does not refetch
+let folioData = null, folioWallets = null;   // last reading, so redrawing never re-reads the chain
 
 async function loadFolio() {
   const box = $('#folio');
@@ -715,8 +718,30 @@ async function loadFolio() {
       <div class="folio-empty is-bad">${esc(e.message)}</div></div>` + walletBench(wallets), wallets);
     return wireFolio(box);
   }
-  box.innerHTML = folioShell(folioBoards(data, wallets) + walletBench(wallets), wallets);
+  folioData = data; folioWallets = wallets;
+  renderFolio();
+  // The line is a second, slower read (candles per coin), so the numbers land first and the
+  // chart fills in rather than holding the whole view back.
+  if (folioTab === 'combined') fetchFolioSeries();
+}
+
+function renderFolio() {
+  const box = $('#folio');
+  if (!folioData) return;
+  box.innerHTML = folioShell(folioBoards(folioData, folioWallets) + walletBench(folioWallets), folioWallets);
   wireFolio(box);
+}
+const redrawFolioChart = renderFolio;
+
+async function fetchFolioSeries() {
+  const want = folioDays;
+  try {
+    const s = await window.mcii.portfolioSeries(want);
+    // A slow window that lost the race must not overwrite the one now selected.
+    if (want !== folioDays) return;
+    folioSeries = s;
+  } catch { folioSeries = { points: [], missing: [] }; }
+  renderFolio();
 }
 
 // The frame: station header strip, then whatever boards belong to the current reading.
@@ -744,12 +769,17 @@ function folioBoards(data, wallets) {
     const c = data.combined;
     if (!c || !c.positions.length) return emptyBoard('nothing priced yet');
     const hot = c.topWeightPct != null && c.topWeightPct > 60;
+    const p = data.pnl24;
+    const dir = !p ? null : p.absUsd > 0 ? 'up' : p.absUsd < 0 ? 'down' : null;
     return `
       ${statBoard('total, both venues', fmtUsd(c.totalUsd), null)}
+      ${statBoard('24h profit / loss',
+        !p ? '—' : (p.absUsd >= 0 ? '+' : '−') + fmtUsd(Math.abs(p.absUsd)).replace('$', '$'),
+        dir, !p ? 'no price history yet'
+          : `${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(1)}% · mark-to-market, not realised`)}
       ${statBoard('largest position', c.topWeightPct == null ? '—' : c.topWeightPct.toFixed(0) + '%',
         hot ? 'down' : null, hot ? 'one bet, not a portfolio' : 'of the whole book')}
-      ${statBoard('coins held', String(c.positions.length), null,
-        c.venuesFailed ? `${c.venuesFailed} wallet unreadable — total is incomplete` : 'across both venues')}
+      ${chartBoard(c)}
       ${posBoard('every position', c.positions, true)}`;
   }
   const v = data.venues.find((x) => x.venue === folioTab);
@@ -762,6 +792,66 @@ function folioBoards(data, wallets) {
     ${statBoard('coins held', String(v.positions.length), null,
       dust ? `${dust.toLocaleString()} dust mints ignored` : 'all priced')}
     ${posBoard(`${v.venue} positions`, v.positions, false)}`;
+}
+
+// The value line. Hand-drawn SVG, like every other chart here: the page loads nothing from the
+// network, which is what keeps the strict content policy intact and the app working offline.
+//
+// !! The line reconstructs what TODAY'S holdings would have been worth at past prices. It is not
+// a record of what was held — the chain knows the current balance, not last week's — so a coin
+// bought yesterday is still priced across the whole window. Said plainly under the chart rather
+// than left for someone to assume otherwise.
+function chartBoard(c) {
+  const wins = [{ d: 1, l: '24h' }, { d: 7, l: '7d' }, { d: 30, l: '30d' }];
+  const s = folioSeries;
+  let body;
+  if (!s) body = `<div class="folio-empty">drawing…</div>`;
+  else if (!s.points || s.points.length < 2) body = `<div class="folio-empty">not enough price history for this window</div>`;
+  else body = folioLine(s.points);
+
+  const notes = [];
+  if (s && s.missing && s.missing.length)
+    notes.push(`${s.missing.join(', ')} not in the line — no price history available, so ${
+      s.missing.length > 1 ? 'those coins are' : 'that coin is'} excluded rather than counted as zero`);
+  if (s && s.truncated) notes.push('the oldest coin here does not go back the full window');
+  if (s && s.endUsd != null && c && c.totalUsd && Math.abs(s.endUsd - c.totalUsd) > 0.5)
+    notes.push(`line ends at ${fmtUsd(s.endUsd)} against a book of ${fmtUsd(c.totalUsd)}`);
+
+  return `<div class="st-board folio-wide">
+    <div class="st-board-screws"></div>
+    <div class="st-board-head"><span class="st-label">value over time</span>
+      <span class="folio-lamps folio-lamps-sm">${wins.map((w) => `
+        <button class="folio-lamp ${w.d === folioDays ? 'is-sel' : ''}" data-folioday="${w.d}">${w.l}</button>`).join('')}</span>
+    </div>
+    ${body}
+    <div class="folio-note">What today\u2019s holdings would have been worth at past prices — not a
+      record of what was held. ${notes.length ? '<br>' + esc(notes.join(' · ')) : ''}</div>
+  </div>`;
+}
+
+function folioLine(pts, w = 1060, h = 190) {
+  const padT = 12, padB = 22;
+  const vals = pts.map((p) => p.usd);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const span = (hi - lo) || hi || 1;
+  const x = (i) => (i / (pts.length - 1)) * w;
+  const y = (v) => padT + (1 - (v - lo) / span) * (h - padT - padB);
+  const line = vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const area = `${line}L${w},${h - padB}L0,${h - padB}Z`;
+  const up = vals[vals.length - 1] >= vals[0];
+  const grid = [0.5].map((f) => `<line x1="0" x2="${w}" y1="${(padT + f * (h - padT - padB)).toFixed(1)}" y2="${(padT + f * (h - padT - padB)).toFixed(1)}" class="fl-grid"/>`).join('');
+  const t0 = new Date(pts[0].ts), t1 = new Date(pts[pts.length - 1].ts);
+  const fmtT = (d) => folioDays <= 1
+    ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `<svg class="folio-chart ${up ? 'is-up' : 'is-down'}" viewBox="0 0 ${w} ${h}"
+      preserveAspectRatio="none" role="img" aria-label="Portfolio value over ${folioDays} days">
+    ${grid}<path d="${area}" class="fl-area"/><path d="${line}" class="fl-line"/>
+    <circle cx="${x(pts.length - 1).toFixed(1)}" cy="${y(vals[vals.length - 1]).toFixed(1)}" r="3.5" class="fl-dot"/>
+  </svg>
+  <div class="folio-axis"><span>${esc(fmtT(t0))}</span>
+    <span>low ${esc(fmtUsd(lo))} · high ${esc(fmtUsd(hi))}</span>
+    <span>${esc(fmtT(t1))}</span></div>`;
 }
 
 function statBoard(label, value, dir, sub) {
@@ -822,6 +912,11 @@ function walletBench(wallets) {
 function wireFolio(box) {
   box.querySelectorAll('[data-folio]').forEach((b) => b.onclick = () => {
     folioTab = b.dataset.folio; loadFolio();
+  });
+  box.querySelectorAll('[data-folioday]').forEach((b) => b.onclick = async () => {
+    folioDays = Number(b.dataset.folioday);
+    folioSeries = null; redrawFolioChart();
+    await fetchFolioSeries();
   });
   box.querySelectorAll('[data-setwallet]').forEach((b) => b.onclick = async () => {
     const venue = b.dataset.setwallet;

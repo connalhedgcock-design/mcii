@@ -463,6 +463,10 @@ ipcMain.handle('wallet:set', (_e, { venue, address }) => {
   save();
   return store.wallets;
 });
+// The most recent reading, kept in memory so switching the chart between 24h/7d/30d does not
+// re-read the chain and re-price every mint just to redraw a line.
+let lastFolio = null;
+
 ipcMain.handle('portfolio:load', async () => {
   const wallets = store.wallets || {};
   if (!Object.keys(wallets).length) return { venues: [], combined: null, empty: true };
@@ -470,7 +474,16 @@ ipcMain.handle('portfolio:load', async () => {
   const costBasis = {};
   for (const [ca, p] of Object.entries(store.positions || {}))
     if (p && p.costBasisUsd != null) costBasis[ca] = p.costBasisUsd;
-  return portfolio.load(wallets, { costBasis });
+  const out = await portfolio.load(wallets, { costBasis });
+  lastFolio = out;
+  try { out.pnl24 = await portfolio.pnl24(out.combined?.positions || []); } catch { out.pnl24 = null; }
+  return out;
+});
+
+ipcMain.handle('portfolio:series', async (_e, { days }) => {
+  const positions = lastFolio?.combined?.positions || [];
+  if (!positions.length) return { points: [], days, missing: [] };
+  return portfolio.series(positions, Number(days) || 1);
 });
 
 ipcMain.handle('history:series', (_e, { ca, field, days }) =>

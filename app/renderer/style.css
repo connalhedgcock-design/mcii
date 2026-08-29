@@ -475,3 +475,16 @@ td.is-up{color:var(--st-up) !important} td.is-down{color:var(--st-down) !importa
   padding-top:10px;border-top:1px solid oklch(0.40 0.014 250 / 0.24)}
 
 @media (max-width:900px){.folio-wall{grid-template-columns:1fr}}
+
+/* the value line */
+.folio-lamps-sm .folio-lamp{padding:3px 9px;font-size:10px}
+.folio-chart{width:100%;height:190px;display:block;margin-top:6px;overflow:visible}
+.fl-grid{stroke:oklch(0.40 0.014 250 / .30);stroke-width:1;stroke-dasharray:3 5}
+.fl-line{fill:none;stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round;
+  vector-effect:non-scaling-stroke}
+.folio-chart.is-up .fl-line{stroke:var(--st-up)} .folio-chart.is-down .fl-line{stroke:var(--st-down)}
+.folio-chart.is-up .fl-dot{fill:var(--st-up)} .folio-chart.is-down .fl-dot{fill:var(--st-down)}
+.folio-chart.is-up .fl-area{fill:var(--st-up-dim);opacity:.30}
+.folio-chart.is-down .fl-area{fill:var(--st-down-dim);opacity:.30}
+.folio-axis{display:flex;justify-content:space-between;margin-top:6px;font-size:10px;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--st-fg-faint)}
