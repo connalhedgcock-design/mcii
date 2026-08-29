@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1787937142306,
+  "checkedAt": 1788010695145,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -7,28 +7,47 @@
       "sym": "CATE",
       "rivals": [
         {
-          "ca": "8xR7tEjV4bgyh7G3HaQ1z8nFDay5GKxJqcdRETvpZTb7",
-          "name": "Catecoin",
-          "liquidityUsd": 248347633
-        },
-        {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764282
+          "liquidityUsd": 73764314
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477202
+          "liquidityUsd": 1477213
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
           "name": "CATE APE",
           "liquidityUsd": 1432737
+        },
+        {
+          "ca": "FVmxnHtqh9xr3ujBzgVBw866K25s8WnptobJAqyUpump",
+          "name": "Catecoin",
+          "liquidityUsd": 172899
+        }
+      ],
+      "rank": 2,
+      "of": 6
+    },
+    "ANSEM": {
+      "ticker": "ANSEM",
+      "ca": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
+      "sym": "ANSEM",
+      "rivals": [
+        {
+          "ca": "GvmPaRxZRRZobbjU41tas3uLXbnB2d98fWEZ54Wa3JJp",
+          "name": "The Black Bull",
+          "liquidityUsd": 317701621
+        },
+        {
+          "ca": "57mvFBEuVT7nukF9fEesWdu9QndP4QTJDsPBYzFxZVY4",
+          "name": "The Black Bull",
+          "liquidityUsd": 262454438
         }
       ],
       "rank": 3,
-      "of": 6
+      "of": 3
     }
   }
 }
