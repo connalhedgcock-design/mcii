@@ -230,3 +230,24 @@ dated files; this is all of it, in one place, in order.
   before calling this gate closed.
 - Peter's original acceptance checklist (`MCII-Spatial-UI-Handoff.md` §10) has not been formally
   checked line-by-line against the built room.
+
+## 2026-08-29 — 16. THE REPLY PANE COULD RENDER PAST THE BOTTOM OF THE WINDOW
+- operator: screenshot of Orion's answer cut off mid-sentence at the very bottom of the screen,
+  right where the Dock sits, looking like the Dock was covering the text.
+- root cause: `--proj-y` (the projector's top anchor) reserved a flat 96px of headroom below
+  itself for the sill. That was only ever enough for the EMPTY-reply case (`.st-reply:empty` has
+  `display:none`, so the pane is just the prompt row). Once a real answer arrived, `.st-reply` had
+  its own flat `max-height:170px` on top of the prompt row and paddings — a full pane could run to
+  ~230px+, blowing straight through the 96px reservation. The sill sits flush at the room's own
+  floor, which is flush with the WINDOW'S bottom edge, so every pixel past the sill was a pixel
+  rendered outside the Electron window entirely. The Dock was never covering anything; the content
+  simply did not exist inside the visible window past that point.
+- verified with a synthetic 14-sentence reply (scrollHeight 280px) before the fix: pane overshot
+  the sill. Same test after: paneBottom sat 12px inside the sill, reply area correctly shrank to a
+  scrollable 85px window on the 280px of text.
+- fix: `measure()` now reads the sill's own rendered top (measured, not the old flat 96) and sets
+  `--proj-cap`, the real available height between the anchor and the sill. `.st-projector-pane` is
+  `display:flex; flex-direction:column; max-height:var(--proj-cap)`; `.st-prompt-row` is
+  `flex:none` (never compressed); `.st-reply` is `flex:1 1 auto; min-height:0` (takes whatever is
+  left, scrolls for the rest) instead of a flat 170px. The pane can now never exceed the room it
+  actually has, at any window height, on any screen.

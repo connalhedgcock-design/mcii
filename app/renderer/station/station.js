@@ -178,9 +178,22 @@ function measure() {
       if (!r.height) continue
       projY = Math.max(projY, r.bottom - box.top + 14)
     }
-    // Never so low that it collides with the sill.
-    const maxY = box.height - 96
-    hub.style.setProperty('--proj-y', `${Math.round(Math.min(projY, maxY))}px`)
+    // Never so low that it collides with the sill. Measured, not guessed: reading the sill's own
+    // rendered top is what lets this stay correct at any window height, the way the globe's own
+    // position is measured from the doorway rather than assumed.
+    const sillTop = sill.getBoundingClientRect().top - box.top
+    const maxY = sillTop - 40
+    const y = Math.round(Math.min(projY, maxY))
+    hub.style.setProperty('--proj-y', `${y}px`)
+
+    // ⚠️ THE PANE'S OWN HEIGHT WAS NEVER BOUNDED BY THIS. `.st-reply` had a flat 170px max-height
+    // regardless of how much room actually existed below the anchor — fine for a short answer, but
+    // a full reply plus the prompt row can run past 230px, and every pixel past the sill is a pixel
+    // past the BOTTOM OF THE WINDOW ITSELF (the sill sits flush at the room's own floor). The
+    // result was Orion's answer appearing to be cut off by the Dock: it was not covered, it was
+    // rendered outside the window. `--proj-cap` is the real, measured ceiling for the whole pane;
+    // `.st-reply` flexes to fill whatever is left of it and scrolls internally for the rest.
+    hub.style.setProperty('--proj-cap', `${Math.max(90, Math.round(sillTop - y - 12))}px`)
   }
 
   globe?.resize()

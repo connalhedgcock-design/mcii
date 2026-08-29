@@ -826,6 +826,13 @@
   transform-origin: 50% 100%;
   padding: 14px 16px;
   border-radius: 4px;
+  /* ⚠️ MEASURED, not the flat 170px this pane used to leave `.st-reply` free to grow past. Once a
+     real answer arrived the pane could run ~230px+ tall, and the anchor above only ever reserved
+     enough room for a short one — so the overflow ran past the sill and out the bottom of the
+     WINDOW ITSELF, which read as the Dock cutting the text off. --proj-cap is the actual space
+     between the anchor and the sill, computed in measure(); the reply flexes to fit inside it. */
+  display: flex; flex-direction: column;
+  max-height: var(--proj-cap, 320px);
   border: 1px solid oklch(0.62 0.08 238 / 0.34);
   /* ⚠️ Opaque enough to read against the FLOOR. The pane used to sit over the lit
      doorway, which lent it a bright backdrop; now that it clears the door plates
@@ -842,7 +849,9 @@
   mask-image: radial-gradient(ellipse 106% 150% at 50% 55%, #000 72%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 106% 150% at 50% 55%, #000 72%, transparent 100%);
 }
-.st-prompt-row { display: flex; align-items: center; gap: 9px; }
+/* flex:none -- the input row must never be the thing that shrinks when --proj-cap is tight;
+   `.st-reply` gives up its own room first, down to its own min-height, before this would. */
+.st-prompt-row { display: flex; align-items: center; gap: 9px; flex: none; }
 .st-mode {
   font-family: var(--st-mono);
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
@@ -884,7 +893,11 @@
   margin-top: 9px; padding-top: 9px;
   border-top: 1px solid oklch(0.50 0.030 245 / 0.22);
   font-size: 12.5px; line-height: 1.55; color: var(--st-fg-2);
-  max-height: 170px; overflow-y: auto; overscroll-behavior: contain;
+  /* flex, not a flat max-height: this is what lets it fill whatever room --proj-cap actually
+     leaves after the prompt row, on a short screen as well as a tall one, and still never exceed
+     it. min-height:0 is required or a flex child refuses to shrink below its content size. */
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
   white-space: pre-wrap; word-break: break-word;
   scrollbar-width: thin;
   scrollbar-color: oklch(0.52 0.06 240 / 0.55) transparent;
