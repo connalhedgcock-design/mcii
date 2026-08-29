@@ -251,3 +251,21 @@ dated files; this is all of it, in one place, in order.
   `flex:none` (never compressed); `.st-reply` is `flex:1 1 auto; min-height:0` (takes whatever is
   left, scrolls for the rest) instead of a flat 170px. The pane can now never exceed the room it
   actually has, at any window height, on any screen.
+
+## 2026-08-29 — 17. DOOR PLATES + SILL WERE LOWERCASE, OPERATOR CALLED IT UNPROFESSIONAL
+- operator: "fix the text in the app its all lowercase right now like under the doors and on the
+  bottom and it looks hella unprofessional." then, after a first pass to Title Case: "make it all
+  capital like 'YOUR COINS' for example."
+- root cause: `.st-portal-plate` carried `text-transform: lowercase` from Peter's original handoff
+  (comment: "Lowercase, wide tracking — a placard, not a menu item"), and the source label/blurb
+  strings in `station-geometry.js` were themselves authored lowercase, so both the plate and the
+  sill (which reads the same `label`/`blurb` fields) rendered lowercase everywhere.
+- fix: `.st-portal-plate`, `.st-sill-door` and `.st-sill-blurb` now carry `text-transform:
+  uppercase` instead — matching the station's OWN established voice (`.st-label`, THE UNIVERSE,
+  CAUTION PANEL, ATTENTION are all already all-caps with wide tracking elsewhere in this room).
+  Lowercase was the one inconsistent style in the whole HUD, not a deliberate accent. Source
+  strings in station-geometry.js stay Title Case for readability in code; the CSS transform is
+  what renders them, the same pattern `.st-label` already used successfully.
+- also fixed in passing: the flat tab bar's fomo/axiom buttons were left lowercase from when those
+  doors were added, inconsistent with their Title Case siblings (Portfolio, Journal, Market) — now
+  FOMO / Axiom.

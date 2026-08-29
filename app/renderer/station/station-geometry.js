@@ -34,19 +34,22 @@
  *
  * `view` is the id of the existing flat tab this door opens onto.
  */
+// ⚠️ PROPERLY CASED, on operator instruction 2026-08-29 ("it looks hella unprofessional"). Peter's
+// original handoff wrote every label/blurb lowercase and the CSS forced it lowercase again on top
+// (`.st-portal-plate`) — both are gone now. Write these the way you'd write a real UI string.
 export const DOORS = [
   //                                                          screen position →
-  { id: 'sector',  view: 'sector',  label: "what's happening", angle: -84.0, built: true,  blurb: 'the sector, and what moved it',        tag: 'SEC' },
-  { id: 'journal', view: 'journal', label: 'the journal',      angle: -56.0, built: true,  blurb: 'what you decided, and whether it held', tag: 'LOG' },
-  { id: 'market',  view: 'market',  label: 'the market',       angle: -28.0, built: true,  blurb: 'everything the scanner has found',      tag: 'MKT' },
-  { id: 'watch',   view: 'watch',   label: 'your coins',       angle:   0.0, built: true,  blurb: 'what you are holding and tracking',     tag: 'WCH' },
-  { id: 'folio',   view: 'folio',   label: 'the portfolio',    angle:  28.0, built: true,  blurb: 'what you hold, across both venues',    tag: 'FOL' },
+  { id: 'sector',  view: 'sector',  label: "What's Happening", angle: -84.0, built: true,  blurb: 'The sector, and what moved it',         tag: 'SEC' },
+  { id: 'journal', view: 'journal', label: 'The Journal',      angle: -56.0, built: true,  blurb: 'What you decided, and whether it held', tag: 'LOG' },
+  { id: 'market',  view: 'market',  label: 'The Market',       angle: -28.0, built: true,  blurb: 'Everything the scanner has found',      tag: 'MKT' },
+  { id: 'watch',   view: 'watch',   label: 'Your Coins',       angle:   0.0, built: true,  blurb: 'What you are holding and tracking',     tag: 'WCH' },
+  { id: 'folio',   view: 'folio',   label: 'The Portfolio',    angle:  28.0, built: true,  blurb: 'What you hold, across both venues',     tag: 'FOL' },
   // ! axiom's door opens onto a real room, but NOT onto an embedded Axiom: the venue answers 404
   // to anything that is not a real browser (measured -- Electron UA 404, Chrome UA 200), which is
   // a deliberate anti-phishing defence for a trading site. The room explains that and launches the
   // system browser instead of defeating it. See main/venues.js.
-  { id: 'fomo',    view: 'fomo',    label: 'fomo',             angle:  56.0, built: true,  blurb: 'the venue, live',                      tag: 'FMO' },
-  { id: 'axiom',   view: 'axiom',   label: 'axiom',            angle:  84.0, built: true,  blurb: 'opens in your browser',                tag: 'AXM' },
+  { id: 'fomo',    view: 'fomo',    label: 'FOMO',             angle:  56.0, built: true,  blurb: 'The venue, live',                       tag: 'FMO' },
+  { id: 'axiom',   view: 'axiom',   label: 'Axiom',            angle:  84.0, built: true,  blurb: 'Opens in your browser',                 tag: 'AXM' },
 ]
 
 /** Where you land when the room opens. Not simply "the first built door" —

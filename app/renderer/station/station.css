@@ -527,7 +527,14 @@
 .st-portal:not(.is-sealed) .st-portal-light           { opacity: 0.72; }
 .st-portal:not(.is-sealed).is-facing .st-portal-light { opacity: 1; }
 
-/* The name plate. Lowercase, wide tracking — a placard, not a menu item. */
+/* The name plate. Wide tracking — a placard, not a menu item.
+   ⚠️ UPPERCASE, not lowercase, on operator instruction 2026-08-29 ("it looks hella
+   unprofessional" / "make it all capital like YOUR COINS"). Peter's original handoff forced every
+   label LOWERCASE here; flipped to match the station's own established voice instead -- every
+   other header in this HUD (THE UNIVERSE, CAUTION PANEL, ATTENTION, .st-label generally) is
+   already all-caps with wide tracking, so this now matches rather than being the one exception.
+   The source strings in station-geometry.js stay Title Case for readability in the code; this
+   transform is what actually renders them. */
 .st-portal-plate {
   position: absolute;
   left: 50%; bottom: -40px;
@@ -538,7 +545,7 @@
   white-space: nowrap;
   font-size: 16px;            /* measured: 12.5px is unreadable at ring depth */
   letter-spacing: 0.12em;
-  text-transform: lowercase;
+  text-transform: uppercase;
   color: oklch(0.72 0.010 250);
   border: 1px solid oklch(0.42 0.014 250 / 0.5);
   background: oklch(0.13 0.008 250 / 0.92);
@@ -721,8 +728,11 @@
   padding: 0 26px;
   border-top: 1px solid var(--st-edge);
 }
-.st-sill-door  { font-size: 15px; color: var(--st-fg); letter-spacing: 0.01em; }
-.st-sill-blurb { font-size: 12px; color: var(--st-fg-mute); }
+/* Uppercase, matching the door plate above and every other header in this room -- the sill names
+   the same door the plate does, so the two must read as one voice, not two different styles for
+   the same fact. */
+.st-sill-door  { font-size: 15px; color: var(--st-fg); letter-spacing: 0.06em; text-transform: uppercase; }
+.st-sill-blurb { font-size: 12px; color: var(--st-fg-mute); letter-spacing: 0.03em; text-transform: uppercase; }
 .st-sill-go    { font-size: 12px; color: var(--st-holo-hot); letter-spacing: 0.06em; }
 .st-sill-sealed{ font-size: 12px; color: var(--st-fg-faint); font-style: italic; }
 .st-sill-keys  { margin-left: auto; font-size: 11px; color: var(--st-fg-faint); letter-spacing: 0.10em; }
