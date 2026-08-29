@@ -59,9 +59,14 @@ async function collectMarket(tokens) {
       const safety = await fetchSafety(t.ca).catch(() => null);
       const gate = safety ? evaluateSafety(safety, market) : null;
       let exit = null;
+      let holders = null;
       try {
         const meta = await fetchTokenMeta(t.ca);
         exit = await maxExitable(t.ca, meta.decimals, market.priceUsd);
+        // Jupiter counts accounts with an actual balance -- the honest meaning of "holders" (see
+        // onchain.js / 50-LOG/2026-08-28-data-integrity.md). RugCheck's field was renamed to
+        // tokenAccounts because it counts something else entirely; never read totalHolders here.
+        holders = meta.holderCount ?? null;
       } catch {}
       rows.push({
         ts: Date.now(), src: 'cloud', ca: t.ca, sym: t.sym,
@@ -70,7 +75,7 @@ async function collectMarket(tokens) {
         v24: Math.round(market.volume?.h24 || 0),
         buys24: market.txns?.h24?.buys ?? null, sells24: market.txns?.h24?.sells ?? null,
         exitUsd: exit ? Math.round(exit.usd) : null, exitTok: exit ? exit.tokens : null,
-        holders: safety?.totalHolders ?? null, top1: safety?.top1Pct ?? null,
+        holders, top1: safety?.top1Pct ?? null,
         top10: safety?.top10Pct != null ? +safety.top10Pct.toFixed(1) : null,
         verdict: gate?.verdict ?? null, flags: gate?.findings?.length ?? null,
       });

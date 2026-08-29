@@ -13,6 +13,15 @@ const sanity = require('../shared/sanity');
 // GeckoTerminal at any time; what a token's exitable value or holder count was on a given day
 // exists only if we wrote it down as it happened.
 
+// RugCheck's "totalHolders" used to mean token accounts including empty ones; the fix that
+// renamed it (commit ca27b2d, "define holders, compute ground truth from chain") landed here.
+// Any row recorded at or before this moment measured a DIFFERENT quantity than "holders" means
+// today, so a trend or delta that spans this boundary is comparing two different metrics and will
+// report a fake collapse (or surge) that never happened -- exactly what produced "CATE lost 53.7%
+// of its holders" from a real reading of 252,283 token accounts against a real reading of 116,808
+// actual holders. Never let 'holders' rows from either side of this line be diffed together.
+const HOLDERS_REDEFINED_AT = 1787932664000; // 2026-08-28T15:57:44.000Z
+
 let dir, sharedDir;
 function init(userDataPath, repoRoot) {
   dir = path.join(userDataPath, 'history');
@@ -74,7 +83,7 @@ function record(ca, token) {
 
   // Guard before writing. A reading that claims something physically impossible is evidence about
   // the SOURCE, not the token, and storing it corrupts every trend and alert computed afterwards.
-  const prior = readLocal(ca).filter((r) => r.holders != null).pop();
+  const prior = readLocal(ca).filter((r) => r.holders != null && r.ts > HOLDERS_REDEFINED_AT).pop();
   let holders = s?.totalHolders ?? null;
   let holdersSuspect = null;
   if (prior && holders != null) {
@@ -135,8 +144,9 @@ function read(ca, sinceMs) {
 function delta(ca, field, windowMs) {
   // Rows flagged suspect for this field are excluded, so a vendor's broken index can never
   // produce a trend line or fire an alert.
-  const rows = read(ca, windowMs)
+  let rows = read(ca, windowMs)
     .filter((r) => r[field] != null && !r[`${field}Suspect`]);
+  if (field === 'holders') rows = rows.filter((r) => r.ts > HOLDERS_REDEFINED_AT);
   if (rows.length < 2) return null;
   const first = rows[0][field], last = rows[rows.length - 1][field];
   if (!first) return null;
@@ -149,7 +159,9 @@ function delta(ca, field, windowMs) {
 }
 
 function series(ca, field, windowMs) {
-  return read(ca, windowMs).filter((r) => r[field] != null).map((r) => ({ ts: r.ts, v: r[field] }));
+  let rows = read(ca, windowMs).filter((r) => r[field] != null);
+  if (field === 'holders') rows = rows.filter((r) => r.ts > HOLDERS_REDEFINED_AT);
+  return rows.map((r) => ({ ts: r.ts, v: r[field] }));
 }
 
 // Post IDs already counted, so a bucket measures NEW activity rather than re-counting the same
