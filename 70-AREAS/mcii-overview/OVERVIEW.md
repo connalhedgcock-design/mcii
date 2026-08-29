@@ -148,6 +148,12 @@ silently killing the click handler before it ever reached the git code).
 - A CSS variable that feeds both an element's `width` and `height` must never be a `%` — percentage
   resolves against a different box for each axis and the element renders as an ellipse. Hit this
   twice in the Observatory (the door ring's globe sizing, then the arc-gauge dial).
+- A raw `fetch()` with no timeout can hang a whole process forever. Every network call in the
+  collector must go through `main/adapters/http.js: getJSON()` (20s timeout, retries, backoff) —
+  `onchain.js` was the one exception, calling Solana's RPC directly, and it froze the cloud
+  collector for 3h46m on 08-29 when that public endpoint stalled mid-response (D-87). Combined with
+  `collect.yml`'s single-run concurrency lock, one hang blocked every hourly trigger behind it —
+  see `50-LOG/2026-08-29-scanner-hang.md`. Check any new adapter for this before trusting it.
 - This terminal (Claude Code, this session) has **no macOS accessibility permission** — cannot
   click, type into, or send keystrokes to the running app from outside. Verification of anything
   requiring a real user click/keypress is done by driving it FROM INSIDE the page

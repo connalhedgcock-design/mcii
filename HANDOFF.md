@@ -78,9 +78,12 @@ Node 26.7 via Homebrew. **103 tests** — `npm test`.
 **Supposed to run continuously — verify before believing it:**
 - GitHub Actions, meant to be hourly — market, social, holder count from chain, full market scan.
   Commits results into `data/`. This is the part that is supposed to survive laptops sleeping.
-  **As of 2026-08-28 it had never once fired on schedule** — 27 hours, 0 scheduled runs, every
-  entry in the record came from a run someone started by hand. Cron moved from `:07` to `:37`;
-  unproven. Check with `gh run list` before repeating the claim that this runs hourly.
+  Cron moved from `:07` to `:37` on 08-28 and has fired on time every hour since — that part is no
+  longer the suspect. But on 08-29 it went quiet for 3h46m anyway: one adapter (`onchain.js`) made
+  a network call with no timeout, which hung the whole process, and because only one collection run
+  is allowed at a time, that single hang blocked every hourly trigger behind it. Fixed same day —
+  see `50-LOG/2026-08-29-scanner-hang.md`. Still check the Actions run history before repeating the
+  claim that this runs hourly; a fired trigger and a completed run are different claims.
 - Local scanner daemon, every 5 min, stores every scan — dies when the laptop sleeps
 - The app itself when open: 15s price polling, instant alerts
 

@@ -118,4 +118,6 @@ prio: high
 | D-84 | ! never window.prompt() — it THROWS in electron and kills the handler silently. use askText(). pinned by a source test. | 08-28 | ! permanent |
 | D-85 | ! any control whose failure looks identical to its idle state must be verified INSIDE a running electron window, not by reading the code. eighth instance of a silent failure in this project. | 08-28 | ! permanent |
 | D-86 | ! tone is withheld below 3 posts containing scoreable wording. one post produced "0.818" live. raw value kept in the record, never offered as a reading. | 08-28 | ! never show a mood from one voice |
+| D-87 | ! every network call in the collector must go through `getJSON()` (timeout + backoff), never a raw `fetch()`. one untimed RPC call froze the collector for 3h46m — see 2026-08-29-scanner-hang. | 08-29 | ! permanent |
+| D-88 | collect.yml runs ONE pass per trigger and exits, matching cloud-collect.js's own contract. supersedes the 6-hour internal-loop workaround (D- from 08-28's "one trigger buys six hours") — that loop, combined with a single-run concurrency lock, turned one hang into a multi-hour outage for every scheduled trigger behind it. `cancel-in-progress: true` so a stuck run is replaced by the next hourly trigger instead of blocking it. | 08-29 | if cron itself proves unreliable again, per D-61 |
 
