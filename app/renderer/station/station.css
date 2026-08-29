@@ -893,6 +893,30 @@
 .st-reply::-webkit-scrollbar-track { background: transparent; }
 .st-reply::-webkit-scrollbar-thumb { background: oklch(0.52 0.06 240 / 0.5); border-radius: 4px; }
 .st-reply::-webkit-scrollbar-thumb:hover { background: oklch(0.64 0.08 238 / 0.75); }
+/* The wait reads as the machine working, not as an answer. Dimmer, italic, and
+   with a cursor that keeps moving so a long pause never looks like a hang. */
+.st-reply.is-think {
+  color: var(--st-fg-mute);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+.st-reply.is-think::after {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--st-holo-hot);
+  vertical-align: middle;
+  animation: st-think 1.15s ease-in-out infinite;
+}
+@keyframes st-think {
+  0%, 100% { opacity: 0.25; transform: translateY(0) scale(0.85); }
+  50%      { opacity: 1;    transform: translateY(-2px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-reply.is-think::after { animation: none; opacity: 0.8; }
+}
 .st-reply.is-err { color: var(--st-down); }
 .st-reply:empty { display: none; }
 
@@ -1107,6 +1131,22 @@
      anything else and this stops meaning anything. */
   animation: st-alarm 1.6s steps(1, end) infinite;
 }
+/* A lamp you can press. The affordance is a cursor and a brighter rim, never a
+   colour: colour on this panel is a SUBSYSTEM WORD and spending it on "you may
+   click this" would cost the ability to say something real with it. */
+.st-lamp.is-pick { cursor: pointer; }
+.st-lamp.is-pick:hover { color: oklch(0.86 0.006 250); }
+.st-lamp.is-sel {
+  box-shadow: inset 0 0 0 1px var(--st-holo-hot), 0 0 16px -4px var(--st-holo);
+  color: oklch(0.97 0.03 230);
+}
+.st-lamp.is-sel::after {
+  content: ''; position: absolute; left: 3px; right: 3px; bottom: 2px; height: 1px;
+  background: var(--st-holo-hot);
+}
+.st-strip.is-sel .st-strip-name { color: var(--st-holo-hot); }
+.st-strip.is-sel .st-strip-num  { color: var(--st-holo-hot); }
+
 .st-lamp[data-lit='sig'] {
   color: oklch(0.97 0.05 305);
   background: color-mix(in oklch, var(--st-sig) 22%, oklch(0.155 0.008 250));

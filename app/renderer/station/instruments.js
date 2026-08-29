@@ -33,10 +33,10 @@ const fmtUsd = (n) => {
    Each source is caught independently: a feed that is down must darken its own
    lamp, not blank the whole wall.
    ═══════════════════════════════════════════════════════════════════════════ */
-export async function snapshot(windowId = '24h') {
+export async function snapshot(windowId = '24h', selectedCa = null) {
   const api = window.mcii || {}
   const win = WINDOWS.find((w) => w.id === windowId) || WINDOWS[1]
-  const out = { at: Date.now(), win, tokens: null, screen: null, alerts: null, health: null, series: null }
+  const out = { at: Date.now(), win, tokens: null, screen: null, alerts: null, health: null, series: null, selected: null }
 
   // ⚠️ cachedTokens, not getTokens. `getTokens` re-fetches four upstream APIs per
   // coin; this wall redraws on resize and on every window change, and a gauge is
@@ -52,8 +52,13 @@ export async function snapshot(windowId = '24h') {
   if (alerts.status === 'fulfilled') out.alerts = alerts.value
   if (health.status === 'fulfilled') out.health = health.value
 
-  // The trace needs a subject: the largest thing being tracked.
-  const lead = (out.tokens || []).slice().sort(
+  // The selection, if the caution panel has one and it is still on the list.
+  // A selection pointing at a coin that has since been removed must fall back
+  // rather than blank the wall.
+  out.selected = (out.tokens || []).find((t) => t.ca === selectedCa) || null
+
+  // The trace needs a subject: whatever is selected, else the largest thing tracked.
+  const lead = out.selected || (out.tokens || []).slice().sort(
     (a, b) => (b.market?.totalLiquidityUsd || 0) - (a.market?.totalLiquidityUsd || 0))[0]
   if (lead && api.historySeries) {
     try {
@@ -94,7 +99,7 @@ function strips(snap) {
       const hot = on && i >= SEGS - 2
       return `<span class="st-strip-seg"${on ? ' data-on' : ''}${hot ? ' data-hot' : ''}></span>`
     }).join('')
-    return `<div class="st-strip">
+    return `<div class="st-strip${snap.selected && r.ca === snap.selected.ca ? ' is-sel' : ''}">
       <span class="st-strip-name">${esc(r.sym)}</span>
       <span class="st-strip-num">${liq == null ? '—' : fmtUsd(liq)}</span>
       <span class="st-strip-meter">${segs}</span>
@@ -120,6 +125,25 @@ function strips(snap) {
    always more instrument — never a bigger version of the same one.
    ═══════════════════════════════════════════════════════════════════════════ */
 function arc(snap) {
+  const sel = snap.selected
+  // With a coin selected the dial stops counting heads and reads THAT coin's
+  // move, on a fixed ±50% scale so the needle means the same thing every time
+  // you look at it. An auto-scaled dial is a dial you cannot read at a glance.
+  if (sel) {
+    const ch = sel.market?.priceChange?.h24
+    if (ch == null) return nodata('no price data')
+    const v = fraction(ch + 50, 100)
+    return `<div class="st-arc">
+      <div class="st-arc-face" style="--v:${v.toFixed(3)};--redline:1">
+        <span class="st-arc-scale"></span>
+        <span class="st-arc-fill"></span>
+        <span class="st-arc-needle"></span>
+        <span class="st-arc-hub"></span>
+      </div>
+      <div class="st-arc-read"><b>${ch >= 0 ? '+' : ''}${ch.toFixed(1)}%</b><i>24h</i></div>
+      <div class="st-arc-ends"><span>-50%</span><span>+50%</span></div>
+    </div>`
+  }
   const t = (snap.tokens || []).filter((x) => x.market?.priceChange?.h24 != null)
   if (!t.length) return nodata('no price data')
   const up = t.filter((x) => x.market.priceChange.h24 >= 0).length
@@ -142,7 +166,8 @@ function arc(snap) {
    which the digits alone cannot carry.
    ═══════════════════════════════════════════════════════════════════════════ */
 function odo(snap) {
-  const t = (snap.tokens || []).filter((x) => x.market)
+  const t = snap.selected ? [snap.selected].filter((x) => x.market)
+                          : (snap.tokens || []).filter((x) => x.market)
   if (!t.length) return nodata('no market data')
   const total = t.reduce((s, x) => s + (x.market.totalLiquidityUsd || 0), 0)
   const txt = fmtUsd(total)
@@ -178,6 +203,8 @@ function annun(snap) {
     const v = t.gate?.verdict
     lamps.push({
       legend: t.sym,
+      ca: t.ca,                          // ← makes this lamp a control
+      sel: snap.selected?.ca === t.ca,
       lit: v === 'FAIL' ? 'alarm' : v === 'CAUTION' ? 'warn' : v === 'PASS' ? 'ok' : null,
     })
   }
@@ -215,7 +242,9 @@ function annun(snap) {
 
   if (!lamps.length) return nodata('nothing monitored')
   return `<div class="st-annun">${lamps.map((l) =>
-    `<span class="st-lamp"${l.lit ? ` data-lit="${l.lit}"` : ''}>${esc(l.legend)}</span>`
+    `<span class="st-lamp${l.ca ? ' is-pick' : ''}${l.sel ? ' is-sel' : ''}"` +
+    `${l.lit ? ` data-lit="${l.lit}"` : ''}${l.ca ? ` data-ca="${esc(l.ca)}"` : ''}` +
+    `${l.ca ? ' role="button" tabindex="0"' : ''}>${esc(l.legend)}</span>`
   ).join('')}</div>`
 }
 
@@ -296,6 +325,11 @@ function headlineFor(board, snap) {
   switch (board.instrument) {
     case 'strips': return t ? { text: String(t.length), cls: '' } : { text: '—', cls: 'is-none' }
     case 'arc': {
+      if (snap.selected) {
+        const c = snap.selected.market?.priceChange?.h24
+        return c == null ? { text: '—', cls: 'is-none' }
+          : { text: (c >= 0 ? '+' : '') + c.toFixed(1) + '%', cls: c >= 0 ? 'is-up' : 'is-down' }
+      }
       if (!t?.length) return { text: '—', cls: 'is-none' }
       const withCh = t.filter((x) => x.market?.priceChange?.h24 != null)
       if (!withCh.length) return { text: '—', cls: 'is-none' }
@@ -327,8 +361,14 @@ export function renderBoard(board, snap) {
 
   const head = headlineFor(board, snap)
   const body = (RENDER[board.instrument] || (() => nodata('no instrument')))(snap)
-  const label = board.instrument === 'spark' && snap.series
-    ? `${board.label} · ${snap.series.sym}` : board.label
+  // ⚠️ A board reading ONE coin must say which. Same gauge, same position, a
+  // completely different claim — and an unlabelled switch between the two is how
+  // someone reads a single coin's liquidity as the whole book's.
+  const FOLLOWS = new Set(['arc', 'odo', 'spark'])
+  const label = FOLLOWS.has(board.instrument) && snap.selected
+    ? `${board.label} · ${snap.selected.sym}`
+    : board.instrument === 'spark' && snap.series
+      ? `${board.label} · ${snap.series.sym}` : board.label
 
   el.innerHTML = `
     <header class="st-board-head">

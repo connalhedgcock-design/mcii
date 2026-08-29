@@ -24,6 +24,7 @@ let globe = null
 let door = homeIndex()
 let navTimer = 0
 let winId = '24h'
+let selectedCa = null   // which coin the caution panel has selected, if any
 let snap = null
 let active = false
 let inFlight = false
@@ -267,7 +268,6 @@ function enter() {
     const tab = document.querySelector(`.tab[data-view="${d.view}"]`)
     if (tab) tab.click()
     document.body.classList.remove('st-arriving')
-    backBtn().hidden = false
   }, TRAVEL_MS)
 }
 
@@ -275,42 +275,34 @@ function leave() {
   stage.hidden = false
   stage.dataset.room = 'observatory'
   active = true
-  backBtn().hidden = true
   measure()
   refresh()
 }
 
-let _back = null
-function backBtn() {
-  if (_back) return _back
-  _back = document.createElement('button')
-  _back.className = 'st-back'
-  _back.type = 'button'
-  _back.hidden = true
-  _back.textContent = '← observatory'
-  // Explicit and compact. Inheriting the room's .st-back sizing here produced a
-  // slab floating over the flat views; this is a control, not a panel.
-  _back.style.cssText = [
-    'position:fixed', 'left:14px', 'bottom:14px', 'z-index:30', 'margin:0',
-    'width:auto', 'height:auto', 'padding:5px 10px', 'line-height:1.2',
-    'font-size:11px', 'letter-spacing:0.06em', 'border-radius:4px',
-    'border:1px solid rgba(150,170,195,.34)', 'background:rgba(18,24,33,.94)',
-    'color:#AEBAC7', 'cursor:pointer', 'font-family:inherit',
-  ].join(';')
-  _back.addEventListener('click', leave)
-  document.body.appendChild(_back)
-  return _back
-}
+/* No back-panel here. Getting to the room is already one click away in the tab
+   bar, and a second, permanently-docked control for the same destination is a
+   slab of chrome earning nothing. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    THE INSTRUMENT WALL
    ═══════════════════════════════════════════════════════════════════════════ */
 async function refresh() {
   const h = measure() || 900
-  snap = await snapshot(winId)
+  snap = await snapshot(winId, selectedCa)
   const boards = boardsFor(h)
   colL.replaceChildren(...boards.filter((b) => b.side === 'left').map((b) => renderBoard(b, snap)))
   colR.replaceChildren(...boards.filter((b) => b.side === 'right').map((b) => renderBoard(b, snap)))
+
+  // ⚠️ The caution panel is a SELECTOR, not a readout. Clicking a coin's lamp
+  // points the rest of the wall at that coin; clicking it again releases it back
+  // to the whole watchlist. Wired after every rebuild, because the lamps are
+  // rebuilt with the data they describe.
+  stage.querySelectorAll('.st-lamp[data-ca]').forEach((l) => {
+    l.addEventListener('click', () => {
+      selectedCa = selectedCa === l.dataset.ca ? null : l.dataset.ca
+      refresh()
+    })
+  })
 
   // The rotary is a control, so it has to be wired after every rebuild.
   stage.querySelectorAll('.st-rot-opt').forEach((o) => {
@@ -334,10 +326,63 @@ function wirePrompt(root) {
   const reply = root.querySelector('.st-reply')
   const signin = root.querySelector('.st-signin')
 
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+  let typeRaf = 0, thinkTimer = 0
+
+  const stopAnimations = () => {
+    cancelAnimationFrame(typeRaf); typeRaf = 0
+    clearInterval(thinkTimer); thinkTimer = 0
+  }
+
   const say = (text, err) => {
+    stopAnimations()
     reply.className = `st-reply${err ? ' is-err' : ''}`
     reply.textContent = text
     reply.scrollTop = 0
+  }
+
+  /* ── the wait ─────────────────────────────────────────────────────────────
+     Orion takes seconds, not milliseconds — it is reading files. A static
+     "loading" for that long reads as a hang, so the wait SAYS SOMETHING and
+     keeps changing. The words are deliberately vague about progress because we
+     genuinely do not know how far along it is; claiming a stage we cannot
+     observe would be a fake progress bar in words. */
+  const WAITING = [
+    'thinking', 'reading the vault', 'checking the record', 'cooking',
+    'meandering', 'weighing it up', 'chasing a number down', 'still going',
+  ]
+  function startThinking() {
+    stopAnimations()
+    reply.className = 'st-reply is-think'
+    let i = 0
+    const paint = () => { reply.textContent = WAITING[i % WAITING.length] }
+    paint()
+    if (reduced) return
+    thinkTimer = setInterval(() => { i++; paint() }, 2600)
+  }
+
+  /* ── the answer ───────────────────────────────────────────────────────────
+     Typed out rather than dumped. Speed is derived from LENGTH so a long answer
+     does not take a minute to read itself out: the whole reply lands inside a
+     fixed budget whatever its size. Time-based, not per-frame, so it runs the
+     same on a 120Hz display as on a 60Hz one. */
+  const TYPE_MS = 1400
+  function typeOut(text) {
+    stopAnimations()
+    reply.className = 'st-reply'
+    if (reduced || text.length < 3) { reply.textContent = text; return }
+    const t0 = performance.now()
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / TYPE_MS)
+      // Ease out: fast at the start, settling at the end. A linear crawl reads
+      // as a machine printing; this reads as something answering.
+      const n = Math.round(text.length * (1 - Math.pow(1 - p, 2)))
+      reply.textContent = text.slice(0, n)
+      reply.scrollTop = reply.scrollHeight
+      if (p < 1) typeRaf = requestAnimationFrame(step)
+      else { typeRaf = 0; reply.scrollTop = 0 }
+    }
+    typeRaf = requestAnimationFrame(step)
   }
 
   // Readiness is a real answer now: `claude auth status --json`, which costs
@@ -404,13 +449,13 @@ function wirePrompt(root) {
     if (!text || inFlight) return
     inFlight = true
     globe?.setState('working')          // the globe IS the loading indicator
-    say('')
+    startThinking()
     input.value = ''
     try {
       const res = await window.mcii.orionAsk(text)
       // ⚠️ A failure is REPORTED. A blank answer is indistinguishable from
       // "there is nothing to say", and the two must never look the same.
-      if (res?.ok) { signin.hidden = true; setNotice(''); say(res.reply) }
+      if (res?.ok) { signin.hidden = true; setNotice(''); typeOut(res.reply) }
       else if (res?.code === 'auth') {
         await refreshAuth()
         say('You are not signed in to Claude yet. Click "log in to anthropic", type /login in the '
@@ -445,7 +490,7 @@ function setNotice(text) {
    ═══════════════════════════════════════════════════════════════════════════ */
 function onKey(e) {
   if (!active || stage.hidden) {
-    if (e.key === 'Escape' && !backBtn().hidden) leave()
+    if (e.key === 'Escape') leave()      // esc always walks you back to the room
     return
   }
   const t = e.target
@@ -467,6 +512,20 @@ export function initObservatory(root) {
   render()
   measure()
 
+  // Fire a real question, so the waiting and typing states can actually be seen
+  // rather than reasoned about. Deliberately behind its own flag: it costs a
+  // round trip to the model every time it runs.
+  if (location.hash === '#ask') setTimeout(() => {
+    const inp = stage.querySelector('.st-prompt')
+    inp.value = 'In one short sentence, what is the deepest pool on the watchlist?'
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    const peek = (t) => setTimeout(() => {
+      const r = stage.querySelector('.st-reply')
+      console.warn(`[ask ${t}ms] class="${r.className}" text="${(r.textContent||'').slice(0,90)}"`)
+    }, t)
+    peek(1200); peek(3500); peek(9000); peek(20000); peek(34000)
+  }, 1500)
+
   if (location.hash === '#measure') setTimeout(() => {
     const r = (sel) => { const e = stage.querySelector(sel); if (!e) return null
       const b = e.getBoundingClientRect(); return { cx: +(b.left + b.width / 2).toFixed(1), w: +b.width.toFixed(1) } }
@@ -487,6 +546,25 @@ export function initObservatory(root) {
     }
     console.warn('[hit] ' + ['.st-signin', '.st-prompt', '.st-projector-pane']
       .map(hit).join('  |  '))
+
+    // Drive the caution panel from inside the page. Clicking a lamp is the whole
+    // feature; asserting it works needs an actual click, which no amount of
+    // reading the source provides.
+    const labels = () => [...stage.querySelectorAll('.st-board')]
+      .map((b) => `${b.dataset.board}:${b.querySelector('.st-label')?.textContent}`).join(' | ')
+    const picks = stage.querySelectorAll('.st-lamp[data-ca]')
+    console.warn(`[sel] selectable lamps: ${picks.length}`)
+    console.warn('[sel] before: ' + labels())
+    if (picks.length) {
+      picks[0].click()
+      setTimeout(() => {
+        console.warn('[sel] after click: ' + labels())
+        console.warn('[sel] lamp marked: ' + stage.querySelectorAll('.st-lamp.is-sel').length
+          + ' | strip marked: ' + stage.querySelectorAll('.st-strip.is-sel').length)
+        stage.querySelector('.st-lamp.is-sel')?.click()
+        setTimeout(() => console.warn('[sel] after release: ' + labels()), 900)
+      }, 900)
+    }
   }, 1200)
 
   globe = mountGlobe(globeHost)

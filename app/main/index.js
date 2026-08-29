@@ -60,7 +60,7 @@ function createWindow() {
     },
   });
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'),
-    process.env.MCII_MEASURE ? { hash: 'measure' } : undefined);
+    process.env.MCII_ASK ? { hash: 'ask' } : process.env.MCII_MEASURE ? { hash: 'measure' } : undefined);
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
 
   // Renderer console and uncaught errors, forwarded to the terminal.
