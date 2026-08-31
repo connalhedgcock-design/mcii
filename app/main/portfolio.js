@@ -212,8 +212,17 @@ async function pnl24(positions) {
     const px = rows.length ? lastAtOrBefore(rows, target) : null;
     if (px != null) { then += p.tokens * px; covered++; continue; }
     // Fall back to the venue-reported 24h move, which the rest of the app already treats as a
-    // weaker source because it comes from whichever single pool is deepest right now.
-    if (p.change24h != null && p.change24h > -100) { then += p.valueUsd / (1 + p.change24h / 100); covered++; }
+    // weaker source because it comes from whichever single pool is deepest RIGHT NOW -- and that
+    // can flip between two polls a few minutes apart if a different pool's self-reported liquidity
+    // briefly edges ahead (dexscreener.js: fetchPrices keeps only the deepest pool's numbers; see
+    // the ANSEM impostor case in 50-LOG for how gameable a single pool's self-reported figures are).
+    //
+    // ⚠️ Inverting a change near -100% to back out "then" is numerically explosive: at -95% it
+    // implies the position was worth 20x today's value a day ago, and at -99% it is 100x. One bad
+    // or stale reading from a thin pool then reads as a portfolio-wrecking loss that never
+    // happened. A move this extreme is treated as unknown instead of amplified -- same as no
+    // reading at all -- rather than trusted enough to divide by.
+    if (p.change24h != null && p.change24h > -80) { then += p.valueUsd / (1 + p.change24h / 100); covered++; }
     else { then += p.valueUsd; missing.push(p.sym); }   // unknown move contributes no change
   }
   if (!covered) return null;
