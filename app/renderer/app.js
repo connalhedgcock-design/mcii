@@ -747,13 +747,14 @@ function venueChrome(id, st) {
     return `<div class="venue-bar">
         <span class="st-label">${esc(st.label)}</span>
         <span class="venue-url">${esc(st.url)}</span>
-        <button class="btn sm" data-venue-appwin>reopen axiom window</button>
+        <button class="btn sm" data-venue-appwin>reopen ${esc(st.label)} window</button>
       </div>
       <div class="st-board venue-missing"><div class="st-board-screws"></div>
         <div class="st-board-head"><span class="st-label">opened in its own window</span></div>
         <div class="folio-empty">${esc(st.why || '')}</div>
-        <div class="folio-note">Walking through this door opens it. Your Axiom holdings are read
-          here too — the portfolio room takes them straight from the chain, needing no login.</div>
+        <div class="folio-note">Walking through this door opens it. Your ${esc(st.label)} holdings
+          are read here too — the portfolio room takes them straight from the chain, needing no
+          login.</div>
       </div>`;
   }
   if (!st.configured) {

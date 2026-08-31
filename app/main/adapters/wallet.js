@@ -26,13 +26,19 @@ const LAMPORTS = 1e9;
 const ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 function isAddress(a) { return typeof a === 'string' && ADDRESS_RE.test(a.trim()); }
 
+// Routed through the shared getJSON wrapper, not a raw fetch() -- a raw fetch to this exact
+// endpoint (Solana's public RPC) once froze the whole app for 3h46m when the endpoint stalled
+// (adapters/onchain.js, D-87: "every network call must go through getJSON(), never a raw
+// fetch()"). getTokenAccountsByOwner can return a lot of data for a wallet with many token
+// accounts, so this gets a longer timeout than the default, not none at all.
 async function rpc(method, params) {
-  const res = await fetch(RPC, {
+  const d = await getJSON(RPC, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'User-Agent': 'MCII/0.1' },
+    timeoutMs: 30000,
+    retries: 1,
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   });
-  const d = await res.json();
   if (d.error) throw new Error(d.error.message || 'rpc error');
   return d.result;
 }
