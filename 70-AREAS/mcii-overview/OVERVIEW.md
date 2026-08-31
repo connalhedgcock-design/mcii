@@ -142,20 +142,31 @@ The spatial 3D control-room UI (`renderer/station/`) — full detail in
   (`persist:venue-<id>-<owner>`). The app has no login form, never reads a credential field and
   stores no password — the same hand-off shape as Orion with `claude auth login`. OAuth popups are
   allowed (same partition, no node) because Apple/Google sign-in needs them.
-- !! AXIOM IS DELIBERATELY NOT EMBEDDED, and this is not a bug awaiting a fix. Measured 08-29 on
-  the operator's own URL, same machine, same minute: **Electron's user agent -> HTTP 404
-  "RESOURCE NOT FOUND"; a Chrome user agent -> HTTP 200 and the real app.** Axiom's edge is
-  refusing embedded browser views on purpose. Wrapping a real trading site in a desktop webview is
-  how wallet-drainer and credential-phishing apps are built, so that block is protecting users'
-  funds from software shaped exactly like this. Overriding the UA is one line and is NOT done —
-  it circumvents an access control the venue chose, likely breaches their terms, and would train
-  both operators to trust a trading terminal rendered inside third-party software, which is the
-  habit the block exists to prevent. Walking through the axiom door instead launches a REAL
-  Chromium in app mode (`--app=<url>`, `main/venues.js: openAppWindow`) — a chromeless window with
-  no tab strip and no omnibox, unmodified user agent, the operator's own profile and login, so it
-  reads as a window of this app without anything being faked. Debounced 8s so stepping in and out
-  does not spawn a pile of windows; the room carries a reopen button. Their Axiom holdings are
-  still read on-chain in the portfolio, which needs no login and no embedding at all.
+- !! AXIOM'S EMBED STATUS CHANGED 08-30 — THIS SECTION WAS WRONG UNTIL 08-29(b), TRUST THE CODE.
+  Originally deliberately NOT embedded (see the reasoning below, still true and still the honest
+  tradeoff): Axiom's edge 404s Electron's own UA and 200s a Chrome one, refusing embedded browser
+  views on purpose — the same defence that stops wallet-drainer/phishing apps wrapping a real
+  trading site. **08-30: the operator was shown that tradeoff explicitly and chose to embed it
+  anyway**, to match the fomo room (`main/venues.js`, `VENUES.axiom.userAgent = CHROME_UA`). If
+  this section still says "not embedded" and the real `venues.js` disagrees, believe the code.
+- !! CONSEQUENCE OF THAT CHOICE, FOUND 08-29(b): Google refuses its own sign-in inside ANY
+  embedded browser window — a separate, stricter check than Axiom's own webview block, and NOT
+  spoofable the same way (Google hardens against exactly this UA trick). Connal hit "the browser
+  or app may not be secure" trying to sign into the embedded Axiom room with Google. No code fix
+  exists for this — it's Google's policy, not a bug. Two ways around it, neither needing a code
+  change: sign in with email instead (Axiom/Privy supports it), or use the real-browser-window
+  escape hatch. That escape hatch (`openAppWindow`, below) is now shown as a bar ABOVE the embedded
+  view at all times, not only when Axiom's own edge block trips — see `renderer/app.js:
+  venueChrome()`.
+- The real-browser-window path still exists and still works for anyone who wants it: walking
+  through the axiom door (or the always-visible button) launches a REAL Chromium in app mode
+  (`--app=<url>`, `main/venues.js: openAppWindow`) — a chromeless window with no tab strip and no
+  omnibox, unmodified user agent, the operator's own profile and login, so it reads as a window of
+  this app without anything being faked. Debounced 8s so stepping in and out does not spawn a pile
+  of windows. !! IT IS A SEPARATE BROWSER PROFILE, NOT THE SAME SESSION AS THE EMBEDDED VIEW —
+  signing in there does not log the embedded room in too; they are two different cookie stores.
+  Their Axiom holdings are still read on-chain in the portfolio either way, which needs no login
+  and no embedding at all.
 - !! LOGIN BUG, FIXED 08-29 — DO NOT REINTRODUCE THE CAUSE. `will-navigate` carried an allowlist so
   a venue room would not become a general-purpose browser. Signing into fomo with Apple navigates
   to `appleid.apple.com`, which was not on it, so the whole auth flow was ejected into Safari: the

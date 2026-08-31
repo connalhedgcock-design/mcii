@@ -767,7 +767,18 @@ function venueChrome(id, st) {
           room works immediately — it is one line of configuration.</div>
       </div>`;
   }
-  return `<div class="venue-host"></div>`;
+  // ⚠️ Google refuses its own sign-in inside ANY embedded browser window, on purpose -- a
+  // separate, much stricter check than the venue's own webview block above, and one no header
+  // trick gets past (confirmed 2026-08-29, Connal hit it trying to sign into Axiom with Google).
+  // "sign in with email" sidesteps it entirely and needs no code change, but not every venue
+  // offers that, so a real-browser-window escape hatch stays one click away here too rather than
+  // only appearing once a venue's own edge block trips.
+  return `<div class="venue-bar">
+      <span class="st-label">${esc(st.label)}</span>
+      <span class="venue-url">signing in with Google won't work in here — try email, or:</span>
+      <button class="btn sm" data-venue-appwin>open in a real browser window</button>
+    </div>
+    <div class="venue-host"></div>`;
 }
 
 function wireVenue(host, id) {
