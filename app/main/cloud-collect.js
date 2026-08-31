@@ -27,7 +27,7 @@ const onchain = require('./adapters/onchain');
 const scanstore = require('./scanstore');
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
-// whole monthly bill. 4 searches x 15 posts, hourly, is ~$6.50 of the $12.
+// whole monthly bill. 4 searches x 15 posts, twice an hour (D-90, 08-31), is ~$13 of the $24.
 const SWEEP_POSTS_PER_QUERY = 15;
 const SWEEP_RESERVE_USD = 3;      // kept back so the sweep itself never runs out mid-month
 const MIN_POSTS_PER_COIN = 8;     // below this the sweep clearly missed the coin; ask directly
@@ -90,7 +90,7 @@ async function collectMarket(tokens) {
 
 async function collectSocial(tokens) {
   if (!process.env.TWITTERAPI_KEY) { log('  no X key configured, skipping social'); return { social: [], sector: [] }; }
-  tw.configure({ key: process.env.TWITTERAPI_KEY, monthlyCapUsd: Number(process.env.X_MONTHLY_CAP_USD || 12) });
+  tw.configure({ key: process.env.TWITTERAPI_KEY, monthlyCapUsd: Number(process.env.X_MONTHLY_CAP_USD || 24) });
   try { tw.loadSpend(JSON.parse(fs.readFileSync(path.join(DATA, 'x-spend.json'), 'utf8'))); } catch {}
 
   // ONE sweep of memecoin chatter, sorted afterwards into what matters. This replaced asking X

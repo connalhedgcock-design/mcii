@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // Standalone social collector.
 //
-// !! SUPERSEDED 2026-08-27 by the hourly GitHub Actions collector (main/cloud-collect.js).
-// Do not run both. They keep SEPARATE spend counters, so each enforcing the $12 cap
-// independently permits $24 of total spend -- measured at a $16/month combined run rate before
-// this was caught. The cloud collector also survives the laptop sleeping, which this does not.
+// !! SUPERSEDED 2026-08-27 by the cloud GitHub Actions collector (main/cloud-collect.js), which
+// runs twice an hour as of 08-31 (D-90). Do not run both. They keep SEPARATE spend counters, so
+// each enforcing its own cap independently permits double the intended spend -- measured at a
+// $16/month combined run rate before this was caught, back when the cap was $12 each. The cloud
+// collector also survives the laptop sleeping, which this does not.
 //
 // Kept for offline use or if the cloud collector is ever disabled. If you start it, stop the
 // workflow first.
 //
-// Cadence is set by budget, not by preference. At ~$0.00015/post, two tokens searched by
-// contract address every 40 minutes costs roughly $8.60/month, leaving headroom under the $12
-// cap. Faster polling would exhaust the month early and stop collecting entirely, which is a
-// worse outcome than slightly coarser buckets.
+// Cadence is set by budget, not by preference. Whatever the cap is (X_MONTHLY_CAP_USD, $24 as of
+// 08-31), faster polling than the math below supports would exhaust the month early and stop
+// collecting entirely -- a worse outcome than slightly coarser buckets.
 const path = require('path');
 const APP = __dirname + '/..';
 
@@ -120,7 +120,7 @@ async function main() {
       const i = l.indexOf('='); if (i > 0) env[l.slice(0, i).trim()] = l.slice(i + 1).trim();
     });
   } catch {}
-  tw.configure({ key: env.TWITTERAPI_KEY, monthlyCapUsd: Number(env.X_MONTHLY_CAP_USD || 12) });
+  tw.configure({ key: env.TWITTERAPI_KEY, monthlyCapUsd: Number(env.X_MONTHLY_CAP_USD || 24) });
   history.init(USERDATA);
   try {
     tw.loadSpend(JSON.parse(require('fs').readFileSync(path.join(USERDATA, 'x-spend.json'), 'utf8')));

@@ -2,22 +2,22 @@ name: Collect market and social data
 
 on:
   schedule:
-    # Hourly, and not on the hour. The repo is public, so minutes are free; what caps the cadence
-    # is the X budget, since every run pays for social posts. Hourly sits well inside the $12.
+    # Twice an hour, and not on the hour. 08-31: moved from hourly per an explicit decision to
+    # trade more money for faster coverage -- see D-90, X_MONTHLY_CAP_USD raised 12 -> 24 in the
+    # same change, and the constraints.md ALL-IN ceiling raised 20 -> 30 alongside it.
     #
-    # ! the minute matters. This ran at :07 for a day and GitHub fired it ZERO times out of 27 —
-    # scheduled runs are queued best-effort and the top of the hour is the busiest slot, where
-    # they are dropped rather than delayed. Moved to :37 on 08-28 and has fired on time every hour
-    # since (checked via the Actions API, not assumed). D-61's two-week bar isn't met yet, but the
-    # scheduler is no longer the suspect it once was.
-    - cron: '37 * * * *'
+    # ! the minute matters. This ran at :07 for a day once and GitHub fired it ZERO times out of
+    # 27 -- scheduled runs are queued best-effort and the top of the hour is the busiest slot,
+    # where they are dropped rather than delayed. :37 alone then ran clean for two-plus days.
+    # :12 and :42 are the twice-hourly equivalent: 30 minutes apart, both away from the hour.
+    - cron: '12,42 * * * *'
   workflow_dispatch:        # lets you run it by hand from the Actions tab, one pass
 
 # Only one collection at a time -- two runs appending to the same files would interleave lines.
 # cancel-in-progress is TRUE on purpose: if a run ever hangs (a stuck network call, a wedged
-# runner), the next hourly trigger kills it and starts clean instead of queueing behind it
-# forever. Costs nothing in the normal case -- a healthy run finishes in minutes, long before the
-# next trigger arrives 60 minutes later.
+# runner), the next trigger kills it and starts clean instead of queueing behind it forever.
+# Costs nothing in the normal case -- a healthy run finishes in minutes, long before the next
+# trigger arrives 30 minutes later.
 concurrency:
   group: collect
   cancel-in-progress: true
@@ -32,7 +32,7 @@ jobs:
     # scheduled run behind it. 08-29: a run hung 00:10-03:37 UTC (an un-timed-out RPC call, fixed
     # in main/adapters/onchain.js) and every trigger in that window queued up and got cancelled
     # without ever running. 15 minutes is generous for one pass; if it's not done by then something
-    # is actually stuck, and cutting it off frees the lock for the next hourly trigger.
+    # is actually stuck, and cutting it off frees the lock for the next trigger.
     timeout-minutes: 15
     permissions:
       contents: write       # needed to commit the collected data back
@@ -47,7 +47,7 @@ jobs:
         working-directory: app
         env:
           TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
-          X_MONTHLY_CAP_USD: '12'
+          X_MONTHLY_CAP_USD: '24'
         run: node main/cloud-collect.js
 
       - name: Commit and push whatever was collected

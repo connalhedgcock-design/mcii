@@ -1,14 +1,17 @@
 ---
 id: ctx.constraints
 t: ctx
-v: 1
-upd: 2026-08-23
+v: 2
+upd: 2026-08-31
 ---
 # CONSTRAINTS
 ## MONEY  ! HARD
-- fact: free-first. total recurring spend cap = $20/mo ALL-IN. stated 2026-08-23.
+- fact: free-first. total recurring spend cap = $30/mo ALL-IN. raised from $20 on 2026-08-31
+  (D-90) — Connal, explicitly, to fund twice-hourly scanning: "i understand we will need more
+  money and am okay with it." original cap was $20, stated 2026-08-23.
 - ∴ any design requiring official X API, Grok Live Search, Reddit commercial, or paid Birdeye = DEAD ON ARRIVAL. see [[data-sources]] for the math.
-- allocation I recommend: twitterapi.io ~$10 | apify overflow ~$5 | reserve $5 | everything else $0.
+- allocation as of 08-31: twitterapi.io ~$24 (X_MONTHLY_CAP_USD, `.github/workflows/collect.yml`)
+  | apify overflow ~$5 | reserve ~$1 | everything else $0.
 - ! LLM inference cost must be ~$0 marginal > route through the Claude Code CLI subscription they already pay for, NOT metered API keys. this is the single most important cost decision in the project.
 
 ## MACHINE
