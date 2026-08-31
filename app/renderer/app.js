@@ -681,11 +681,17 @@ function switchView(v) {
   // ⚠️ The venue view is a NATIVE layer above the page — CSS cannot cover it, so leaving a view
   // means explicitly taking it off screen. Forgetting this paints a trading terminal over the
   // Observatory, which is exactly the bug the hide() call exists to prevent.
-  // The footer is DISPLAY:NONE in a venue room, not merely hidden: the venue fills the window
-  // down to it, so a footer that only goes invisible still eats that height for nothing.
+  // The header, footer and collection-health notice are DISPLAY:NONE in a venue room, not merely
+  // hidden: the venue fills the window down to whatever is left on screen, so anything that only
+  // goes invisible still eats that space for nothing. Every other tab is untouched -- the tab bar
+  // itself stays up so there is still a way out of the venue room.
+  const inVenue = VENUE_IDS.includes(v);
+  const header = document.querySelector('header.bar');
   const foot = document.querySelector('.foot');
-  if (foot) foot.style.display = VENUE_IDS.includes(v) ? 'none' : '';
-  if (VENUE_IDS.includes(v)) showVenue(v); else hideVenues();
+  if (header) header.style.display = inVenue ? 'none' : '';
+  if (foot) foot.style.display = inVenue ? 'none' : '';
+  $('#collhealth').style.display = inVenue ? 'none' : '';
+  if (inVenue) showVenue(v); else hideVenues();
 }
 
 // --- the venue rooms ---------------------------------------------------------------------
