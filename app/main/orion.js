@@ -84,6 +84,20 @@ function status() {
 // rendered as analysis. Match it before anything else.
 const NOT_SIGNED_IN = /not logged in|please run \/login|claude auth login|unauthor|authenticat|invalid api key/i;
 
+// A resumed session the CLI no longer has (cleared, expired, or from before an
+// upgrade) fails the whole turn instead of just forgetting -- and since this is
+// keyed off the CLI's own wording, one bad match should not brick every future
+// question. Detected once per turn, below, and healed by dropping back to a
+// fresh conversation rather than surfacing it to the operator as an error.
+const NO_SUCH_SESSION = /no conversation found with session id/i;
+
+// Orion's memory of the current conversation, as a Claude Code session id. Kept
+// in process memory only -- restarting the app starts a new conversation, the
+// same way closing and reopening a chat app would. `--resume` is what turns a
+// string of one-shot `claude -p` calls into an actual back-and-forth: without
+// it, every question was answered with no idea what was asked before it.
+let sessionId = null;
+
 // ⚠️ ORION IS A GENERAL ASSISTANT THAT HAPPENS TO LIVE HERE — NOT A REPO QUERY TOOL.
 //
 // The first version told it to give "readings backed by the data in this repo" and to say it did
@@ -130,7 +144,7 @@ const SYSTEM = [
  * `code` lets the renderer tell "not installed" from "not signed in" from
  * "it broke" — three different things that must never look the same.
  */
-function ask(text, live) {
+function ask(text, live, { retrying = false } = {}) {
   return new Promise((resolve) => {
     const s = status();
     if (!s.installed) {
@@ -148,19 +162,41 @@ function ask(text, live) {
       ? `<live-readings note="what the app is showing right now; the repo files are the historical record and may lag this">\n${live}\n</live-readings>\n\n${text}`
       : String(text);
 
-    const child = execFile(s.path,
-      ['-p', prompt, '--append-system-prompt', SYSTEM],
+    // `--output-format json` is what surfaces the session id to resume next turn --
+    // plain text output has no id in it at all. `--resume` is the actual memory:
+    // without it this is a fresh `claude -p` call every time, with no idea what
+    // was asked a moment ago. cwd stays fixed at REPO across every call, which is
+    // what makes the resumed session line up with the same conversation instead
+    // of a different one per directory.
+    const args = ['-p', prompt, '--append-system-prompt', SYSTEM, '--output-format', 'json'];
+    if (sessionId) args.push('--resume', sessionId);
+
+    const child = execFile(s.path, args,
       { cwd: REPO, timeout: 180000, maxBuffer: 8 * 1024 * 1024,
         env: { ...process.env, CLAUDE_CODE_ENTRYPOINT: 'mcii-observatory' } },
       (err, stdout, stderr) => {
-        const out = String(stdout || '').trim();
+        const raw = String(stdout || '').trim();
         const msg = String(stderr || err?.message || '');
+        let parsed = null;
+        try { parsed = JSON.parse(raw); } catch {}
+        const out = parsed && typeof parsed.result === 'string' ? parsed.result : raw;
+
+        // A stale session (cleared, expired, or from before a CLI upgrade) fails
+        // the whole turn. Drop it and ask again as a fresh conversation once,
+        // rather than leaving Orion broken until the app is restarted.
+        if (!retrying && NO_SUCH_SESSION.test(msg)) {
+          sessionId = null;
+          return resolve(ask(text, live, { retrying: true }));
+        }
         // ⚠️ Check the OUTPUT for a login prompt before treating it as an answer.
         if (NOT_SIGNED_IN.test(out) || NOT_SIGNED_IN.test(msg)) {
           return resolve({ ok: false, code: 'auth',
             error: 'Not signed in to Claude on this machine.' });
         }
-        if (!err && out) return resolve({ ok: true, reply: out });
+        if (!err && out) {
+          if (parsed?.session_id) sessionId = parsed.session_id;
+          return resolve({ ok: true, reply: out });
+        }
         if (err?.killed) {
           return resolve({ ok: false, code: 'timeout', error: 'Orion took too long and was stopped.' });
         }

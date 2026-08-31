@@ -31,6 +31,7 @@ const SEED_WATCHLIST = [
 // Rolling snapshot, not a database. Bounded by construction: one small object per token, so
 // storage grows with the number of tokens, not with time or with how often we poll.
 const SIDECAR = path.join(app.getPath('userData'), 'snapshot.json');
+const ICON_PATH = path.join(__dirname, '..', 'assets', 'icon.png');
 // `wallets` is venue -> PUBLIC address ({ fomo: '...', axiom: '...' }). It lives here, in the
 // per-machine sidecar, and never in the repo: the GitHub repo is public, and which addresses an
 // operator holds is not something to publish on their behalf. Public addresses only -- no key or
@@ -59,6 +60,7 @@ function createWindow() {
     width: b?.width || 1280, height: b?.height || 880, x: b?.x, y: b?.y,
     minWidth: 900, minHeight: 640,
     backgroundColor: '#0B0E13', titleBarStyle: 'hiddenInset',
+    icon: ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,   // renderer cannot reach node
@@ -634,6 +636,15 @@ function startAutoRefresh() {
   }, 10 * 60 * 1000);
 }
 
-app.whenReady().then(() => { createWindow(); startAutoRefresh(); startLive(); startUpdateChecks(); });
+app.whenReady().then(() => {
+  // The BrowserWindow `icon` option (in createWindow) covers Windows/Linux, but macOS ignores it
+  // for a window running unpackaged -- the Dock reads its icon from the packaged app bundle, which
+  // doesn't exist yet in dev (`electron .`). Setting it directly is what makes the Dock icon
+  // non-blank pre-package; a packaged build gets it from the bundle instead, so this is dev-only.
+  if (process.platform === 'darwin' && !app.isPackaged) {
+    try { app.dock.setIcon(ICON_PATH); } catch {}
+  }
+  createWindow(); startAutoRefresh(); startLive(); startUpdateChecks();
+});
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

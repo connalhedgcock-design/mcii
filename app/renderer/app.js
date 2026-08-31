@@ -767,28 +767,12 @@ function venueChrome(id, st) {
           room works immediately — it is one line of configuration.</div>
       </div>`;
   }
-  return `<div class="venue-bar">
-      <span class="st-label">${esc(st.label)}</span>
-      <span class="venue-url">${esc(st.currentUrl || st.url)}</span>
-      <button class="btn sm" data-venue-back>back</button>
-      <button class="btn sm" data-venue-reload>reload</button>
-      <button class="btn sm" data-venue-ext>open in browser</button>
-      <button class="btn sm" data-venue-out>sign out</button>
-    </div>
-    <div class="venue-host"></div>`;
+  return `<div class="venue-host"></div>`;
 }
 
 function wireVenue(host, id) {
   const on = (sel, fn) => host.querySelectorAll(sel).forEach((b) => b.onclick = fn);
-  on('[data-venue-back]', () => window.mcii.venueBack(id));
-  on('[data-venue-reload]', () => window.mcii.venueReload(id));
-  on('[data-venue-ext]', () => window.mcii.venueExternal(id));
   on('[data-venue-appwin]', () => { lastAppWindowAt = Date.now(); window.mcii.venueAppWindow(id); });
-  on('[data-venue-out]', async () => {
-    await window.mcii.venueSignOut(id);
-    venueOn = null;
-    showVenue(id);
-  });
 }
 
 // The native view does not reflow with the page, so its rect is pushed on every resize.

@@ -67,6 +67,20 @@ function build(id, owner) {
   sess.setPermissionRequestHandler((_wc, permission, cb) =>
     cb(['clipboard-sanitized-write'].includes(permission)));
 
+  // webContents.setUserAgent (below) covers page loads and most XHR/fetch, but Electron does not
+  // reliably carry it onto WebSocket upgrade handshakes. Axiom's Pulse tab is the one feature that
+  // is a live WebSocket stream rather than page-load REST calls -- so without this, Pulse's page
+  // shell loads fine (its JS sees the overridden navigator.userAgent and tries to connect) but the
+  // socket handshake still goes out with Electron's real UA, Axiom's edge quietly declines to
+  // stream over it, and the tab spins forever instead of erroring. Forcing the header here, at the
+  // network layer, catches every request on this session including that handshake.
+  if (VENUES[id].userAgent) {
+    sess.webRequest.onBeforeSendHeaders((details, cb) => {
+      details.requestHeaders['User-Agent'] = VENUES[id].userAgent;
+      cb({ requestHeaders: details.requestHeaders });
+    });
+  }
+
   const view = new WebContentsView({
     webPreferences: {
       partition: part,
