@@ -2,6 +2,10 @@ const { WebContentsView, BrowserWindow, shell, session } = require('electron');
 const { spawn } = require('child_process');
 const fs = require('fs');
 
+// Only used for axiom's view, to get past its embedded-webview block -- see the note below.
+const CHROME_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+  + '(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+
 // The venue rooms: a real browser view of fomo.family / axiom.trade, inside the app.
 //
 // WHY A WebContentsView AND NOT AN IFRAME
@@ -33,32 +37,15 @@ const VENUES = {
     // The operator's own URL, 2026-08-29.
     url: 'https://axiom.trade/discover?chain=sol&pulseChains=sol,robinhood,bnb'
        + '&trackerChains=sol,robinhood,bnb,eth',
-    // !! DELIBERATELY NOT EMBEDDED, AND THIS IS NOT A BUG TO FIX.
+    // Axiom's edge 404s Electron's own user agent and 200s a Chrome one (measured 2026-08-29,
+    // same URL/machine/moment). That is Axiom refusing embedded webviews on purpose, the same
+    // defence that keeps wallet-drainer/phishing apps from wrapping a real trading site. This app
+    // used to respect that and open Axiom in a separate real Chrome window instead.
     //
-    // Measured 2026-08-29, same URL, same machine, same moment:
-    //     Electron's own user agent -> HTTP 404 "RESOURCE NOT FOUND"
-    //     a Chrome user agent       -> HTTP 200, the real Axiom app
-    //
-    // So Axiom's edge is refusing embedded browser views on purpose. That is a defence
-    // worth respecting rather than defeating: wrapping a real trading site in a desktop webview is
-    // exactly how wallet-drainer and credential-phishing apps are built, and a venue that blocks
-    // it is protecting its users' funds from apps shaped like this one. Overriding the user agent
-    // would work in about one line and is precisely why it is not done here.
-    //
-    // ! If a future session is tempted: don't. Setting a Chrome UA here circumvents an access
-    // control the venue chose, likely breaches their terms, and trains the operators to trust a
-    // trading terminal rendered inside third-party software -- the habit the block exists to stop.
-    // The room opens Axiom in the real browser instead, where its own protections apply intact.
-    //
-    // What that means concretely: a REAL Chromium launched in app mode (`--app=<url>`), which
-    // opens a chromeless window -- no tab strip, no omnibox -- so it reads as a window belonging
-    // to this app without anything being faked. Unmodified user agent, the operator's own profile
-    // and login. Verified 2026-08-29: the window opens and Axiom loads, title "Axiom".
-    appMode: true,
-    embeddable: false,
-    why: 'Axiom answers 404 to anything that is not a real browser — a deliberate defence, since '
-       + 'wrapping a trading site in a desktop webview is how drainer apps are built. So this door '
-       + 'opens Axiom in a dedicated Chrome window: no tabs, no address bar, your own login.',
+    // 2026-08-30: the operator was shown that tradeoff explicitly -- ToS risk, and losing the
+    // "this can't be a drainer, Axiom checked" signal -- and chose to embed it anyway, to match
+    // the fomo room. Hence the Chrome UA override below, on this view only.
+    userAgent: CHROME_UA,
   },
 };
 
@@ -90,6 +77,8 @@ function build(id, owner) {
       // how the rest of the app talks to main.
     },
   });
+
+  if (VENUES[id].userAgent) view.webContents.setUserAgent(VENUES[id].userAgent);
 
   // OAuth and wallet flows genuinely need a popup, so one is allowed -- but as a real window in
   // the SAME session, never with node access, and only for http(s).
