@@ -19,14 +19,14 @@ decides what to do with a read; this decides how the read is produced.
 ! squarely Connal's lane per D-89 ("writing any algorithms needed to analyze the data we collect").
 
 ## THE WHISPERS IN THIS THREAD
-- [[INBOX|w-001]] — "cant get out" is not a useful measure for us; neither operator trades enough
+- [[INBOX-connal|w-001]] — "cant get out" is not a useful measure for us; neither operator trades enough
   for illiquidity to trap them. → killed a metric I had proposed. see CONSEQUENCES below.
-- [[INBOX|w-002]] — make the "≥3 different people discussing an unknown ticker" mechanism more
+- [[INBOX-connal|w-002]] — make the "≥3 different people discussing an unknown ticker" mechanism more
   effective. → this is the discovery core.
-- [[INBOX|w-003]] — a notification must carry ANALYSIS (social + market) on whether something is an
+- [[INBOX-connal|w-003]] — a notification must carry ANALYSIS (social + market) on whether something is an
   interesting buy/sell, not just a number. → locked as D-96.
-- [[INBOX|w-004]] — wallet / whale tracking is wanted and not built.
-- [[INBOX|w-005]] — liquidity draining is the present tense; social going quiet is a guess about
+- [[INBOX-connal|w-004]] — wallet / whale tracking is wanted and not built.
+- [[INBOX-connal|w-005]] — liquidity draining is the present tense; social going quiet is a guess about
   the future. → the ordering principle for the whole thread, see below.
 
 ## THE SHAPE THAT IS EMERGING  `est:` conf 70%

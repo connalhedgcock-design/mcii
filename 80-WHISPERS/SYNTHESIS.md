@@ -14,7 +14,7 @@ pass's rejected connections are worth re-reading before writing a new one — a 
 3 whispers can become strong at 15, and that upgrade is itself the signal.
 
 ## STATUS
-**Pass 0 — nothing to synthesize yet.** `INBOX.md` is empty. This file is the shape the output
+**Pass 0 — nothing to synthesize yet.** both inboxes are empty. This file is the shape the output
 takes, so the first real pass has something to fill in rather than inventing a format under time
 pressure.
 

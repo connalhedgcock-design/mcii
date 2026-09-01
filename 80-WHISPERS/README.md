@@ -11,16 +11,20 @@ machine: connal
 cost of catching one is ~zero. Everything expensive (organizing, connecting, judging) is MY job,
 not his. ! if capture ever requires him to think about format, this system has failed.
 
-## THE ONE RULE FOR HIM
-Open `INBOX.md`, type the thought on a new line, done. No date, no tags, no frontmatter, no
+## THE ONE RULE FOR THEM
+Type the thought on a new line in your own inbox, done. No date, no tags, no frontmatter, no
 complete sentences. Fragments are fine. Contradicting an earlier whisper is fine.
 
 Three ways in, all equivalent:
-- type it straight into `INBOX.md`
+- type it straight into your own inbox file
 - `/whisper <thought>` in chat
-- ! **any message starting with `whisper:`** — this is the one he actually uses. it is a capture
+- ! **any message starting with `whisper:`** — this is the one actually used. it is a capture
   instruction, NOT an invitation to discuss. append verbatim, confirm in one line, stop. pinned in
   `CLAUDE.md` §2 so it survives a session that never reads this file.
+
+! ALWAYS APPEND TO THE INBOX OF WHOEVER IS SPEAKING (`machine:` tells you which). never merge the
+two, never move a whisper between them — who thought it is part of the data, same as D-89 makes
+provenance non-optional everywhere else in this vault.
 
 ## THE RULES FOR ME
 - ! whispers are INPUTS, NOT CLAIMS. the mandate's "no claim without a falsifier" does NOT apply to
@@ -37,13 +41,22 @@ Three ways in, all equivalent:
 ## FILES
 ```
 80-WHISPERS/
-  README.md      <- this. how the system works.
-  INBOX.md       <- ! raw captures, append-only, zero-friction. his file. I only ever ADD ids.
-  SYNTHESIS.md   <- the connection map. MY file, rewritten each pass. this is the actual product.
-  w-NNN-slug.md  <- one file per PROMOTED whisper — only once it has earned expansion.
-  <topic>/       <- a THREAD: whispers that turn out to be about one subject, gathered w/ my
-                    expansion. created only when several whispers converge, never pre-emptively.
+  README.md          <- this. how the system works.
+  INBOX-connal.md    <- ! raw captures, append-only, zero-friction. HIS file. I only ever ADD ids.
+  INBOX-austin.md    <- same, Austin's. ! one file per person, never one shared one — two people
+                        appending to the same file conflicts on exactly the file they both use most.
+  SYNTHESIS.md       <- the connection map, across BOTH inboxes. MY file, rewritten each pass.
+  w-NNN-slug.md      <- one file per PROMOTED whisper — only once it has earned expansion.
+  <topic>/           <- a THREAD: whispers that turn out to be about one subject, gathered w/ my
+                        expansion. created only when several whispers converge, never pre-emptively.
 ```
+! Ids are a SINGLE sequence across both inboxes (w-001, w-002 …), never per-person. ∵ the point of
+an id is to reference a thought in one place; two sequences would collide the first time both
+files reached w-003, and the collision would be silent.
+
+! Whispers sync through git like the rest of the vault, so each of them sees the other's. The
+`/whispers` pass reads both — a connection BETWEEN their two inboxes is the most interesting kind
+this system can find, because it means they arrived at the same thing independently.
 
 ## TOPIC THREADS
 - [[analysis-algorithm/README|analysis-algorithm/]] — how raw data becomes a read: per-tweet

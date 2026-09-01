@@ -1,11 +1,16 @@
 ---
-id: whisper.inbox
+id: whisper.inbox.connal
 t: whisper-inbox
-v: 2
+v: 3
 upd: 2026-09-01
 machine: connal
+owner: connal
 ---
-# INBOX — dump thoughts here
+# INBOX (CONNAL) — dump thoughts here
+
+! Austin has his own at `INBOX-austin.md`. Two files, not one, because both of you appending to the
+end of the same file is the single most reliable way to create a git conflict. Both are read
+together by `/whispers`, so the split is invisible when it matters.
 
 Type on a new line. Fragments fine. No date needed, no format, no complete sentences.
 Contradicting yourself is fine and often the interesting part.
@@ -22,3 +27,5 @@ I add the `w-NNN` ids later — don't bother with them, and don't tidy anything 
 - `w-004` remeber that i need to build a good wallet/whale tracking technology
 - `w-005` And for a coin dying you already have something better than chatter: the money actually leaving the pool. That's the thing itself, not a hint about it. Social going quiet is a guess about the future; liquidity draining is the present tense, and you get it in seconds rather than hours.
   - ! provenance: these are MY words from chat, kept on Connal's instruction — not his phrasing. recorded as an adopted principle, not as something he said. the distinction matters for [[70-AREAS/AREAS]]'s verbatim rule.
+- `w-006` me and austin are committing to an organizational ritual of him taking the the role controlling the presentation of the feature within the MCII app and i will take the role of developing the functionality of the feature so when we develop the mcii analysis algorithm austin will handle the presentation of it within the app and when he is building something new in the app i will build the functionality part of it ie how a whale wallet tracker would actually work
+  - ! this REFINES D-89 and should not stay only a whisper — D-89 splits work by SUBJECT (Connal: scanner/data/algorithms, Austin: the app), this splits it by LAYER (Connal: how it works, Austin: how it looks) across every feature. cleaner and more general. ! needs logging as a decision once Austin has confirmed it from his side — it is a two-person commitment and only one of them is in this conversation.

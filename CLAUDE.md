@@ -13,7 +13,9 @@ own listed trigger firing. Read it before proposing anything that sounds new.
 
 ## 2. ! WHEN CONNAL WRITES `whisper:` — SAVE IT, IMMEDIATELY
 Any message starting with `whisper:` (or `/whisper`) is a thought to capture, not a request to
-discuss. Append it to `80-WHISPERS/INBOX.md` as a new bullet, then confirm in one short line.
+discuss. Append it as a new bullet to **the inbox of whoever is speaking** —
+`80-WHISPERS/INBOX-connal.md` or `80-WHISPERS/INBOX-austin.md` — then confirm in one short line.
+! never merge the two inboxes or move a whisper between them: who thought it is part of the data.
 
 - **VERBATIM.** Never fix grammar, complete a sentence, expand an abbreviation, or correct a typo.
   The exact wording is data — it is how the thought actually arrived.

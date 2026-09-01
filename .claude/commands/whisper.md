@@ -1,9 +1,9 @@
 ---
-description: Capture a passing thought into 80-WHISPERS/INBOX.md with zero friction
+description: Capture a passing thought into 80-WHISPERS/INBOX-<person>.md with zero friction
 argument-hint: <the thought, however half-formed>
 ---
 
-Append `$ARGUMENTS` to `80-WHISPERS/INBOX.md` as a new bullet under the capture line.
+Append `$ARGUMENTS` to `80-WHISPERS/INBOX-<person>.md` as a new bullet under the capture line.
 
 Rules:
 - **Verbatim.** Do not clean up grammar, complete the sentence, expand an abbreviation, or fix a
