@@ -17,6 +17,8 @@
 // threshold would have to sit to catch anything. That is enough to fix a threshold set that was
 // guessed rather than fitted.
 
+const fs = require('fs');
+const path = require('path');
 const tw = require('../main/adapters/twitterapi');
 const { discoverLatest } = require('../main/adapters/dexscreener');
 const { getJSON } = require('../main/adapters/http');
@@ -93,4 +95,19 @@ async function readingFor(ca, sym) {
   }
   console.log(`\nflagged: ${A.filter((r) => r.manipulated).length}/${A.length} paid vs ${B.filter((r) => r.manipulated).length}/${B.length} watchlist`);
   console.log(`spend for this test: $${(tw.budget().usd - before).toFixed(4)}`);
+
+  // ! ACCUMULATE. Each run measures whatever handful of coins happen to be paying for placement
+  // today, and one run is far too small to fit a threshold to -- doing that would produce numbers
+  // that look fitted and are noise, which is the exact failure `60-KB/social-signal-research.md`
+  // documents. Appending means the labelled sample grows every time this is run, and thresholds
+  // get chosen once there is enough of it. Throwing these away each run would also repeat today's
+  // other lesson: data you paid for and discarded.
+  const out = path.join(__dirname, '../../data/manipulation-test.jsonl');
+  const stamp = Date.now();
+  const rows = [...A.map((r) => ({ ...r, group: 'paid' })), ...B.map((r) => ({ ...r, group: 'watchlist' }))]
+    .map((r) => ({ ...r, ts: stamp }));
+  fs.appendFileSync(out, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+  let total = 0;
+  try { total = fs.readFileSync(out, 'utf8').trim().split('\n').filter(Boolean).length; } catch {}
+  console.log(`appended ${rows.length} labelled readings — ${total} total so far`);
 })();
