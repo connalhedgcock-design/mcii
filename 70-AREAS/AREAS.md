@@ -43,6 +43,10 @@ Copy this shape for a new area. Do not invent a different one per area — the w
   the safety/exit-sim/chart services genuinely are Solana-only. one incident, one area.
 - [[j7-tracker/README]] — a third-party token-deployment site, embedded as a plain isolated
   `<webview>` tab. NOT a data integration — read this before wiring any of their "API keys" in.
+- [[trading-strategy/README]] — designing a tested, data-driven way to actually pick coins to
+  buy/sell, paper-traded first. NOT built yet. Read before the next session touches this — it has
+  the one permanent boundary (Claude never executes real trades), the $100 paper-trading budget,
+  and everything still genuinely open.
 
 ## RULES (restated from 50-LOG's write rules, because this is the doc that gets skipped)
 - `LOG.md` is APPEND-ONLY. never delete an entry, never rewrite history in place. a belief that was

@@ -182,10 +182,16 @@ Say this plainly if asked; do not oversell:
 ## 8. Open items
 
 1. Position sizes never entered — the sellable-amount figure is abstract without them
-2. Non-momentum discovery axis for the scanner
+2. Non-momentum discovery axis for the scanner — still true as of 08-31, confirmed against the
+   real code, not assumed. A partial path forward is designed (not built) in
+   `70-AREAS/trading-strategy/README.md`'s discovery section.
 3. Local scanner still dies when the laptop sleeps; should move into the hourly cloud job
 4. NEEGY's tone score is computed over posts almost nobody saw — consider showing reach beside tone
 5. Austin has the app; nothing verified working on his machine yet
+6. !! `70-AREAS/trading-strategy/` — a new initiative to actually pick coins to buy/sell, paper-
+   traded first. Next session's stated focus, per Connal directly: build the coin-picking part.
+   Read that area's README before touching it — it holds one permanent boundary (Claude never
+   executes real trades, pushed on directly and held) and the real $100 paper-trading budget.
 
 ---
 
