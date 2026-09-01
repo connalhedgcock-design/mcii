@@ -14,6 +14,7 @@ const journal = require('./journal');
 const updater = require('./updater');
 const orion = require('./orion');
 const portfolio = require('./portfolio');
+const alertsPush = require('./alerts-push');
 const walletAdapter = require('./adapters/wallet');
 const venues = require('./venues');
 const { Notification } = require('electron');
@@ -505,6 +506,9 @@ ipcMain.handle('portfolio:load', async () => {
   const out = await portfolio.load(wallets, { costBasis });
   lastFolio = out;
   try { out.pnl24 = await portfolio.pnl24(out.combined?.positions || []); } catch { out.pnl24 = null; }
+  // Tell the offline alerter what is actually held. Deliberately not awaited: it is a side effect,
+  // and a Cloudflare outage must not slow down or break the portfolio screen. See alerts-push.js.
+  alertsPush.pushHoldings(out.combined?.positions || []).catch(() => {});
   return out;
 });
 

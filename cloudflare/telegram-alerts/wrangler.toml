@@ -1,0 +1,21 @@
+name = "mcii-telegram-alerts"
+main = "src/index.js"
+compatibility_date = "2026-08-31"
+
+# No public URL. This worker only ever needs to run on its cron trigger, and a workers.dev URL
+# would be an unauthenticated public endpoint that anyone who guessed it could fire. Cron triggers
+# do not require a workers.dev subdomain -- only the fetch handler would, and we do not want one
+# exposed. Test runs go through `wrangler dev` locally instead.
+workers_dev = false
+
+# Every 5 minutes. Cloudflare's free-tier KV write limit (1,000/day) is the real ceiling here: at
+# 5 min this is 288 ticks/day, leaving headroom for several held positions at once. Going faster
+# means either fewer held positions or paying for KV -- do the arithmetic before tightening this.
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Created via: npx wrangler kv namespace create ALERTS_KV
+# Paste the id it prints below.
+[[kv_namespaces]]
+binding = "ALERTS_KV"
+id = "13c26aa744c24d7b9286fc90c72ca136"
