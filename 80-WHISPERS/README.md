@@ -35,7 +35,18 @@ He can also say `/whisper <thought>` in chat and I append it.
   INBOX.md       <- ! raw captures, append-only, zero-friction. his file. I only ever ADD ids.
   SYNTHESIS.md   <- the connection map. MY file, rewritten each pass. this is the actual product.
   w-NNN-slug.md  <- one file per PROMOTED whisper — only once it has earned expansion.
+  <topic>/       <- a THREAD: whispers that turn out to be about one subject, gathered w/ my
+                    expansion. created only when several whispers converge, never pre-emptively.
 ```
+
+## TOPIC THREADS
+- [[analysis-algorithm/README|analysis-algorithm/]] — how raw data becomes a read: per-tweet
+  extraction, discovery, attention measurement, whale tracking. sits UPSTREAM of the trading
+  strategy. holds w-001..w-005.
+! A THREAD HOLDS THE THINKING; THE AREA HOLDS THE DECISIONS. what gets decided or built moves to
+`70-AREAS/<subject>/`, and the thread links to it. ∵ one fact living in two places means neither
+gets trusted or updated. if a thread starts accumulating settled facts, that is the signal to
+promote them out, not to let the thread become a second area.
 
 ## IDS
 Every whisper gets `w-NNN` (zero-padded, never reused, assigned by me on the next pass after it is
