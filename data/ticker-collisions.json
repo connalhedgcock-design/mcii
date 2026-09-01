@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1788231030729,
+  "checkedAt": 1788295923978,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -9,12 +9,12 @@
         {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764203
+          "liquidityUsd": 73764220
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477147
+          "liquidityUsd": 1477144
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
@@ -33,16 +33,40 @@
         {
           "ca": "GvmPaRxZRRZobbjU41tas3uLXbnB2d98fWEZ54Wa3JJp",
           "name": "The Black Bull",
-          "liquidityUsd": 317701544
+          "liquidityUsd": 317701551
         },
         {
           "ca": "57mvFBEuVT7nukF9fEesWdu9QndP4QTJDsPBYzFxZVY4",
           "name": "The Black Bull",
-          "liquidityUsd": 262454316
+          "liquidityUsd": 262454330
         }
       ],
       "rank": 3,
       "of": 3
+    },
+    "DOGE-1": {
+      "ticker": "DOGE-1",
+      "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
+      "sym": "DOGE-1",
+      "rivals": [
+        {
+          "ca": "DELaxKkMde4G1kEjozTSh7KbzQBfW1VRHKFPEdgYUdoe",
+          "name": "DOGE-1 Satellite",
+          "liquidityUsd": 1616624
+        },
+        {
+          "ca": "917hzP7Ve4BLFkNyKTvsyXbyaLGKsZVjrCeZGZsDpump",
+          "name": "DOGE-1 Satellite",
+          "liquidityUsd": 310398
+        },
+        {
+          "ca": "9BFw5KMWpBfzbEKh7qtp5U6hXRVZ6DqykZGV1BkFpump",
+          "name": "DOGE-1",
+          "liquidityUsd": 42338
+        }
+      ],
+      "rank": 3,
+      "of": 4
     }
   }
 }
