@@ -52,6 +52,11 @@ conf=N% = my calibrated confidence. Every claim in this vault carries one or is 
 - ! `.obsidian/workspace.json` must stay gitignored — it is per-person UI state, not shared data.
 - next action gate that mattered at SPEC phase (read GRILL before any code) is DONE and moot now;
   the live gate is: read the OVERVIEW above before proposing anything that already exists.
+- ! AND CHECK `git log --oneline -15` BEFORE AUDITING OR PROPOSING ANYTHING. added 2026-09-01 after
+  a full social-collection audit was run against a state the other operator had already rebuilt
+  hours earlier — the files were read correctly, the COMMITS were not. two people in one folder
+  means "I read the current files" is not the same as "I know what just changed". costs 2 seconds.
+  ! the operator apologised for not mentioning it; that is the wrong direction. the check is mine.
 
 ## WRITE RULES (me)
 - one fact per file where it's a memory; one topic per file where it's spec

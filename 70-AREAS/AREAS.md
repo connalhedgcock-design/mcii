@@ -48,7 +48,9 @@ Copy this shape for a new area. Do not invent a different one per area — the w
   touching anything about how `data/` gets written, or before re-enabling the workflow cron.
 - [[social-collection/README|social-collection/]] — what we buy from X and what we do with it.
   The two-track design (strict `emerging` signal + kept bulk record), credibility weighting, and
-  coordination detection. ! read the measured before/after numbers before retuning any query.
+  coordination detection. ! read the measured before/after numbers before retuning any query. `LOG.md` carries the
+  independent pre-rebuild audit (09-01) — incl. the burn-rate figure that DISAGREES with the
+  README's design ceiling, and the sweep-share finding confirmed from two separate datasets.
 - [[trading-strategy/README]] — designing a tested, data-driven way to actually pick coins to
   buy/sell, paper-traded first. NOT built yet. Read before the next session touches this — it has
   the one permanent boundary (Claude never executes real trades), the $100 paper-trading budget,

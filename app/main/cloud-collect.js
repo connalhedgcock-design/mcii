@@ -41,7 +41,6 @@ const SWEEP_RESERVE_USD = 3;      // kept back so the sweep itself never runs ou
 // twice-hourly), and the 09-01 overspend below. If the timer changes, change this, or set
 // COLLECT_RUNS_PER_HOUR in the service environment — do not re-derive it anywhere else.
 const RUNS_PER_HOUR = Math.max(1, Number(process.env.COLLECT_RUNS_PER_HOUR || 2));
-const RUN_INTERVAL_MS = 36e5 / RUNS_PER_HOUR;
 
 // ! PER-COIN SOCIAL SEARCHES ARE OFF (D-108, Connal 2026-09-01: "i dont want to be searching for
 // individual coins at all"). The code below is kept, not deleted, because the reasoning for
@@ -138,7 +137,12 @@ async function collectSocial(tokens) {
   for (const q of tw.sectorQueries()) {
     // Each search has its own depth and its own cadence, set by how much of it exists. Capturing
     // every rug report is affordable; capturing a slice of the firehose was not worth paying for.
-    if (q.everyHours > 1 && !dueForQuery(q.kind, q.everyHours)) {
+    // ! EVERY query is gated, including hourly ones. Until 2026-09-01 this read
+    // `q.everyHours > 1 &&`, so a query declaring `everyHours: 1` was never checked at all and
+    // fired on BOTH half-hourly runs — 150 of ~166 swept posts an hour, at double their stated
+    // cadence. The two queries that LOOKED like proof the gate worked (mood 6h, crowd 2h) were
+    // the only ones it applied to, which is exactly why it survived review.
+    if (!dueForQuery(q.kind, q.everyHours)) {
       log(`  ${q.kind}: not due yet`);
       continue;
     }
@@ -164,7 +168,11 @@ async function collectSocial(tokens) {
   // not get a top-up at all, so the budget goes to the coins nobody happened to mention.
   const b = tw.budget();
   const spare = Math.max(0, b.remainingUsd - SWEEP_RESERVE_USD);
-  const runsLeftThisMonth = Math.max(1, hoursLeftInMonth());
+  // ! hoursLeftInMonth() x RUNS_PER_HOUR. This said `hoursLeftInMonth()` alone until 2026-09-01:
+  // the variable was named runs and held hours, so each run was allowed twice the share of the
+  // month it could afford. It was MASKED by the per-coin ceilings binding first — worse than the
+  // error itself, because a budget guard that never binds looks identical to one that works.
+  const runsLeftThisMonth = Math.max(1, hoursLeftInMonth() * RUNS_PER_HOUR);
   const topUpPostsPerCoin = tokens.length
     ? Math.max(0, Math.min(8, Math.floor((spare / runsLeftThisMonth / tw.COST_PER_POST) / tokens.length)))
     : 0;
@@ -179,7 +187,7 @@ async function collectSocial(tokens) {
     let mine = sweep.filter((p) => imp.about(p, [t], tlex).hits.length > 0);
     const fromSweep = mine.length;
     // Only ask about this coin directly if the sweep did not already cover it.
-    if (mine.length < MIN_POSTS_PER_COIN && topUpPostsPerCoin > 0) {
+    if (PER_COIN_TOPUP && mine.length < MIN_POSTS_PER_COIN && topUpPostsPerCoin > 0) {
       // ! a cashtag search is worthless when several coins share the ticker -- it would buy
       // posts about somebody else's coin and file them under theirs. Address only, in that case.
       const queries = contestedSet.has(resolve.bare(t.sym))

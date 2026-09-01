@@ -14,6 +14,14 @@ Rules:
   entire value of this command is that it costs him nothing to use.
 - Reply with at most one short line confirming it landed. Nothing else.
 
+**After appending, FILE IT — silently.** Read `80-WHISPERS/README.md`'s ROUTING section and add
+the whisper to the owning project folder's README under its whispers list. One whisper, one owning
+folder; if another thread needs it, that thread references it rather than holding a second copy.
+If nothing fits, leave it UNFILED in the routing map with a one-line note — do not invent a folder
+for a single whisper with no project. ! filing is MY work and must not leak into the reply: still
+one short line, still no interpretation. ! do NOT assign the `w-NNN` id here — ids are still the
+synthesis pass's job, and the routing map carries the whisper by its text until then.
+
 If `$ARGUMENTS` is empty, ask only: "what's the thought?" — nothing more.
 
 **Exception, the one time you say more:** if this whisper obviously collides with something live
