@@ -12,7 +12,8 @@ import {
   DOORS, RING, TURN_MS, NAVIGATING_MS, TRAVEL_MS, WINDOWS,
   yawFor, offsetFor, starPan, stepDoorScreen, doorVisible, homeIndex,
   boardsFor, columnHeight, globeSize,
-  hullSegments, hullFacetWidth, hullVisible, HULL_Z,
+  hullSegments, vaultSegments, hullFacetWidth, doorBayWidth, hullVisible, vaultVisible,
+  WALL_Z, VAULT_TILT_DEG,
 } from './station-geometry.js'
 import { mountGlobe } from './holo-globe.js'
 import { snapshot, renderBoard } from './instruments.js'
@@ -49,15 +50,27 @@ function build(root) {
                stylesheet goes stale the moment either is touched -- leaving hairline gaps
                between wall panels that show the void through the hull. A custom property
                is not a grouping property, so it is safe on this element. -->
-          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px">
+          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px; --st-jamb-w:${Math.round(doorBayWidth())}px">
             <!-- The hull FIRST: the corridor the doors are set into. Before the
                  floor and the portals so it is the surface everything else sits
                  against, and so a facet can never paint over an arch. -->
+            <!-- THE OVERHEAD. Per-facet, tipped inward off the top of the wall, so it
+                 stops where the corridor stops instead of running out past the last
+                 door the way the screen-fixed ceiling did. -->
+            ${vaultSegments().map((v) => `
+              <div class="st-vault st-vault-${v.kind}" data-a="${v.angle}"
+                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg)"></div>`).join('')}
+            <!-- THE WALL. Facets a doorway covers are simply absent — the jamb is
+                 the wall there, and it carries the opening. -->
             ${hullSegments().map((h) => `
-              <div class="st-hull-cornice" data-a="${h.angle}"
-                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + HULL_Z}px)"></div>
-              <div class="st-hull-seg" data-a="${h.angle}"
-                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + HULL_Z}px)"></div>`).join('')}
+              <div class="st-hull-seg st-hull-${h.kind}" data-a="${h.angle}"
+                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px)"></div>`).join('')}
+            <!-- THE JAMBS. A wall panel with the doorway cut out of it, sitting in
+                 FRONT of the door ring, so the door is seen through a hole in the
+                 wall with the wall's own thickness showing as a reveal. -->
+            ${DOORS.map((d) => `
+              <div class="st-hull-jamb" data-a="${d.angle}"
+                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px)"></div>`).join('')}
             <div class="st-beyond-floor"></div>
             ${DOORS.map((d, i) => `
               <div class="st-portal${d.built ? '' : ' is-sealed'}" data-i="${i}"
@@ -224,8 +237,11 @@ function render() {
 
   // The hull obeys the same camera-plane rule as the doors (§9.12): a facet more
   // than ~85 deg off your heading has passed the camera and re-projects huge.
-  stage.querySelectorAll('.st-hull-seg, .st-hull-cornice').forEach((h) => {
+  stage.querySelectorAll('.st-hull-seg, .st-hull-jamb').forEach((h) => {
     h.classList.toggle('is-offscreen', !hullVisible(Number(h.dataset.a), door))
+  })
+  stage.querySelectorAll('.st-vault').forEach((v) => {
+    v.classList.toggle('is-offscreen', !vaultVisible(Number(v.dataset.a), door))
   })
 
   stage.querySelectorAll('.st-portal').forEach((p) => {

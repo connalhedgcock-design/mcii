@@ -280,58 +280,106 @@ export const WINDOWS = [
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   THE HULL — the ring corridor the doors are set into.
+   THE HULL — the ring corridor: wall, overhead vault, and the door jambs.
 
-   Until 2026-08-31 the room had a floor and a ceiling and NOTHING BETWEEN THEM:
-   seven arches standing in open dark, with the void showing between and above
-   them. That is what "it looks like rooms in black nothingness" was describing.
-   The fix is not more texture on the dark — it is that the room had no walls.
+   The room had a floor and a ceiling and NOTHING BETWEEN THEM: seven arches in
+   open dark. It was not missing texture, it was missing a hull.
 
-   The hull is a cylinder section at the SAME radius as the doors, built from
-   flat facets. The doors are drawn over it, so a doorway is an arch mounted on
-   a wall rather than a hole cut through one — far simpler than real apertures
-   and indistinguishable once the wall is opaque.
+   ⚠️ FACET SPACING IS 7° FOR A REASON, NOT BY FEEL. Every door angle in DOORS
+   (0, ±28, ±56, ±84) is a multiple of 7, so every door lands on a facet CENTRE.
+   That is what lets the wall open cleanly for a doorway — suppress the facets a
+   door covers, drop a jamb in the hole, done. At 8° the doors landed between
+   facets and every opening needed a half-panel fudge.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Facet width in degrees. Smaller is smoother and costs one more DOM node per
- *  facet; 8° is under the angle at which the flats become readable as flats. */
-export const HULL_SEG_DEG = 8
+export const HULL_SEG_DEG = 7
+export const HULL_SPAN_DEG = 133
 
-/** How far BEHIND the door ring the hull sits, in px.
- *  ⚠️ NOT ZERO. At the doors' own radius the wall and the arches are coplanar,
- *  the depth sort between them is arbitrary, and the hull paints over the doors
- *  — the arches vanish and the room reads as a smooth tube with name plates
- *  floating on it. Far enough back to sort reliably, near enough that the arch
- *  still reads as set INTO the wall rather than standing in front of it. */
-export const HULL_Z = 14
+/** Where the WALL FACE sits, relative to the door ring. NEGATIVE — the wall is
+ *  IN FRONT of the doors, which is the whole reason a door reads as set INTO the
+ *  wall rather than as a portal stuck on the front of one. The door is then seen
+ *  through a hole in the wall, 16px back, with the wall's own thickness showing
+ *  as a reveal around the opening. */
+export const WALL_Z = -16
 
-/** How far the corridor runs either side of the room's axis.
- *  ! Must cover the outermost door (±84°) PLUS the half-field you can still see
- *  past it once you are facing it, or the corridor visibly stops at the last
- *  door and the void returns exactly where the eye was sent. */
-export const HULL_SPAN_DEG = 132
+/** Angular width of a door's jamb panel. Wider than the door's own 24.8° so it
+ *  laps onto the wall either side and no seam lands on the opening's edge. */
+export const DOOR_BAY_DEG = 30
 
-/** The facets, centre-angle each, running the full span. */
+/** Half-angle a door actually covers on the ring: asin(halfWidth / RING). */
+export function doorHalfAngle() {
+  return (Math.asin((DOOR_W / 2) / RING) * 180) / Math.PI
+}
+
+/** The facets. `kind` decides what the CSS paints:
+ *    wall    — panelled bulkhead
+ *    window  — a glazed bay onto space. Only out past the last door, because
+ *              between doors there is exactly one 7° pillar and a window there
+ *              would be a porthole in a doorframe.
+ *  Facets a door covers are omitted entirely: the jamb is the wall there. */
 export function hullSegments() {
+  const half = doorHalfAngle()
   const out = []
-  for (let a = -HULL_SPAN_DEG; a < HULL_SPAN_DEG; a += HULL_SEG_DEG) {
-    out.push({ angle: +(a + HULL_SEG_DEG / 2).toFixed(3) })
+  for (let k = -19; k <= 19; k++) {
+    const angle = k * HULL_SEG_DEG
+    if (Math.abs(angle) > HULL_SPAN_DEG) continue
+    // Covered by a doorway? The jamb owns that arc.
+    if (DOORS.some((d) => Math.abs(angle - d.angle) < half - HULL_SEG_DEG / 2)) continue
+    const outboard = Math.abs(angle) > Math.max(...DOORS.map((d) => Math.abs(d.angle))) + HULL_SEG_DEG
+    const kind = outboard && (Math.abs(angle) / HULL_SEG_DEG) % 2 === 1 ? 'window' : 'wall'
+    out.push({ angle, kind })
   }
   return out
 }
 
-/** Chord width of one facet at the ring, in px.
- *  ⚠️ Facets must BUTT or slightly overlap, never gap: a sub-pixel gap between
- *  two wall panels shows the void through the hull as a bright hairline, which
- *  reads as a rendering fault. The renderer adds a pixel of overlap deliberately
- *  — the panels are opaque, so overlapping costs nothing. */
-export function hullFacetWidth() {
-  return 2 * (RING + HULL_Z) * Math.sin(((HULL_SEG_DEG / 2) * Math.PI) / 180)
+/** The vault facets — the overhead. Same angles as the wall INCLUDING the door
+ *  arcs, because a corridor's roof does not stop over a doorway.
+ *  ⚠️ Per-facet, NOT one raked plane. §9.5 killed the single-plane ceiling: a
+ *  finite plane whose footprint is not centred on the camera rotates out of view
+ *  at a large heading. A RING of facets is centred on the camera by construction,
+ *  so it cannot leave the top of the frame — and unlike the screen-fixed ceiling
+ *  it stops where the walls stop, instead of running out past the last door. */
+export function vaultSegments() {
+  const out = []
+  for (let k = -19; k <= 19; k++) {
+    const angle = k * HULL_SEG_DEG
+    if (Math.abs(angle) > HULL_SPAN_DEG) continue
+    // Every third bay is glazed. A continuous strip of window is a greenhouse;
+    // ribs between the panes are what make it read as structure holding glass.
+    out.push({ angle, kind: k % 3 === 0 ? 'glazed' : 'rib' })
+  }
+  return out
 }
 
-/** Same camera-plane rule the doors obey (§9.12): a facet more than ~85° off
+/** Chord width of one facet at the wall plane, in px.
+ *  ⚠️ Facets must BUTT or slightly overlap, never gap: a sub-pixel gap between
+ *  two panels shows the void through the hull as a bright hairline, which reads
+ *  as a rendering fault. The renderer adds a pixel of overlap deliberately. */
+export function hullFacetWidth() {
+  return 2 * (RING + WALL_Z) * Math.sin(((HULL_SEG_DEG / 2) * Math.PI) / 180)
+}
+
+/** Chord width of a door's jamb panel at the wall plane. */
+export function doorBayWidth() {
+  return 2 * (RING + WALL_Z) * Math.sin(((DOOR_BAY_DEG / 2) * Math.PI) / 180)
+}
+
+/** Same camera-plane rule the doors obey (§9.12): anything more than ~85° off
  *  your heading has crossed the camera plane and re-projects at enormous scale.
  *  Hidden, never unmounted. */
 export function hullVisible(angle, facingIndex) {
   return Math.abs(angle - DOORS[facingIndex].angle) < 85
+}
+
+/** The vault needs a TIGHTER bound than the wall, and this is not caution.
+ *  ⚠️ A vault facet is tipped forward off the wall, so its near edge sits
+ *  hundreds of px closer to the camera than its base. Out near the wall's own 85°
+ *  limit the base is already almost on the camera plane, and the tilt carries the
+ *  near edge straight past it — the facet re-projects at enormous scale and rakes
+ *  across the middle of the room as a bright diagonal streak over the doors and
+ *  the globe. It reads as a rendering fault, and it is invisible in the source
+ *  because the geometry that produced it is two transforms apart. */
+export const VAULT_TILT_DEG = 45
+export function vaultVisible(angle, facingIndex) {
+  return Math.abs(angle - DOORS[facingIndex].angle) < 45
 }

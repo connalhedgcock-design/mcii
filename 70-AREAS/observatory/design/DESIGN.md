@@ -1,8 +1,8 @@
 ---
 id: area.observatory.design
 t: area-design
-v: 3
-upd: 2026-08-31
+v: 4
+upd: 2026-09-01
 machine: austin
 ---
 # THE OBSERVATORY — design language
@@ -166,6 +166,46 @@ an arch mounted on a wall rather than an aperture cut through one.
   never a licence to crush the whole scene to the bottom of the range.
 - ✓ KEPT, on operator instruction: the Orion globe and all six instrument panels. The environment
   around them is fair game; they are not.
+
+## THE ROOM, REBUILT AS A REAL INTERIOR (operator, 09-01)
+Operator: "make the background look fully like you are in a futuristic space station", and on the
+first hull: the ceiling "does not look like a room and it extends past the doors", the floor is
+"just grid panels", the doors "look in front of the actual walls, more of a portal rather than a
+door". All four were fair. What the rebuild settled:
+
+- ✓ **BLUE STRUCTURE, WHITE PANELS, ~70/30.** Operator's call, and it is the palette law for the
+  room now. Blue carries the frame, the shadow and the light; white is the panel material set into
+  it. `X` beige and warm neutrals — proposed off the back of NASA's ISS interior spec, rejected on
+  sight ("beige is wierd"). ! blue-dominant does NOT mean dark blue; see the too-dark entry above.
+- ✓ **ORIENTATION GRADIENT: overhead brightest → wall mid → deck darkest.** Not taste. NASA's ISS
+  interior colour work (SSP 50008) uses exactly this, because crews read "which way is up" from
+  which surface is brighter and report feeling upright when the brighter field is overhead. It is
+  also the cheapest way to make a rendered box read as a room. ! do not brighten the deck past the
+  wall; it inverts the cue and the room starts reading upside down.
+- ✓ **DOORS ARE HOLES IN THE WALL, not plates in front of it.** `WALL_Z` is NEGATIVE: the wall face
+  sits 16px in FRONT of the door ring, and `.st-hull-jamb` cuts the opening out with `clip-path`
+  (legal only because it is a leaf). The door is then seen 16px back through a hole with the wall's
+  own thickness showing as a reveal. This single change did more than every surface treatment.
+  ! the hole is scaled by (RING+WALL_Z)/RING — an identically-sized hole in a nearer plane subtends
+  a WIDER angle and leaves a sliver of void down each side of the door.
+- ✓ **FACET SPACING IS 7°, and that is load-bearing.** Every door angle (0, ±28, ±56, ±84) is a
+  multiple of 7, so every door lands on a facet CENTRE and the wall can open cleanly for it.
+  Asserted. At 8° the doors landed between facets and every opening needed a half-panel fudge.
+- ✓ **THE OVERHEAD IS PER-FACET AND BELONGS TO THE RING**, so it stops where the corridor stops.
+  `X` the screen-fixed ceiling: `left:-25%; right:-25%` ran it out past the last door on both sides,
+  which is exactly the "extends past the doors" complaint. Retired, not deleted — `render()` still
+  writes `starPan()` to `.st-ceil-stars` and a missing node throws there.
+- !! **A TIPPED FACET NEEDS A TIGHTER ANGULAR BOUND THAN A VERTICAL ONE.** The vault leans forward
+  off the wall, so its near edge sits hundreds of px closer to the camera than its base. At the
+  wall's own 85° limit the tilt carried that edge past the camera plane and the facet re-projected
+  as a bright diagonal raking across the doors and the globe. `vaultVisible()` bounds it at 45° and
+  the vault was shortened to 380px so it reaches less far across the room. Found by bisection —
+  hiding the vault removed the streaks, then halving the visible span located them — because the
+  geometry that produced it is two transforms away from where it appears.
+- ✓ the deck is plate, not wireframe: hand-placed transverse joints that spread toward you, a centre
+  runner down the axis, and the cove's specular return. That return is most of what separates
+  "polished deck" from "dark carpet".
+- ✓ space-station kit on the bulkheads: louvred return-air grilles, panel fasteners, door placards.
 
 ## NO DISCLAIMERS, NO SELF-EXPLANATION (operator, 08-31)
 `X` on-screen copy whose job is to explain the app to its user or reassure them about what it does

@@ -205,174 +205,252 @@
    flattening has no children left to ruin. This one rule is responsible for
    more lost days than everything else in the file. §9.1 */
 
-/* ── THE HULL: the ring corridor ───────────────────────────────────────────
-   The room had a floor and a ceiling and nothing between them — seven arches
-   standing in open dark. These are the walls. A cylinder section at the doors'
-   own radius, built from flat facets (see station-geometry.js: hullSegments).
+/* ── THE HULL: wall, vault and jambs ──────────────────────────────────────
+   PALETTE, and it is the whole reason the room reads as a place: BLUE STRUCTURE,
+   WHITE PANELS. Roughly 70/30 blue to white across the scene, operator's call.
+   Blue carries the frame, the shadow and the light; white is the panel material
+   set into it. `X` beige and warm neutrals — tried on the strength of the ISS
+   interior spec, rejected on sight.
 
-   REGISTER: futuristic, not used-future. Smooth panels, machined seams, a
-   continuous light cove along the top — no rivets, no grime, no hazard tape.
-   The instruments hanging in front of this are the industrial part; the hull is
-   architecture, and the contrast between the two is deliberate.
+   ⚠️ AND IT IS LIGHT. The first hull ran 0.09–0.19 lightness "to keep the
+   instruments brightest" and the operator could not tell it had been built. The
+   panels hold their hierarchy through their own frames and lit readouts, the way
+   real instruments read against a lit bulkhead — not by having the room crushed
+   to black. Blue-dominant does NOT mean dark blue.
 
-   ⚠️ ARCHITECTURE IS LOW-CHROMA, ALWAYS. Every colour here sits under chroma
-   0.03 so the hull can never be mistaken for a subsystem lamp. Chroma above
-   ~0.1 is reserved: cyan means THE MACHINE, amber means CAUTION. A wall that
-   glows cyan spends the one hue that has a job.
-   ⚠️ These are LEAF nodes. That is the only reason they may carry gradients and
-   masks at all — the same properties on any ancestor in the
-   .st-beyond → .st-beyond-world → .st-portal chain silently kill preserve-3d. */
-.st-hull-seg {
+   ORIENTATION GRADIENT: overhead brightest → wall mid → deck darkest. Not taste.
+   NASA's ISS interior colour work (SSP 50008) uses exactly this: crews read
+   "which way is up" from which surface is brighter, and report feeling upright
+   when the brighter field is overhead. It is also the cheapest possible way to
+   make a rendered box read as a room rather than as a tube.
+
+   ⚠️ These are LEAF nodes. That is the only reason they may carry gradients,
+   masks and clip-paths at all — the same properties on any ancestor in the
+   .st-beyond → .st-beyond-world chain silently kill preserve-3d. */
+
+.st-hull-seg,
+.st-hull-jamb {
   position: absolute;
-  width: var(--st-hull-w);
-  left: calc(var(--st-hull-w) / -2);
-  /* ⚠️ THE VERTICAL EXTENT IS A COORDINATE SYSTEM, NOT A GUESS. Every percentage
-     below is measured against THIS box, so getting it wrong puts detail off
-     screen while the CSS looks perfectly reasonable. The first pass ran the box
-     from world y −900 to +160 and placed the cove at 7% — which is world y −828,
-     a long way above the top of the window, behind the ceiling. The wall
-     rendered as one flat sheet and every "the seams aren't showing" theory was
-     about the wrong thing.
-
-     The box now runs world y −560 → +200, so:  pct = (world_y + 560) / 760
-       door head   y −400  → 21%     (.st-portal is top:-400 height:560)
-       door base   y +160  → 94.7%
-       floor meets the hull at y ≈ 195 → 99.3%, which is why the box ends at 200.
-     Anything meant to be SEEN belongs between about 17% and 100%; the rest is
-     behind the ceiling. */
+  /* ⚠️ A coordinate system, not a guess: pct = (world_y + 560) / 760.
+       door head  y −400 → 21%      door base y +160 → 94.7%
+     An earlier box ran from −900 and put the cove at 7% — world −828, far above
+     the window, behind the ceiling. The wall rendered flat for two passes while
+     every theory was about seam widths. */
   top: -560px;
   height: 760px;
   backface-visibility: hidden;
-  background:
-    /* the light cove, just above the door heads: a continuous strip running the
-       length of the corridor. The room's only real light source, and the
-       futuristic register's signature — everything below is lit BY it. */
-    linear-gradient(to bottom,
-      transparent 0 16.0%,
-      oklch(0.60 0.024 244 / 0.55) 16.0% 16.6%,
-      oklch(0.97 0.030 238 / 0.95) 16.6% 18.5%,
-      oklch(0.66 0.026 242 / 0.60) 18.5% 19.3%,
-      oklch(0.52 0.020 245 / 0.22) 19.3% 21%,
-      transparent 21% 100%),
-    /* the kick plate where the wall meets the deck, catching floor bounce */
-    linear-gradient(to bottom,
-      transparent 0 89.5%,
-      oklch(0.42 0.017 248 / 0.38) 89.5% 90.2%,
-      oklch(0.17 0.010 250 / 0.60) 90.2% 100%),
-    /* A conduit run, just above the kick. The only non-structural mark on the
-       hull, and it earns its place: a corridor that carries nothing anywhere is
-       set dressing. One line, low, where it never competes with a reading. */
-    linear-gradient(to bottom,
-      transparent 0 86.4%,
-      oklch(0.30 0.014 248 / 0.42) 86.4% 86.9%,
-      oklch(0.46 0.020 245 / 0.30) 86.9% 87.6%,
-      oklch(0.20 0.010 250 / 0.50) 87.6% 88.2%,
-      transparent 88.2% 100%),
-    /* machined seams down both edges of every facet.
-       ⚠️ Widths are in WORLD px and the ring projects at 900/(900+994) = 0.475,
-       so anything under ~3px here lands on a sub-pixel and vanishes. The first
-       pass drew 2px seams and the wall rendered as one unbroken sheet. */
-    linear-gradient(to right,
-      oklch(0.44 0.017 246 / 0.32) 0 2px,
-      oklch(0.07 0.005 250 / 0.70) 2px 5px,
-      transparent 5px calc(100% - 5px),
-      oklch(0.07 0.005 250 / 0.70) calc(100% - 5px) calc(100% - 2px),
-      oklch(0.44 0.017 246 / 0.32) calc(100% - 2px) 100%),
-    /* the panel face: lit from the cove, falling away toward the deck. OPAQUE —
-       a hull you can see the void through is not enclosure.
-       ⚠️ Stays DARKER than the instrument boards in front of it (.st-panel is
-       0.175). The wall is what they are lit against; a hull brighter than the
-       panels turns the room's subject into its background. */
-    /* ⚠️ THESE WERE FAR TOO DARK AND THE WHOLE BUILD READ AS "no change".
-       The first version ran 0.09–0.19 to protect "instruments stay brightest",
-       which held the entire environment at near-black: a wall you have to go
-       looking for is not a wall. A real corridor is LIT. The panels keep their
-       hierarchy through their own frames and glowing readouts — the way real
-       instruments read against a lit bulkhead — not by having everything around
-       them crushed to black. */
-    linear-gradient(to bottom,
-      oklch(0.150 0.008 250) 0%,
-      oklch(0.190 0.010 250) 15%,
-      oklch(0.335 0.017 248) 19%,
-      oklch(0.302 0.016 249) 32%,
-      oklch(0.258 0.014 249) 55%,
-      oklch(0.212 0.012 250) 78%,
-      oklch(0.178 0.010 250) 100%);
 }
-/* THE RECESSED BAYS. Two inset panels per facet, stacked between the cove and
-   the kick. This is the motif that reads "ship" faster than any amount of
-   surface noise: a wall of plain sheet is a backdrop, a wall of bays is built.
-   Lit as real recesses — shadowed along the top inner edge, catching light along
-   the bottom one. */
-.st-hull-seg::before,
+.st-hull-seg { width: var(--st-hull-w); left: calc(var(--st-hull-w) / -2); }
+.st-hull-jamb { width: var(--st-jamb-w); left: calc(var(--st-jamb-w) / -2); }
+
+/* ── the bulkhead: blue structure ─────────────────────────────────────────── */
+.st-hull-seg,
+.st-hull-jamb {
+  background:
+    /* the light cove, just above the door heads — the corridor's own fixture,
+       and the reason every surface below falls off downward */
+    linear-gradient(to bottom,
+      transparent 0 13.4%,
+      oklch(0.62 0.045 244 / 0.55) 13.4% 14.1%,
+      oklch(0.97 0.022 238) 14.1% 16.4%,
+      oklch(0.70 0.050 242 / 0.65) 16.4% 17.4%,
+      oklch(0.55 0.040 245 / 0.28) 17.4% 19.6%,
+      transparent 19.6% 100%),
+    /* stiles down both edges of the panel — structure, catching the cove */
+    linear-gradient(to right,
+      oklch(0.60 0.042 246) 0 3px,
+      oklch(0.30 0.030 250) 3px 7px,
+      transparent 7px calc(100% - 7px),
+      oklch(0.30 0.030 250) calc(100% - 7px) calc(100% - 3px),
+      oklch(0.60 0.042 246) calc(100% - 3px) 100%),
+    /* the structural frame itself */
+    linear-gradient(to bottom,
+      oklch(0.300 0.030 249) 0%,
+      oklch(0.360 0.034 248) 13%,
+      oklch(0.520 0.042 246) 20%,
+      oklch(0.455 0.038 247) 46%,
+      oklch(0.390 0.034 248) 74%,
+      oklch(0.320 0.030 249) 92%,
+      oklch(0.255 0.026 250) 100%);
+}
+
+/* ── the white panel insert ───────────────────────────────────────────────── */
+.st-hull-seg::before {
+  content: '';
+  position: absolute;
+  left: 11px; right: 11px;
+  top: 23%; height: 62%;
+  border-radius: 2px;
+  background: linear-gradient(to bottom,
+    oklch(0.855 0.014 244) 0%,
+    oklch(0.805 0.013 245) 34%,
+    oklch(0.735 0.013 246) 72%,
+    oklch(0.680 0.014 247) 100%);
+  /* a real panel has thickness: bright top lip catching the cove, shadow under */
+  box-shadow:
+    inset 0 1px 0 oklch(0.97 0.010 240),
+    inset 0 -2px 3px -1px oklch(0.30 0.030 250 / 0.55),
+    0 2px 5px -2px oklch(0.18 0.020 250 / 0.65);
+}
+/* Space-station stuff: a louvred return-air grille low on the panel, and the
+   fastener line across its head. Structural kit, not ornament — a bulkhead with
+   nothing on it is a wall in a render, not a wall on a ship. */
 .st-hull-seg::after {
   content: '';
   position: absolute;
-  left: 16px; right: 16px;
-  border-radius: 3px;
-  /* ⚠️ A recess is a surface lying in shadow, NOT a hole. Drawn too dark it
-     reads as a window onto the void — which is the exact thing this whole hull
-     exists to get rid of, reintroduced one rectangle at a time. Keep the bay
-     floor clearly above black and let the shadow at its top lip do the work. */
-  background: linear-gradient(to bottom,
-    oklch(0.176 0.010 250) 0%, oklch(0.242 0.013 249) 100%);
-  box-shadow:
-    inset 0 3px 6px -2px oklch(0.03 0.003 250 / 0.75),
-    inset 0 -1px 0 oklch(0.52 0.020 246 / 0.42),
-    inset 1px 0 0 oklch(0.05 0.004 250 / 0.5),
-    inset -1px 0 0 oklch(0.05 0.004 250 / 0.5);
+  left: 24px; right: 24px;
+  top: 63%; height: 17%;
+  border-radius: 1px;
+  background:
+    repeating-linear-gradient(to bottom,
+      oklch(0.44 0.030 248 / 0.85) 0 2px,
+      oklch(0.79 0.014 245 / 0.55) 2px 6px);
+  box-shadow: inset 0 0 0 2px oklch(0.40 0.032 248 / 0.7);
 }
-.st-hull-seg::before { top: 24%;   height: 30%; }
-.st-hull-seg::after  { top: 57.5%; height: 29%; }
 
-/* ── THE CORNICE: upper wall, cove to ceiling ──────────────────────────────
-   The band between the light cove and the ceiling was the last stretch of open
-   void in the room — the hull stopped at the cove and the ceiling faded in
-   above it, leaving a dark gap where the two should meet. This is the piece
-   that closes the room.
+/* ── a glazed bay: the corridor looks out ─────────────────────────────────── */
+.st-hull-window::before {
+  background:
+    /* the planet's limb, low in the frame */
+    radial-gradient(ellipse 150% 62% at 50% 128%,
+      oklch(0.66 0.115 232) 0%, oklch(0.42 0.090 238) 42%, transparent 66%),
+    /* stars, three magnitudes — one size reads as noise, three reads as sky */
+    radial-gradient(1.6px 1.6px at 22% 24%, oklch(0.97 0.010 240 / 0.95), transparent 55%),
+    radial-gradient(1.1px 1.1px at 63% 14%, oklch(0.93 0.015 235 / 0.75), transparent 55%),
+    radial-gradient(1.1px 1.1px at 78% 44%, oklch(0.90 0.012 245 / 0.65), transparent 55%),
+    radial-gradient(2px 2px   at 41% 58%, oklch(0.99 0.010 240 / 0.9), transparent 55%),
+    radial-gradient(1px 1px   at 13% 68%, oklch(0.88 0.012 240 / 0.6), transparent 55%),
+    radial-gradient(1px 1px   at 88% 72%, oklch(0.90 0.012 240 / 0.55), transparent 55%),
+    linear-gradient(to bottom, oklch(0.085 0.018 252), oklch(0.055 0.012 254));
+  box-shadow:
+    inset 0 0 0 3px oklch(0.52 0.040 246),
+    inset 0 2px 7px 1px oklch(0.02 0.010 250 / 0.9),
+    0 0 14px -3px oklch(0.70 0.090 235 / 0.35);
+}
+.st-hull-window::after { display: none; }
 
-   Lit from BELOW, because the cove is below it. That is the whole reason it
-   reads as a surface rather than a panel: light falling upward off a strip is
-   what a real coved ceiling looks like, and getting it the usual way round
-   (bright at top) makes it read as a second wall floating over the first.
+/* ── THE JAMB: the doorway is a hole in the wall ──────────────────────────── */
+/* ⚠️ THIS IS WHAT MAKES A DOOR READ AS A DOOR AND NOT A PORTAL STUCK ON THE
+   FRONT OF A WALL. The panel sits IN FRONT of the door ring (WALL_Z is negative)
+   and the opening is genuinely cut out of it with clip-path, so you see the door
+   16px back through a hole with the wall's thickness around it.
+   The hole is 412 wide against the door's 420: the jamb plane is nearer the
+   camera than the door plane, so an identically-sized hole subtends a WIDER
+   angle and leaves a sliver of void down each side of the door. Scaled by
+   (RING+WALL_Z)/RING. clip-path is legal here only because this is a leaf. */
+.st-hull-jamb {
+  clip-path: path(evenodd,
+    'M0,0 H499 V760 H0 Z M43.5,719 V369 A206,206 0 0 1 455.5,369 V719 Z');
+}
+/* The reveal: the wall's own cut edge around the opening, catching the cove.
+   Without it the hole has no thickness and the wall reads as paper. */
+.st-hull-jamb::before {
+  content: '';
+  position: absolute;
+  left: 39px; right: 39px;
+  top: 158px; bottom: 37px;
+  border-radius: 210px 210px 3px 3px;
+  box-shadow:
+    0 0 0 3px oklch(0.66 0.045 244),
+    0 0 0 5px oklch(0.26 0.028 250),
+    0 0 18px 5px oklch(0.05 0.010 250 / 0.55);
+}
+/* Placard beside the opening — the door's own subsystem tag, on the wall where
+   a real one would be riveted rather than floating in the air. */
+.st-hull-jamb::after {
+  content: '';
+  position: absolute;
+  left: 12px; width: 22px;
+  top: 30%; height: 26%;
+  border-radius: 1px;
+  background: linear-gradient(to bottom,
+    oklch(0.80 0.014 245), oklch(0.70 0.014 246));
+  box-shadow: inset 0 0 0 2px oklch(0.42 0.032 248 / 0.8);
+}
 
-   Coordinates: world y −1100 → −545, i.e. pct = (world_y + 1100) / 555.
-   Overlaps the wall's top edge (−560) by 15px on purpose — a seam between two
-   surfaces meant to be continuous is worse than an overlap you cannot see. */
-.st-hull-cornice {
+/* ── THE VAULT: the overhead ──────────────────────────────────────────────── */
+/* Tipped inward off the top of the wall, per facet, so it STOPS WHERE THE
+   CORRIDOR STOPS. The screen-fixed ceiling it replaces ran out past the last
+   door on both sides, which is what made the room read as a wireframe over a
+   void rather than as a roof.
+   Brightest surface in the room, per the orientation gradient above. */
+.st-vault {
   position: absolute;
   width: var(--st-hull-w);
   left: calc(var(--st-hull-w) / -2);
-  top: -1100px;
-  height: 555px;
+  /* ⚠️ SPRINGS FROM JUST ABOVE THE COVE (world y −490), NOT FROM THE WALL'S TOP
+     EDGE (−560). The camera stands at the ring's centre, so the overhead is
+     nearly overhead: sprung from the wall top at 62° it left the frame before it
+     was 40px tall and only the outermost facets — which are nearer the camera and
+     so project lower — were visible at all. The room looked like it had no roof
+     in the middle and two white wings at the sides. Lower and shallower keeps a
+     readable band of it in frame at every heading.
+     ⚠️ AND THE TILT IS POSITIVE. rotateX(-55deg) sends the top of the facet AWAY
+     from the camera, not over it: the vault receded to z ≈ −1470, projected tiny,
+     and landed as a row of little white tiles across the top of the frame with
+     black gaps — which read as debris floating above the room rather than as its
+     roof. Positive brings the top toward you, so the overhead passes over your
+     head and fills the top of the frame the way a ceiling does. */
+  top: -870px;
+  height: 380px;
+  transform-origin: 50% 100%;
   backface-visibility: hidden;
-  background:
-    /* structural rib where the upper wall meets the vault */
-    linear-gradient(to bottom,
-      transparent 0 28%,
-      oklch(0.07 0.005 250 / 0.55) 28% 29.2%,
-      oklch(0.40 0.016 246 / 0.26) 29.2% 30%,
-      transparent 30% 100%),
-    /* facet seams, carried up from the wall so the two read as one surface */
-    linear-gradient(to right,
-      oklch(0.40 0.016 246 / 0.22) 0 2px,
-      oklch(0.06 0.004 250 / 0.60) 2px 5px,
-      transparent 5px calc(100% - 5px),
-      oklch(0.06 0.004 250 / 0.60) calc(100% - 5px) calc(100% - 2px),
-      oklch(0.40 0.016 246 / 0.22) calc(100% - 2px) 100%),
-    /* the face: dark up in the vault, brightening down toward the cove */
-    linear-gradient(to bottom,
-      oklch(0.118 0.007 250) 0%,
-      oklch(0.142 0.008 250) 26%,
-      oklch(0.178 0.010 250) 46%,
-      oklch(0.232 0.013 249) 72%,
-      oklch(0.296 0.016 248) 92%,
-      oklch(0.330 0.017 248) 100%);
 }
-.st-hull-cornice.is-offscreen { visibility: hidden; }
+.st-vault-rib {
+  background:
+    linear-gradient(to right,
+      oklch(0.58 0.040 246) 0 4px,
+      oklch(0.34 0.030 249) 4px 8px,
+      transparent 8px calc(100% - 8px),
+      oklch(0.34 0.030 249) calc(100% - 8px) calc(100% - 4px),
+      oklch(0.58 0.040 246) calc(100% - 4px) 100%),
+    linear-gradient(to top,
+      oklch(0.845 0.014 244) 0%,
+      oklch(0.775 0.015 245) 30%,
+      oklch(0.640 0.022 246) 64%,
+      oklch(0.470 0.030 248) 100%);
+}
+/* A glazed bay. The corridor is under glass and the sky is above it — which is
+   also where the room's light is coming from, so this is not decoration. */
+.st-vault-glazed {
+  background:
+    radial-gradient(1.7px 1.7px at 26% 22%, oklch(0.98 0.010 240 / 0.95), transparent 55%),
+    radial-gradient(1.2px 1.2px at 68% 12%, oklch(0.94 0.014 236 / 0.8), transparent 55%),
+    radial-gradient(1.2px 1.2px at 82% 48%, oklch(0.90 0.012 244 / 0.6), transparent 55%),
+    radial-gradient(2.1px 2.1px at 44% 62%, oklch(0.99 0.010 240 / 0.9), transparent 55%),
+    radial-gradient(1px 1px   at 15% 74%, oklch(0.88 0.012 240 / 0.55), transparent 55%),
+    radial-gradient(1.3px 1.3px at 91% 80%, oklch(0.92 0.012 238 / 0.6), transparent 55%),
+    /* ⚠️ Glass, not a hole. Pure black panes between white ribs made the vault
+       read as separate tiles floating over a void instead of as one glazed roof
+       — the panes have to keep a sheen of the room in them. */
+    linear-gradient(to top,
+      oklch(0.235 0.030 248) 0%, oklch(0.150 0.024 250) 42%, oklch(0.098 0.018 252) 100%);
+  box-shadow:
+    inset 0 0 0 4px oklch(0.52 0.036 246),
+    inset 0 3px 12px 0 oklch(0.62 0.040 244 / 0.30),
+    inset 0 0 26px 6px oklch(0.05 0.010 250 / 0.55);
+}
+/* The sky drifts. Ambient motion class: never linear, tiny amplitude, and gone
+   entirely under prefers-reduced-motion. Only background-position moves — the
+   compositor owns it and the main thread never sees it. */
+.st-vault-glazed { animation: st-sky-drift 190s ease-in-out infinite alternate; }
+@keyframes st-sky-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 14px 9px, -11px 6px, 9px -7px, -13px 8px, 10px 5px, -8px -6px, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) { .st-vault-glazed { animation: none; } }
 
 /* §9.12 — past the camera plane. Hidden, never unmounted. */
-.st-hull-seg.is-offscreen { visibility: hidden; }
+.st-hull-seg.is-offscreen,
+.st-hull-jamb.is-offscreen,
+.st-vault.is-offscreen { visibility: hidden; }
+
+/* ⚠️ The screen-fixed ceiling is RETIRED — the vault above replaces it. It ran
+   left:-25% right:-25%, so it extended past the corridor on both sides and read
+   as a wireframe laid over the void instead of as this room's roof. The elements
+   stay in the DOM because render() writes starPan() to .st-ceil-stars every turn
+   and a missing node throws there. */
+.st-ceiling { display: none; }
 
 /* ── the floor ─────────────────────────────────────────────────────────────
    ⚠️ `transform-origin: 50% 0%` IS THE WHOLE THING. A plane rotates about its
@@ -393,31 +471,53 @@
   transform-origin: 50% 0%;
   transform: rotateX(81deg);
   background:
+    /* THE CENTRE RUNNER — a walkway down the corridor's axis. A vertical strip in
+       the plane's own space becomes a wedge converging on the vanishing point
+       once the plane is raked, which is exactly what a run of deck plate does. */
+    linear-gradient(to right,
+      transparent 0 41.5%,
+      oklch(0.52 0.028 246 / 0.30) 41.5% 42.2%,
+      oklch(0.36 0.024 248 / 0.30) 42.2% 57.8%,
+      oklch(0.52 0.028 246 / 0.30) 57.8% 58.5%,
+      transparent 58.5% 100%),
     /* Longitudinal joints, converging on the room's own vanishing point. */
     repeating-conic-gradient(from 200deg at 50% -40%,
-      oklch(0.60 0.075 240 / 0.20) 0deg 0.20deg, transparent 0.20deg 2.4deg),
+      oklch(0.62 0.040 244 / 0.22) 0deg 0.20deg, transparent 0.20deg 2.4deg),
     /* TRANSVERSE joints. HAND-PLACED and spreading as they come toward you,
        because `repeating-linear-gradient` cannot vary its own spacing and even
        spacing after projection is exactly the tell that a surface is fake — the
-       same reason the ceiling ribs are hand-placed. The plane's top edge is the
+       same reason the vault ribs are per-facet. The plane's top edge is the
        horizon, so joints are tightest there. Without these the deck was
        longitudinal lines over black: a wireframe, not a floor. */
     linear-gradient(to bottom,
-      transparent 0 5.4%,    oklch(0.56 0.030 244 / 0.20) 5.4% 5.7%,
-      transparent 5.7% 12%,  oklch(0.56 0.030 244 / 0.20) 12% 12.35%,
-      transparent 12.35% 20%, oklch(0.55 0.028 244 / 0.19) 20% 20.4%,
-      transparent 20.4% 29.5%, oklch(0.54 0.026 245 / 0.18) 29.5% 29.95%,
-      transparent 29.95% 40.5%, oklch(0.53 0.024 245 / 0.17) 40.5% 41%,
-      transparent 41% 53%,   oklch(0.52 0.022 245 / 0.16) 53% 53.55%,
-      transparent 53.55% 67%, oklch(0.50 0.020 246 / 0.15) 67% 67.6%,
-      transparent 67.6% 82%, oklch(0.48 0.018 246 / 0.13) 82% 82.65%,
+      transparent 0 5.4%,    oklch(0.60 0.034 244 / 0.26) 5.4% 5.7%,
+      transparent 5.7% 12%,  oklch(0.60 0.034 244 / 0.26) 12% 12.35%,
+      transparent 12.35% 20%, oklch(0.59 0.032 244 / 0.25) 20% 20.4%,
+      transparent 20.4% 29.5%, oklch(0.58 0.030 245 / 0.24) 29.5% 29.95%,
+      transparent 29.95% 40.5%, oklch(0.57 0.028 245 / 0.23) 40.5% 41%,
+      transparent 41% 53%,   oklch(0.56 0.026 245 / 0.22) 53% 53.55%,
+      transparent 53.55% 67%, oklch(0.54 0.024 246 / 0.20) 67% 67.6%,
+      transparent 67.6% 82%, oklch(0.52 0.022 246 / 0.18) 82% 82.65%,
       transparent 82.65% 100%),
-    /* the plate tone itself — deck, not void between the lines */
+    /* The cove's reflection running down the deck. A polished floor under a
+       linear fixture returns a soft band of it, and that specular return is most
+       of what separates "polished deck" from "dark carpet". */
+    linear-gradient(to right,
+      transparent 0 30%,
+      oklch(0.62 0.045 242 / 0.10) 46%,
+      oklch(0.68 0.050 240 / 0.13) 50%,
+      oklch(0.62 0.045 242 / 0.10) 54%,
+      transparent 70% 100%),
+    /* ⚠️ THE DECK IS THE DARKEST SURFACE IN THE ROOM, deliberately. Overhead
+       brightest → wall mid → deck darkest is how NASA's ISS interior scheme gives
+       crews an up/down reference in a place that has none, and it is the cheapest
+       way to make this read as a room rather than a tube. Brightening the deck
+       past the wall inverts that cue and the room starts reading upside down. */
     linear-gradient(to top,
-      oklch(0.375 0.020 250 / 0.97),
-      oklch(0.285 0.016 250 / 0.80) 44%,
-      oklch(0.205 0.012 250 / 0.42) 72%,
-      oklch(0.150 0.009 250 / 0.12) 90%,
+      oklch(0.300 0.026 249 / 0.97),
+      oklch(0.246 0.022 250 / 0.86) 44%,
+      oklch(0.190 0.017 250 / 0.52) 72%,
+      oklch(0.140 0.012 251 / 0.18) 90%,
       transparent 97%);
   /* Carried far enough forward that the lower third of the frame has structure.
      Masked short, it leaves a dark band — the "long stretches of plain colour"
