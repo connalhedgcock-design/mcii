@@ -54,6 +54,18 @@ part exists and simulated positions need sizing. Do not invent a different figur
 - No sign-off needed between Connal and Austin — each spends their own money independently if they
   choose to act on a validated strategy.
 
+## !! READ BEFORE DESIGNING THE PICKER — ARCHITECTURE RESEARCH, 2026-09-01
+`60-KB/signal-architecture-research.md` — how to ORGANISE the market+social scoring algorithm,
+researched on Connal's instruction. Two of the open questions below now have citable answers in it:
+- **"Confidence" scoring** → direction and confidence are TWO STAGES, not two outputs of one model
+  (meta-labeling). Stage 6 is a written rubric until n>=50, then a real secondary classifier.
+- **Rule-tweaking discipline** → count the trials. Overfitting probability rises with the number of
+  variants evaluated (Deflated Sharpe / PBO), so the count must be kept from day one and quoted
+  beside any result. Challengers run in a shadow lane; promotion metric declared before the window.
+It also flags an unfixed hazard: the live app state and `data/*.jsonl` can disagree by up to the
+cron interval, so a rule designed against one and scored against the other measures nothing. Pick
+one surface first.
+
 ## WHAT'S GENUINELY OPEN — DO NOT GUESS THESE, ASK
 - **Entry rule itself** — "we don't know yet" was the honest answer to almost everything here.
   This is THE thing the next session is for.

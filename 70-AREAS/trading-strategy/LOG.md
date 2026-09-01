@@ -166,3 +166,33 @@ full — his actual answers, condensed (verbatim flavor kept where it matters):
   the split itself was never worked out; it was the sentence being written when he redirected to
   asking for this handoff. Next session: pick this up starting with the entry-signal/coin-picking
   algorithm, per his direct instruction, not the $100 split first unless he says otherwise.
+
+## 2026-09-01 — 6. ARCHITECTURE RESEARCH FOR THE COIN-PICKING ALGORITHM
+- machine: connal
+- Connal, starting the session he pre-declared in the handoff: he is designing the algorithm that
+  reads the market-data sector and the social-tracking sector and turns them into confidence levels
+  and buy/sell indicators for individual coins and market alerts. Asked for deep research on the
+  best ORGANISATION systems for a project of this shape.
+- Written up in full: `60-KB/signal-architecture-research.md` (companion to
+  `60-KB/social-signal-research.md` — that one is WHAT to extract, this one is HOW TO ARRANGE it).
+- Headline finding: direction and confidence must be two separate stages, not two outputs of one
+  algorithm (meta-labeling, López de Prado). This directly answers the README's open
+  "'confidence' scoring — Connal wants it 'determined by you'" worry: confidence becomes a scored,
+  falsifiable second stage with its own track record instead of an LLM's assertion.
+- Second finding with a direct bearing on an open question: the "rule-tweaking discipline" tension
+  (fully tweakable rules vs ever getting a clean answer) has a citable resolution — the Deflated
+  Sharpe Ratio / Probability of Backtest Overfitting work shows the probability of picking an
+  overfit rule grows fast with the NUMBER OF TRIALS. ∴ the discipline is COUNT THE TWEAKS and quote
+  the count beside any result, plus a shadow lane for challengers. Proposed, not yet agreed.
+- Explicitly REJECTED after reading it: Dempster-Shafer evidence theory as the fusion layer. It is
+  the obvious-looking fit for "several unreliable sources that disagree" and it fails exactly where
+  we would need it (Dempster's rule misbehaves as conflict → 1), and it fights D-50 by existing to
+  collapse conflict into one number.
+- Also rejected: any fitted/optimised signal weighting at this sample size. The 1/N literature says
+  equal weights are hard to beat out of sample and robust optima converge to equal weight as
+  ambiguity rises.
+- Live hazard surfaced, not previously written down: the app's live state and `data/*.jsonl` can
+  disagree by up to the cron interval, so designing a rule against one and evaluating it against
+  the other is training-serving skew and would manufacture a fake edge. Must pick one surface
+  before any picker is built. NOT yet fixed.
+- Nothing built this session — research only, per the request.

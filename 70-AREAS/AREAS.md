@@ -43,6 +43,9 @@ Copy this shape for a new area. Do not invent a different one per area — the w
   the safety/exit-sim/chart services genuinely are Solana-only. one incident, one area.
 - [[j7-tracker/README]] — a third-party token-deployment site, embedded as a plain isolated
   `<webview>` tab. NOT a data integration — read this before wiring any of their "API keys" in.
+- [[collection-host/README|collection-host/]] — the €4/mo server that now runs data collection
+  on a systemd timer, after GitHub's scheduler failed D-61's reliability bar (D-98). Read before
+  touching anything about how `data/` gets written, or before re-enabling the workflow cron.
 - [[trading-strategy/README]] — designing a tested, data-driven way to actually pick coins to
   buy/sell, paper-traded first. NOT built yet. Read before the next session touches this — it has
   the one permanent boundary (Claude never executes real trades), the $100 paper-trading budget,
