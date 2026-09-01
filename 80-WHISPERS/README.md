@@ -14,7 +14,13 @@ not his. ! if capture ever requires him to think about format, this system has f
 ## THE ONE RULE FOR HIM
 Open `INBOX.md`, type the thought on a new line, done. No date, no tags, no frontmatter, no
 complete sentences. Fragments are fine. Contradicting an earlier whisper is fine.
-He can also say `/whisper <thought>` in chat and I append it.
+
+Three ways in, all equivalent:
+- type it straight into `INBOX.md`
+- `/whisper <thought>` in chat
+- ! **any message starting with `whisper:`** — this is the one he actually uses. it is a capture
+  instruction, NOT an invitation to discuss. append verbatim, confirm in one line, stop. pinned in
+  `CLAUDE.md` §2 so it survives a session that never reads this file.
 
 ## THE RULES FOR ME
 - ! whispers are INPUTS, NOT CLAIMS. the mandate's "no claim without a falsifier" does NOT apply to
