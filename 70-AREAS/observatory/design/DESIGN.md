@@ -334,6 +334,42 @@ Exactly right, and it explains three separate bugs that had each been "fixed" tw
 - ! the image is scaled so its full height lands inside that masked band. Sized to the plate's whole
   height, the band showed only the top fifth of the sky and every planet was outside it.
 
+## THE FLICKER WAS IMPLICIT LAYER PROMOTION (09-01, from a screen recording)
+!! Operator sent a recording. Frame-by-frame analysis of it (AVFoundation extract, then a per-frame
+colour scan) showed the instrument boards perfectly stable — max luminance 207/208 on EVERY frame —
+and the ROOM darkening and recovering across each turn. So it was never the boards, and never the
+data; it was the hull's own surfaces dropping out mid-rotation.
+
+✓ **CAUSE, and it is documented Chromium behaviour, not a mystery.** Without an explicit hint these
+facets are composited IMPLICITLY: promoted to their own layers when the room starts turning, demoted
+when it stops. Groups of elements are intermittently missed during a redraw while that churn
+happens; separately, a composited layer is RE-RASTERISED whenever its scale changes — which is every
+frame of a rotation, because a facet's projected size changes continuously as it swings. The visible
+symptom is a panel's surface dropping out for a frame or two and the darker structural gradient
+showing through: "the colour goes away to the default blue".
+
+✓ **FIX: `will-change: transform` on every surface the room carries round** (`.st-hull-seg`,
+`.st-hull-jamb`, `.st-vault`, `.st-portal`, `.st-beyond-floor`). It pins a stable raster and hands
+the layer to the compositor to move, so the pixels are drawn once and then transformed — which is
+precisely the "prerender it so I never see it drawing" the operator asked for, spelled the way the
+browser understands it.
+- ! NOT on `.st-beyond-world`. That element carries `transform-style: preserve-3d`, and promoting
+  the parent of a 3D subtree is how you flatten it. Promote the LEAVES.
+- ! and NEVER `will-change: opacity` or `will-change: filter` — those DO force the flattened
+  representation that kills preserve-3d.
+
+## REGRESSIONS ARE NOW ASSERTED — `app/test/station-css.test.js`
+Every check in it is a bug that actually shipped here, and they share a shape: the CSS parses, the
+braces balance, the room still renders, and the defect appears only as motion or as a colour that
+comes and goes. None were catchable by reading the file. Asserted: no `@keyframes` animates a paint
+property · `.st-beyond-world` carries no grouping property · the moving surfaces declare
+`will-change: transform` and never a grouping one · no per-pane sky image survives · braces balance ·
+no selector list left dangling by a deleted rule. ! that last one is real — deleting a rule's
+declarations while leaving `.a, .b,` behind merges it into the next rule and silently restyles it;
+that is how the window band ended up wearing the white panel's styling and the windows went black.
+! the suite asserts against CODE, not prose: this file's comments quote the declarations they warn
+against, and the first version of the suite failed on its own documentation.
+
 ## PANELS: SCALES OF DETAIL, NOT MORE SHAPES
 Operator: the panels are "blocky and toddler like", and want "more seams within them, a greater
 feeling of connectivity". The rule, from model-making practice and the reason greebles work at all:

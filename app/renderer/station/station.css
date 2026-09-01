@@ -265,6 +265,37 @@
    masks and clip-paths at all — the same properties on any ancestor in the
    .st-beyond → .st-beyond-world chain silently kill preserve-3d. */
 
+/* ⚠️ `will-change: transform` ON EVERY SURFACE THAT THE ROOM CARRIES ROUND.
+   THIS IS THE FLICKER FIX, and it is not a micro-optimisation.
+
+   Without it Chromium composites these facets IMPLICITLY: it promotes them to
+   their own layers when the room starts turning and demotes them when it stops.
+   Groups of elements get intermittently missed during a redraw while that
+   promote/demote churn happens, and separately, a composited layer is
+   RE-RASTERISED whenever its scale changes — which is every frame of a rotation,
+   because a facet's projected size changes continuously as it swings.
+
+   The visible symptom is exactly what was reported twice: a panel's surface
+   drops out for a frame or two mid-turn and the darker structural gradient
+   underneath shows through — "the colour goes away to the default blue".
+
+   `will-change: transform` pins a stable raster and hands the layer to the
+   compositor to transform, so the pixels are drawn ONCE and then moved. It is
+   the "prerender it so I never see it drawing" the operator asked for, spelled
+   the way the browser understands.
+
+   ! It is deliberately NOT on `.st-beyond-world`. That element carries
+   `transform-style: preserve-3d`, and promoting the parent of a 3D subtree is
+   how you end up flattening it — the one failure this file warns about hardest.
+   Promote the LEAVES, which have no 3D children left to flatten.
+   ! Do not add `will-change: opacity` or `will-change: filter` here either;
+   those DO force a flattened representation and would collapse the room. */
+.st-hull-seg,
+.st-hull-jamb,
+.st-vault,
+.st-portal,
+.st-beyond-floor { will-change: transform; }
+
 .st-hull-seg,
 .st-hull-jamb {
   position: absolute;
