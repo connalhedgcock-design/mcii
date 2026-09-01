@@ -4,6 +4,19 @@ const history = require('./history');
 // relative to its own past, so every rule needs at least two data points and says so when it
 // hasn't got them yet. Silence here means "not enough recorded", never "all clear".
 
+// ! HOW MUCH HE WOULD ACTUALLY SELL. Connal, 2026-09-01: "stop giving me the how much can you
+// sell notifications... unless it dips below 1000 dollars because i am not selling any more than
+// 1000 dollars of any coin right now."
+// The exit number only matters where it constrains a sale he would actually make. His positions
+// are $7-25 and his stated ceiling is $1,000, so an exit falling from $800k to $200k is a 75% drop
+// and completely irrelevant to him — alerting on it is noise that teaches him to ignore the alert
+// that eventually matters.
+// ! this is a NOTIFICATION gate, not a data gate. The number is still measured, still recorded,
+// still shown on the card. What stops is the interruption.
+// ! raise this the moment he trades bigger. It is a fact about his position sizes, not about the
+// market, and it silently becomes wrong if those change.
+const EXIT_MATTERS_BELOW_USD = 1000;
+
 const RULES = [
   {
     id: 'exit-drop',
@@ -13,6 +26,8 @@ const RULES = [
       const d = t.trend?.exitUsd;
       if (!d || d.spanHours < 1) return null;
       if (d.pct > -20) return null;
+      // ! Only worth interrupting for if the exit has come down to a size he might actually sell.
+      if (d.to >= EXIT_MATTERS_BELOW_USD) return null;
       return {
         title: `You can sell ${Math.abs(d.pct).toFixed(0)}% less ${t.sym} than before`,
         detail: `The amount you could offload without crashing the price fell from $${Math.round(d.from).toLocaleString()} to $${Math.round(d.to).toLocaleString()} over ${fmtSpan(d.spanHours)}. This is the constraint on your position, and it is tightening.`,
@@ -104,6 +119,9 @@ const RULES = [
       if (!t.position?.tokens || !t.exit || !t.market) return null;
       const held = t.position.tokens * t.market.priceUsd;
       if (held <= t.exit.usd) return null;
+      // ! And only if the exit is small in absolute terms. A position bigger than the market can
+      // absorb is meaningless when the position is $12.
+      if (t.exit.usd >= EXIT_MATTERS_BELOW_USD) return null;
       const pctStuck = ((held - t.exit.usd) / held) * 100;
       return {
         title: `Your ${t.sym} position is larger than the market can absorb`,

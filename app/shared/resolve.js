@@ -246,16 +246,28 @@ async function identify(ticker, search, { minLiquidityUsd = 5000 } = {}) {
 
 // Which of our own tickers are shared with other live Solana coins. Run against the watchlist so
 // the app knows when "$X" cannot be trusted to mean their X. Cheap: one search per ticker.
-async function findContested(coins, search, { minLiquidityUsd = 50000 } = {}) {
+// ! THE RIVAL SIZE BAR IS RELATIVE, NOT FIXED. Changed 2026-09-01.
+// A flat $50,000 floor is the wrong question. LaPeace has $28k of liquidity of its own, so a $40k
+// namesake — BIGGER than theirs, and far more likely to be what "$LaPeace" refers to — was being
+// filtered out as too small to matter. Meanwhile for CATE at $3.2M a $60k namesake is noise.
+// What matters is a rival's size RELATIVE to theirs, so the bar scales: a tenth of their own pool,
+// floored at $5k so genuinely dead coins are still ignored, capped at $50k so a large coin does
+// not start reporting every trivial namesake.
+async function findContested(coins, search, { minLiquidityUsd = null } = {}) {
   const out = {};
   for (const c of coins || []) {
     const ticker = bare(c.sym || c.symbol);
     if (!ticker) continue;
     let results = [];
     try { results = await search(ticker); } catch { continue; }
-    const rivals = (results || [])
-      .filter((r) => r.chain === 'solana' && bare(r.symbol) === ticker)
-      .filter((r) => (r.liquidityUsd || 0) >= minLiquidityUsd)
+    const sameName = (results || [])
+      .filter((r) => r.chain === 'solana' && bare(r.symbol) === ticker);
+    const ownLiq = sameName.find((r) => r.ca === (c.ca || c.address))?.liquidityUsd || 0;
+    const floor = minLiquidityUsd != null
+      ? minLiquidityUsd
+      : Math.max(5000, Math.min(50000, ownLiq * 0.1));
+    const rivals = sameName
+      .filter((r) => (r.liquidityUsd || 0) >= floor || r.ca === (c.ca || c.address))
       .sort((a, b) => (b.liquidityUsd || 0) - (a.liquidityUsd || 0));
     const others = rivals.filter((r) => r.ca !== (c.ca || c.address));
     if (others.length) {
