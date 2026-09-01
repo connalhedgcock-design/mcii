@@ -130,3 +130,4 @@
 {"ts":1788273799525,"src":"cloud","universe":47,"survivors":12,"tookMs":35653,"rejects":{"only Nh old":2,"liquidity only $X":23,"older than N days":10}}
 {"ts":1788275597498,"src":"cloud","universe":51,"survivors":11,"tookMs":34189,"rejects":{"liquidity only $X":27,"only Nh old":3,"older than N days":10}}
 {"ts":1788277407818,"src":"cloud","universe":45,"survivors":12,"tookMs":34823,"rejects":{"liquidity only $X":21,"only Nh old":2,"older than N days":10}}
+{"ts":1788279207207,"src":"cloud","universe":42,"survivors":11,"tookMs":31346,"rejects":{"liquidity only $X":20,"older than N days":10,"only Nh old":1}}
