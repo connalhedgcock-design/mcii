@@ -107,4 +107,37 @@ function coordination(facts, { windowMs = 30 * 60000, minAccounts = 3 } = {}) {
   return flagged.sort((a, b) => b.accounts - a.accounts);
 }
 
-module.exports = { factsFor, wordingPrint, coordination };
+// THE CORPUS. The post's actual words, kept so a better idea next month can be tested against
+// data already paid for.
+//
+// ! WHY THIS IS SEPARATE FROM factsFor() AND NOT COMMITTED.
+// The repo is PUBLIC (D-92). Committing tweet text would republish other people's posts on a
+// public GitHub page — a different act from analysing them privately, and not one to do casually
+// or by accident. So the corpus is gitignored and lives on the collection server only.
+// ! the cost of that choice, stated plainly: it is NOT backed up and NOT on either laptop. If the
+// server is lost the corpus is lost, and only the derived facts (which ARE committed) survive.
+// That is a deliberate trade of durability for not republishing, and it should be revisited if the
+// corpus ever becomes load-bearing rather than exploratory.
+//
+// ! this changes D-22's posture ("store aggregates anyway") from a rule into a scoped one:
+// aggregates are what gets SHARED; the raw text is kept locally for re-analysis. The reasoning
+// behind D-22 was about not building a redistributable corpus of X content, and a gitignored file
+// on one server is not that.
+function corpusRow(post, cls = {}) {
+  return {
+    id: post.id,
+    ts: post.createdAt || Date.now(),
+    author: h8(post.authorId || post.handle || 'unknown'),
+    cred: credibility(post.author || {}).score,
+    kind: cls.kind || 'unknown',
+    // Trimmed, not because of storage -- 5 MB a year -- but because anything past a couple of
+    // hundred characters is thread padding rather than the claim being made.
+    text: String(post.text || '').slice(0, 400),
+    tickers: (cls.tags || []).slice(0, 8),
+    cas: (cls.names || []).map((n) => n.ca).filter(Boolean).slice(0, 8),
+    views: post.views || 0,
+    er: post.engagementRate != null ? +post.engagementRate.toFixed(5) : null,
+  };
+}
+
+module.exports = { factsFor, corpusRow, wordingPrint, coordination };

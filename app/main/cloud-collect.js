@@ -12,7 +12,7 @@ const path = require('path');
 const REPO = path.join(__dirname, '..', '..');
 const DATA = path.join(REPO, 'data');
 
-const { fetchMarket } = require('./adapters/dexscreener');
+const { fetchMarket, fetchPrices } = require('./adapters/dexscreener');
 const { fetchSafety } = require('./adapters/rugcheck');
 const { fetchTokenMeta, maxExitable } = require('./adapters/jupiter');
 const { evaluateSafety } = require('../shared/safety');
@@ -420,6 +420,46 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     log(`  WARN: social market snapshot failed — ${e.message}`);
   }
 
+  // PRICE WHAT WE NOTICED. Without this the social record is unanswerable: we would know three
+  // credible people started talking about a coin and have no idea whether anything happened to it.
+  // Pairing attention with price is what makes "does the talk lead the move" testable rather than
+  // an opinion.
+  //
+  // ! free, and it does not scale with the watchlist: DexScreener prices 30 addresses per call, so
+  // the busiest 60 coins in a scan cost two requests. This is the cheap half of the answer -- the
+  // expensive half (the posts) was already bought.
+  //
+  // ! only coins named by ADDRESS can be priced. A bare "$BUDDY" is not yet a coin, which is what
+  // `identify()` is for; unresolved tickers sit in the snapshot with no price series until they
+  // resolve. That gap is honest, not a bug.
+  try {
+    const priceable = (market?.coins || [])
+      .filter((c) => c.kind === 'address' && c.weighted >= 1)
+      .slice(0, 60)
+      .map((c) => c.key);
+    for (const it of identified) if (it.resolved?.ca) priceable.push(it.resolved.ca);
+    const uniq = [...new Set(priceable)];
+    if (uniq.length) {
+      const priced = await fetchPrices(uniq);
+      const rows = [];
+      for (const c of market.coins) {
+        const p = priced.get(c.key);
+        if (!p) continue;
+        rows.push({ ts: market.ts, ca: c.key, sym: p.symbol || c.sym || null,
+                    price: p.priceUsd, liq: Math.round(p.liquidityUsd || 0),
+                    mcap: p.marketCap ?? null, ch24: p.priceChange?.h24 ?? null,
+                    people: c.people, weighted: c.weighted, posts: c.posts,
+                    namesakeOf: c.namesakeOf || null });
+      }
+      if (rows.length) {
+        append('attention-prices.jsonl', rows);
+        log(`  priced ${rows.length} of the coins being discussed (${uniq.length} had an address)`);
+      }
+    }
+  } catch (e) {
+    log(`  WARN: pricing discussed coins failed — ${e.message}`);
+  }
+
   // THE BULK TRACK. Every post paid for yields a row of facts, whatever the filter thought of it.
   // ! this is written BEFORE any filtering decision is applied downstream, so a change to the
   // filter can never retroactively shrink the record. 874 posts had previously been fetched,
@@ -429,6 +469,10 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     const facts = ranked.important.concat(ranked.background, ranked.setAside)
       .map((r) => postfacts.factsFor(r.post, r));
     if (facts.length) append('post-facts.jsonl', facts);
+    // The words themselves, gitignored and server-only -- see postfacts.js: corpusRow.
+    const corpus = ranked.important.concat(ranked.background, ranked.setAside)
+      .map((r) => postfacts.corpusRow(r.post, r));
+    if (corpus.length) append('corpus.local.jsonl', corpus);
     const rings = postfacts.coordination(facts);
     if (rings.length) {
       log(`  coordination: ${rings.length} group(s) of accounts posting the same wording in a tight window`);
