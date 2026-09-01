@@ -122,4 +122,62 @@ function movers(prev, curr, { minWeighted = 1.5 } = {}) {
   return out;
 }
 
-module.exports = { snapshot, movers, NOT_COINS };
+// WHAT THIS SCAN MEANS, as numbers rather than adjectives.
+//
+// Connal, 2026-09-01: "scanning as many tweets as you can, keeping all of them, analyzing all of
+// them, pulling the numbers out of the data and then telling me what that means for individual
+// coins or markets." ∴ the deliverable is a READ OF EACH SCAN, not a watchlist. You do not track a
+// market, you read it.
+//
+// ! every measure here is computed from the scan, never asserted. "the market feels frothy" is the
+// kind of unfalsifiable line this project bans; "attention is concentrated in 3 coins, 41% of it
+// on one" is the same observation with a number attached that can be checked and can be wrong.
+//
+// ! and none of it is a recommendation. D-62: this answers "what kind of market is this", never
+// "what should I get into".
+function marketRead(curr, prev, { ranked = null } = {}) {
+  const coins = curr.coins || [];
+  const totalW = coins.reduce((s, c) => s + c.weighted, 0);
+
+  // BREADTH — how many coins are actually being discussed by more than a single account. Raw coin
+  // count is inflated by one-off mentions, so this uses a real floor.
+  const real = coins.filter((c) => c.weighted >= 1.5);
+
+  // CONCENTRATION — what share of all attention sits in the top three. High means one story is
+  // eating the conversation; low means attention is scattered.
+  const top3 = real.slice(0, 3).reduce((s, c) => s + c.weighted, 0);
+  const concentration = totalW > 0 ? +(top3 / totalW).toFixed(3) : null;
+
+  // CHURN — how much of what is being discussed was not being discussed last scan. High churn is
+  // rotation; low churn is the same conversation continuing.
+  const before = new Set((prev?.coins || []).filter((c) => c.weighted >= 1.5).map((c) => c.key));
+  const fresh = real.filter((c) => !before.has(c.key));
+  const churn = real.length ? +(fresh.length / real.length).toFixed(3) : null;
+
+  // CROWD QUALITY — the average believability of the accounts doing the talking. A low reading
+  // means this scan caught a bot-heavy window, and every other number in it should be read
+  // through that. ! this is the whole-scan version of the per-coin credibility weighting.
+  const q = real.length ? +(real.reduce((s, c) => s + c.quality, 0) / real.length).toFixed(2) : null;
+
+  const counts = ranked?.counts || {};
+  const classified = ranked?.total || 0;
+  const share = (k) => (classified ? +((counts[k] || 0) / classified).toFixed(3) : null);
+
+  return {
+    ts: curr.ts,
+    posts: curr.totalPosts,
+    coinsNamed: coins.length,
+    coinsDiscussed: real.length,      // more than one account
+    concentration,
+    churn,
+    crowdQuality: q,
+    // What the conversation is ABOUT, as shares of the scan.
+    failureShare: share('failure'),   // people reporting coins dying
+    promoShare: share('promotion'),
+    emergingShare: share('emerging'), // a person naming a coin, not selling
+    // ! deliberately no verdict string. A sentence like "the market is rotating" would be my
+    // interpretation wearing the costume of a measurement; the caller can render these numbers.
+  };
+}
+
+module.exports = { snapshot, movers, marketRead, NOT_COINS };

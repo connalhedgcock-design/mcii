@@ -311,7 +311,7 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
   // that survived a filter. ! the sweep already names ~152 distinct coins and the old sector row
   // reported a median of 3, so this is not new data, it is data that was already bought and then
   // discarded one step before anyone saw it.
-  let market = null, moved = [];
+  let market = null, moved = [], read = null;
   try {
     market = socialmarket.snapshot(sweepPosts, lex);
     let prev = null;
@@ -320,8 +320,14 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
       prev = JSON.parse(lines[lines.length - 1]);
     } catch { /* first run has nothing to compare against, which is not an error */ }
     moved = socialmarket.movers(prev, market);
+    read = socialmarket.marketRead(market, prev, { ranked });
+    market.read = read;
     append('social-market.jsonl', [market]);
     log(`  social market: ${market.coins.length} coins named across ${market.totalPosts} posts`);
+    log(`    ${read.coinsDiscussed} discussed by 2+ people | top 3 hold ${read.concentration != null ? Math.round(read.concentration * 100) + '%' : '—'} of attention` +
+        ` | ${read.churn != null ? Math.round(read.churn * 100) + '%' : '—'} not there last scan | crowd quality ${read.crowdQuality ?? '—'}`);
+    log(`    conversation: ${Math.round((read.failureShare || 0) * 100)}% coins dying, ` +
+        `${Math.round((read.emergingShare || 0) * 100)}% someone naming a coin, ${Math.round((read.promoShare || 0) * 100)}% adverts`);
     if (!prev) log('    (first snapshot — no comparison until the next scan)');
     for (const m of moved.slice(0, 6)) {
       log(`    ${m.event === 'new' ? 'NEW ' : 'up  '} ${(m.sym || m.key).slice(0, 14).padEnd(14)}` +
@@ -403,6 +409,7 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     // RECORD, not a recommendation — D-62: the sector view answers "what kind of market is this",
     // never "what should I get into".
     marketCoins: market ? market.coins.length : null,
+    read,
     movers: moved.slice(0, 15),
     important: ranked.important.slice(0, 12).map(strip),
     background: ranked.background.slice(0, 8).map(strip),
