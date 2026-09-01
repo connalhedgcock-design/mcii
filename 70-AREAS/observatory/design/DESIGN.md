@@ -157,6 +157,13 @@ an arch mounted on a wall rather than an aperture cut through one.
 - the deck's transverse joints are HAND-PLACED and spread as they come toward you, for the same
   reason the ceiling ribs are: `repeating-linear-gradient` cannot vary its own spacing, and even
   spacing after projection is exactly the tell that a surface is fake.
+- !! **THE FIRST BUILD WAS TOO DARK TO SEE AND THE OPERATOR'S VERDICT WAS "it literally looks the
+  exact same".** The hull ran 0.09–0.19 lightness against a 0.09 void, because "instruments stay
+  brightest" was read as "hold everything else at black". A wall you have to go looking for is not a
+  wall. Raised to ~0.15–0.34 with the deck, cove and bridge base lifted to match, and the panels
+  still read fine — real instruments hold their hierarchy through their own frames and lit readouts,
+  the way they do against a lit bulkhead. ! that rule is about RELATIVE hierarchy between elements,
+  never a licence to crush the whole scene to the bottom of the range.
 - ✓ KEPT, on operator instruction: the Orion globe and all six instrument panels. The environment
   around them is fair game; they are not.
 
