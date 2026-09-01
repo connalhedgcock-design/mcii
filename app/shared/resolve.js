@@ -170,23 +170,47 @@ function mentions(text, lex) {
 // Tickers several different people used that we have never looked up. This is the queue that
 // turns chatter into something checkable: a name here becomes a real coin with real liquidity,
 // which the safety checks can then be run against.
+// ! COUNTS ARE WEIGHTED BY HOW REAL THE ACCOUNTS LOOK, not by how many there are.
+// Added 2026-09-01. The old version counted distinct author ids, which made three week-old
+// accounts posting hundreds of times a day worth exactly as much as three people — and a botnet
+// is much cheaper to assemble than three people. `weightedPeople` sums each account's credibility
+// (`shared/credibility.js`), so three throwaways at 0.2 come to 0.6: less than one plausible
+// person, which is the honest reading of three sockpuppets agreeing with each other.
+//
+// Raw `people` is still reported alongside `weighted`. ! never drop it — the GAP between the two
+// is itself the signal. Twelve accounts weighing 1.4 is not quiet interest, it is a campaign, and
+// collapsing them into one number would hide exactly the thing worth seeing.
+//
+// ! `minPeople` now gates on the WEIGHTED figure, so the bar means "three plausible people".
 function unknownTickers(posts, lex, { minPeople = 3 } = {}) {
+  const { credibility } = require('./credibility');
   const seen = new Map();
   for (const p of posts || []) {
     const author = p.authorId || p.handle || 'unknown';
     for (const h of mentions(p.text, lex)) {
       if (h.known || !h.ticker) continue;
-      if (!seen.has(h.ticker)) seen.set(h.ticker, { ticker: h.ticker, people: new Set(), mentions: 0, views: 0 });
+      if (!seen.has(h.ticker)) {
+        seen.set(h.ticker, { ticker: h.ticker, people: new Map(), mentions: 0, views: 0, firstSeen: p.createdAt || null });
+      }
       const e = seen.get(h.ticker);
-      e.people.add(author);
+      // Keyed by author so one account posting ten times still counts once, at its own weight.
+      if (!e.people.has(author)) e.people.set(author, credibility(p.author || {}).score);
       e.mentions++;
       e.views += p.views || 0;
+      if (p.createdAt && (!e.firstSeen || p.createdAt < e.firstSeen)) e.firstSeen = p.createdAt;
     }
   }
   return [...seen.values()]
-    .map((e) => ({ ticker: e.ticker, people: e.people.size, mentions: e.mentions, views: e.views }))
-    .filter((e) => e.people >= minPeople)
-    .sort((a, b) => b.people - a.people);
+    .map((e) => {
+      const weights = [...e.people.values()];
+      const weighted = +weights.reduce((s, w) => s + w, 0).toFixed(2);
+      return { ticker: e.ticker, people: e.people.size, weighted, mentions: e.mentions,
+               views: e.views, firstSeen: e.firstSeen,
+               // 1.0 = every account looks real; near 0 = a crowd of throwaways.
+               quality: e.people.size ? +(weighted / e.people.size).toFixed(2) : 0 };
+    })
+    .filter((e) => e.weighted >= minPeople)
+    .sort((a, b) => b.weighted - a.weighted);
 }
 
 // Turn a ticker into an actual coin, using whatever search the caller passes in. Kept free of the

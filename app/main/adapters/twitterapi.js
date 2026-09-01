@@ -202,24 +202,35 @@ module.exports = { configure, searchPosts, searchWindow, queriesFor, budget, loa
 // reserve intact. ! depth is a CEILING, not a spend — a query returning fewer posts costs less.
 // Re-measure `data/x-spend.json` after a full month before widening further (D-28: cadence is set
 // by budget, never by preference).
+// ! REBALANCED 2026-09-01 against measured output, not intuition. Over 5,865 swept posts the
+// old weighting produced 64% coins-dying, 27% noise, and 1.4% actual discussion of a coin. The
+// `dying` query at depth 50/hour was two thirds of everything bought — enormously expensive
+// coverage of a base rate already well established (`60-KB/base-rates.md`: ~97% of memecoins die).
+// Completeness on rug reports was the right call when they were the only thing being asked for;
+// it is the wrong allocation now that discovery is the point.
+//
+// `dying` 50 -> 20 keeps the rug feed (it still protects held coins and still feeds the failure
+// base rate) at a fraction of the spend. The freed budget goes to the queries that make people
+// NAME a coin. Spend is still nowhere near the cap — September is running at ~2% of $24 — so this
+// is a reallocation, not an economy: buying better, not buying less.
 const SECTOR_QUERIES = [
   { q: '("rug" OR "rugged" OR "rug pull" OR "pulled liquidity" OR "cant sell" OR "can\'t sell" OR "honeypot" OR "exit scam") (solana OR sol OR memecoin OR pumpfun OR "pump.fun") -is:retweet',
-    kind: 'dying', depth: 50, everyHours: 1 },
+    kind: 'dying', depth: 20, everyHours: 1 },
   { q: '(solana OR memecoin) ("dried up" OR "no volume" OR "so quiet" OR "everyone left" OR "dead here" OR "liquidity gone" OR "no liquidity") -is:retweet',
     kind: 'mood', depth: 20, everyHours: 6 },
 
   // People sharing a coin's own page. Carries the address in the URL -> exact identification.
   { q: '("pump.fun/coin" OR "dexscreener.com/solana" OR "birdeye.so/token" OR "jup.ag/swap") -is:retweet',
-    kind: 'links', depth: 35, everyHours: 1 },
+    kind: 'links', depth: 50, everyHours: 1 },
   // Genuine curiosity. Real humans asking real questions; among the lowest advert rates available.
   { q: '("what is this coin" OR "anyone know this coin" OR "whats the ca" OR "what\'s the ca" OR "someone explain this coin" OR "why is this pumping") (solana OR memecoin OR pumpfun OR "pump.fun") -is:retweet',
-    kind: 'asking', depth: 25, everyHours: 2 },
+    kind: 'asking', depth: 40, everyHours: 1 },
   // Position talk. Somebody saying what they actually did, not what you should do.
   { q: '("just bought" OR "just aped" OR "aped into" OR "loading up on" OR "added to my bag" OR "took a position in") (solana OR memecoin OR sol OR pumpfun) -is:retweet',
-    kind: 'buying', depth: 25, everyHours: 2 },
+    kind: 'buying', depth: 40, everyHours: 1 },
   // Meta-chatter: the crowd noticing itself. Names a coin without being an advert for one.
   { q: '("everyone is talking about" OR "everyone talking about" OR "why is everyone buying" OR "whats everyone aping" OR "what is everyone buying") (solana OR memecoin OR sol) -is:retweet',
-    kind: 'crowd', depth: 20, everyHours: 3 },
+    kind: 'crowd', depth: 25, everyHours: 2 },
 ];
 function sectorQueries() { return SECTOR_QUERIES.map((q) => ({ ...q })); }
 

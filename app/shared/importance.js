@@ -1,4 +1,5 @@
 const { botLikelihood } = require('./hype');
+const { credibility } = require('./credibility');
 const resolve = require('./resolve');
 
 // The filter. One broad sweep of memecoin chatter comes in; this decides what any of it is worth.
@@ -76,6 +77,32 @@ function classify(post, { watchlist = [], scanned = [], lex = null } = {}) {
     return (s.ca && a.addresses.includes(s.ca)) || (sym && a.tags.includes(sym));
   });
 
+  // ! EMERGING — added 2026-09-01, and it is the reason this file was rewritten.
+  // Measured over 5,865 swept posts: 64% were coins dying, 27% noise, and only 1.4% was actual
+  // discussion of a specific coin. That was not the queries being bad. It was THIS ORDERING: the
+  // chain below could only rate a post highly if it was about a coin they already hold or a coin
+  // failing. A real person naming a coin nobody here has heard of — the single most useful thing
+  // for discovery — fell through every branch and landed on `noise`. The filter was not badly
+  // tuned, it was pointed the wrong way.
+  //
+  // An emerging post must clear all three: it names a coin with real confidence (not a bare word
+  // that happens to spell a ticker), the account looks like a person, and it is not an advert.
+  // ∵ each one alone is trivially faked — a botnet can name a coin, a human can shill, and an
+  // advert can be well written. Together they are expensive to fake at scale, which is the whole
+  // point. See `60-KB/social-signal-research.md`: manufactured promotion is the thing the
+  // literature can actually detect, and this is that finding applied.
+  const cred = credibility(post.author || {});
+  // ! An unknown coin has NO address yet — that is what makes it unknown. Requiring a resolvable
+  // `ca` here defeated the entire purpose: "$BUDDY has been quietly building" scored as noise,
+  // which is the exact post this branch exists to catch. A cashtag is a deliberate reference to a
+  // specific coin (D-71 rates it `strong`), so it qualifies; resolving it to a real address is
+  // `unknownTickers` + `identify()`'s job, later, once several people have said it.
+  // ! bare words that merely spell a ticker still do not qualify — `atLeast(strong)` excludes
+  // them, and D-72 exists because their own scan record contains a coin called "fone".
+  const namesSomething = a.all.some((h) => resolve.atLeast(h.confidence, 'strong'));
+  const isEmerging = namesSomething && !shotgun && !isPromo && !isFailure
+                     && cred.plausible && !bot.likely;
+
   let kind = 'discussion', level = 'low';
 
   if (a.hits.length && !shotgun) {
@@ -94,6 +121,14 @@ function classify(post, { watchlist = [], scanned = [], lex = null } = {}) {
   } else if (isPromo) {
     kind = 'promotion'; level = 'low';
     reasons.push('sales language');
+  } else if (isEmerging) {
+    // ! Ranked BELOW their own holdings and below coins failing, and that ordering is deliberate:
+    // bad news about money already committed still outranks an opportunity (D-70). This only
+    // takes precedence over `discussion`/`noise`, which is where these posts used to die.
+    kind = 'emerging'; level = 'high';
+    const named = a.all.filter((h) => resolve.atLeast(h.confidence, 'strong'))
+                       .map((h) => h.sym || h.ticker || 'an address').filter(Boolean);
+    reasons.push(`names ${named.slice(0, 2).join(', ') || 'a specific coin'} — an account that looks like a person, not selling`);
   } else if (scannedHit.length) {
     kind = 'discussion'; level = 'med';
     reasons.push(`about ${scannedHit.map((s) => s.sym).filter(Boolean).slice(0, 2).join(', ') || 'a coin the scanner found'}`);
@@ -117,7 +152,8 @@ function classify(post, { watchlist = [], scanned = [], lex = null } = {}) {
     if (level === 'med') level = 'low';
   }
 
-  return { kind, level, reasons, about: a.hits, tags: a.tags, bot: bot.likely, promo: isPromo };
+  return { kind, level, reasons, about: a.hits, tags: a.tags, bot: bot.likely, promo: isPromo,
+           credibility: cred.score, names: a.all.filter((h) => resolve.atLeast(h.confidence, 'strong')) };
 }
 
 // Splits a sweep into what to read and what was set aside, keeping both.

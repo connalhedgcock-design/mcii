@@ -21,6 +21,7 @@ const h = require('../shared/hype');
 const sector = require('../shared/sector');
 const imp = require('../shared/importance');
 const resolve = require('../shared/resolve');
+const postfacts = require('../shared/postfacts');
 const { searchTokens } = require('./adapters/dexscreener');
 const screener = require('./screener');
 const onchain = require('./adapters/onchain');
@@ -273,6 +274,7 @@ async function verifyHolders(tokens) {
 // Built from the sweep that was already paid for, not from a second set of searches. The earlier
 // version fetched its own posts, which meant the same chatter was bought twice in one run.
 async function buildSectorRow(sweepPosts, perQuery, tokens) {
+  let sectorExtra = null;
   if (!sweepPosts.length) { log('  sector: nothing returned, writing nothing'); return []; }
 
   const scanned = recentScanned();
@@ -298,10 +300,48 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
   for (const u of queue) {
     const found = await resolve.identify(u.ticker, searchTokens);
     identified.push({ ...u, ...found });
-    log(`  $${u.ticker}: ${u.people} people — ` +
+    log(`  $${u.ticker}: ${u.people} people (weighted ${u.weighted}, quality ${u.quality}) — ` +
         (found.resolved ? `${found.resolved.name || found.resolved.sym} (${found.matches[0].liquidityUsd.toLocaleString()} liquidity)`
                         : found.reason || 'could not identify'));
     await new Promise((r) => setTimeout(r, 400));
+  }
+
+  // THE BULK TRACK. Every post paid for yields a row of facts, whatever the filter thought of it.
+  // ! this is written BEFORE any filtering decision is applied downstream, so a change to the
+  // filter can never retroactively shrink the record. 874 posts had previously been fetched,
+  // judged off-topic and dropped entirely; they are kept from here on. Facts only -- no text, no
+  // handles, no author ids (D-22). See shared/postfacts.js for what is and is not stored.
+  try {
+    const facts = ranked.important.concat(ranked.background, ranked.setAside)
+      .map((r) => postfacts.factsFor(r.post, r));
+    if (facts.length) append('post-facts.jsonl', facts);
+    const rings = postfacts.coordination(facts);
+    if (rings.length) {
+      log(`  coordination: ${rings.length} group(s) of accounts posting the same wording in a tight window`);
+      for (const g of rings.slice(0, 3)) {
+        log(`    ${g.accounts} accounts, ${g.posts} posts in ${g.spanMin} min${g.tickers.length ? ' — ' + g.tickers.join(', ') : ''}`);
+      }
+    }
+    // ! FEED THE RINGS BACK INTO THE SIGNAL. Without this a coordinated push produces the
+    // STRONGEST possible reading: each sockpuppet passes the per-post credibility check on its
+    // own, so three of them yield three `emerging` posts and a discovery hit. The per-post filter
+    // cannot see across posts by construction; only this cross-post check can, so what it finds
+    // has to reach the thing it contradicts. A flagged coin is still recorded — it is marked, not
+    // deleted (D-69: the filter sorts, it never deletes).
+    const ringTickers = new Set(rings.flatMap((g) => g.tickers.map((t) => String(t).toUpperCase())));
+    const ringCas = new Set(rings.flatMap((g) => g.cas));
+    for (const it of identified) {
+      if (ringTickers.has(String(it.ticker).toUpperCase()) ||
+          (it.resolved && ringCas.has(it.resolved.ca))) {
+        it.coordinated = true;
+        log(`  ! $${it.ticker}: the accounts naming this posted the same wording in a tight window — treat as a campaign, not interest`);
+      }
+    }
+    sectorExtra = { facts: facts.length, coordinationGroups: rings.length, rings: rings.slice(0, 5) };
+  } catch (e) {
+    // ! never let bookkeeping break collection. A missing bulk row is a gap; a thrown error here
+    // would cost the whole pass, including the readings that actually matter.
+    log(`  WARN: post-facts write failed — ${e.message}`);
   }
 
   const strip = (r) => ({
@@ -330,6 +370,10 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     collisions,
     // The filter's own workings are stored, so it can be audited later rather than trusted now.
     filter: { counts: ranked.counts, total: ranked.total, promoShare: ranked.promoShare },
+    // The bulk track's summary. `facts` is how many posts were kept as data rather than dropped;
+    // `coordinationGroups` is how many sets of accounts posted the same distinctive wording inside
+    // a tight window -- the campaign signal, which requires both the wording AND the timing.
+    bulk: sectorExtra,
     important: ranked.important.slice(0, 12).map(strip),
     background: ranked.background.slice(0, 8).map(strip),
     // A sample of what was dropped, kept deliberately: it is how anyone catches this filter
