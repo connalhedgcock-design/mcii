@@ -1,17 +1,25 @@
 name: Collect market and social data
 
 on:
-  schedule:
-    # Twice an hour, and not on the hour. 08-31: moved from hourly per an explicit decision to
-    # trade more money for faster coverage -- see D-90, X_MONTHLY_CAP_USD raised 12 -> 24 in the
-    # same change, and the constraints.md ALL-IN ceiling raised 20 -> 30 alongside it.
-    #
-    # ! the minute matters. This ran at :07 for a day once and GitHub fired it ZERO times out of
-    # 27 -- scheduled runs are queued best-effort and the top of the hour is the busiest slot,
-    # where they are dropped rather than delayed. :37 alone then ran clean for two-plus days.
-    # :12 and :42 are the twice-hourly equivalent: 30 minutes apart, both away from the hour.
-    - cron: '12,42 * * * *'
-  workflow_dispatch:        # lets you run it by hand from the Actions tab, one pass
+  # !! THE SCHEDULE IS OFF. Collection moved to a $5/mo server on 2026-09-01 — see D-98 and
+  # `70-AREAS/collection-host/`. This workflow is kept as a MANUAL BACKUP only: if the server dies,
+  # `workflow_dispatch` still runs a full pass on demand, and re-enabling the cron is uncommenting
+  # four lines.
+  #
+  # ! DO NOT RE-ENABLE THE CRON WHILE THE SERVER TIMER IS RUNNING. Both would collect the same
+  # data twice, pay twitterapi.io twice for it, and race each other pushing to `data/`.
+  #
+  # Why it moved, from the record rather than from feeling: across 08-27..09-01 the scheduler
+  # produced five collection blackouts. Four were runs CANCELLED mid-flight by the next trigger
+  # (`cancel-in-progress`, itself the fix for an earlier hang), losing everything they had
+  # collected; one was GitHub simply never firing for ~3 hours. That is ~13 hours missing from a
+  # 4.6-day record, and only ONE of the five was ever noticed at the time. D-61 said this
+  # scheduler is best-effort and set "proves reliable over two weeks" as the bar to trust it. It
+  # did not clear that bar, so this is D-61's own reopen trigger firing as designed.
+  #
+  # schedule:
+  #   - cron: '12,42 * * * *'
+  workflow_dispatch:        # manual backup — one pass, on demand
 
 # Only one collection at a time -- two runs appending to the same files would interleave lines.
 # cancel-in-progress is TRUE on purpose: if a run ever hangs (a stuck network call, a wedged
