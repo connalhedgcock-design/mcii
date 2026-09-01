@@ -14,6 +14,15 @@ Lane (D-89): scanner effectiveness · what the data MEANS · analysis + scoring 
 and a spot on the board next time we talk.
 
 ## NOW
+- [ ] T-011 P1 @connal · find out whether "3 credible people mentioned this coin" actually predicts
+      anything · why: the collector now spots these, but nobody has shown they mean anything. the
+      research says be sceptical (models that fit beautifully then fail). without a record of
+      predictions vs outcomes, a good week is indistinguishable from luck — and it's the number
+      that would decide how much money goes in · [[70-AREAS/social-collection/README]]
+- [ ] T-012 P1 @connal · check the manipulation detector actually fires · why: it flagged 3 of 376
+      readings and reads 0% bots most of the time. for memecoin twitter that's hard to believe, and
+      a detector that never fires looks identical to one that isn't running
+      · [[70-AREAS/social-collection/README]]
 - [ ] T-002 P2 @connal · make the Cloudflare token so the app can send your holdings by itself
       · why: right now I typed your coins in by hand — buy a new coin and the alerts won't know
       about it · [[cloudflare/telegram-alerts/README]]

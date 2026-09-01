@@ -15,6 +15,13 @@ hand-resolve — delete both sides and regenerate. see [[90-TASKS/README]].
 _none._ ✓
 
 ## P1 · SILENTLY WRONG — showing something false, and nobody would notice
+- [ ] T-011 @connal · prove (or disprove) that the new "emerging" signal predicts anything
+      · why: the system now notices these posts; nothing shows they mean anything. Without a
+      forecast record, a good week and luck look identical — and this is the number that would
+      decide position sizing.
+- [ ] T-012 @connal · verify the manipulation detector actually fires
+      · why: 3 flags in 376 readings, 0% bots most of the time. A detector that never fires is
+      indistinguishable from one that isn't running.
 - [ ] T-001 @connal · measure how often the liquidity alerter gets rate-limited and skips a check
       · why: DexScreener returns 429 to Cloudflare's shared addresses while the same request works
       from a laptop (D-94). a blocked check looks identical to a quiet market — the alerter would
