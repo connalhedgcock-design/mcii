@@ -221,13 +221,13 @@ const SECTOR_QUERIES = [
 
   // People sharing a coin's own page. Carries the address in the URL -> exact identification.
   { q: '("pump.fun/coin" OR "dexscreener.com/solana" OR "birdeye.so/token" OR "jup.ag/swap") -is:retweet',
-    kind: 'links', depth: 50, everyHours: 1 },
+    kind: 'links', depth: 55, everyHours: 1 },
   // Genuine curiosity. Real humans asking real questions; among the lowest advert rates available.
   { q: '("what is this coin" OR "anyone know this coin" OR "whats the ca" OR "what\'s the ca" OR "someone explain this coin" OR "why is this pumping") (solana OR memecoin OR pumpfun OR "pump.fun") -is:retweet',
-    kind: 'asking', depth: 40, everyHours: 1 },
+    kind: 'asking', depth: 45, everyHours: 1 },
   // Position talk. Somebody saying what they actually did, not what you should do.
   { q: '("just bought" OR "just aped" OR "aped into" OR "loading up on" OR "added to my bag" OR "took a position in") (solana OR memecoin OR sol OR pumpfun) -is:retweet',
-    kind: 'buying', depth: 40, everyHours: 1 },
+    kind: 'buying', depth: 45, everyHours: 1 },
   // Meta-chatter: the crowd noticing itself. Names a coin without being an advert for one.
   { q: '("everyone is talking about" OR "everyone talking about" OR "why is everyone buying" OR "whats everyone aping" OR "what is everyone buying") (solana OR memecoin OR sol) -is:retweet',
     kind: 'crowd', depth: 25, everyHours: 2 },

@@ -32,7 +32,34 @@ const scanstore = require('./scanstore');
 // whole monthly bill. 4 searches x 15 posts, twice an hour (D-90, 08-31), is ~$13 of the $24.
 const SWEEP_POSTS_PER_QUERY = 15;
 const SWEEP_RESERVE_USD = 3;      // kept back so the sweep itself never runs out mid-month
-const MIN_POSTS_PER_COIN = 8;     // below this the sweep clearly missed the coin; ask directly
+
+// !! HOW OFTEN THIS PROCESS IS INVOKED, IN ONE PLACE. Read it, never assume it.
+// The systemd timer on the collection host fires at `*:12,42` — TWICE an hour (D-98). Everything
+// in this file that reasons about "per hour" or "per run" must go through this constant.
+// ! this exists because the same mistake has now happened three times: a cadence changed and code
+// written for the old one kept running. D-88 (internal loop vs one-pass), D-90 (hourly ->
+// twice-hourly), and the 09-01 overspend below. If the timer changes, change this, or set
+// COLLECT_RUNS_PER_HOUR in the service environment — do not re-derive it anywhere else.
+const RUNS_PER_HOUR = Math.max(1, Number(process.env.COLLECT_RUNS_PER_HOUR || 2));
+const RUN_INTERVAL_MS = 36e5 / RUNS_PER_HOUR;
+
+// ! PER-COIN SOCIAL SEARCHES ARE OFF (D-108, Connal 2026-09-01: "i dont want to be searching for
+// individual coins at all"). The code below is kept, not deleted, because the reasoning for
+// turning it back on is a live question, not a settled one — see the decision row. Set
+// COLLECT_PER_COIN_TOPUP=1 to restore it.
+// !! CONSEQUENCE, STATED SO NOBODY REDISCOVERS IT AS A BUG: watchlist coins now get a social
+// reading ONLY when the wide sweep happens to mention them, which is roughly one post per run.
+// Most runs will write nothing for most coins. That is the intended behaviour, not a fault.
+// ! what this does NOT touch: collectMarket(), fetchSafety(), maxExitable() and verifyHolders()
+// are separate passes and still run per coin every time. The money-protecting monitoring is
+// unaffected; only chatter about held coins is given up.
+const PER_COIN_TOPUP = process.env.COLLECT_PER_COIN_TOPUP === '1';
+// ! CUT 2026-09-01 from 8. Dedicated per-coin searches were 54% of ALL spend (7,461 posts vs
+// 6,275 for the wide scan) and produced readings that barely cleared the "enough people to mean
+// anything" bar -- typically 13 people against a threshold of 12. That money buys far more as
+// wide-scan coverage, where it sees ~150 coins instead of 5. Held coins are still covered by the
+// sweep like everything else; this only stops paying twice for the same five.
+const MIN_POSTS_PER_COIN = 4;     // below this the sweep clearly missed the coin; ask directly
 // Identifying a ticker is free but not unlimited; be a polite caller. Raised 8 -> 12 on 2026-09-01
 // alongside the discovery queries: a wider sweep surfaces more unknown tickers per run, and leaving
 // the cap at 8 would have quietly thrown away the extra reach the moment it started working.
@@ -139,7 +166,7 @@ async function collectSocial(tokens) {
   const spare = Math.max(0, b.remainingUsd - SWEEP_RESERVE_USD);
   const runsLeftThisMonth = Math.max(1, hoursLeftInMonth());
   const topUpPostsPerCoin = tokens.length
-    ? Math.max(0, Math.min(20, Math.floor((spare / runsLeftThisMonth / tw.COST_PER_POST) / tokens.length)))
+    ? Math.max(0, Math.min(8, Math.floor((spare / runsLeftThisMonth / tw.COST_PER_POST) / tokens.length)))
     : 0;
   log(`  $${b.remainingUsd} left this month -> up to ${topUpPostsPerCoin} extra posts per coin per run`);
 
@@ -199,7 +226,10 @@ function queryStamps() {
 }
 function dueForQuery(kind, everyHours) {
   const last = queryStamps()[kind] || 0;
-  return Date.now() - last >= (everyHours - 0.5) * 36e5;
+  // ! 90% of the interval, not "minus half an hour". The old slack was a fixed 0.5h, which meant
+  // any cadence under 30 minutes was ALWAYS due -- fine while everything was hourly, silently
+  // broken the moment sub-hourly cadences arrived (2026-09-01).
+  return Date.now() - last >= everyHours * 0.9 * 36e5;
 }
 function markQuery(kind) {
   const s = queryStamps();
