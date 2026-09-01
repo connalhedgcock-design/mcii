@@ -135,3 +135,41 @@ old one (D-88's internal loop, D-90's twice-hourly, now D-98's timer). ∴ the d
 this patch — it is that cadence must live in ONE place that the code reads, never be assumed twice.
 
 ### NOT FIXED YET — this entry is the diagnosis, the plan follows
+
+## 2026-09-01 — 3. WHERE THE ANALYSIS ACTUALLY SURFACES, AND TWO LOCKED DECISIONS THAT ARE NOT BUILT
+- machine: connal
+- Connal asked how the tweet analysis reaches him. Checked the real render paths rather than the
+  specs. ! this entry is about PRESENTATION, which is Austin's lane under D-89 / w-006 — recorded
+  here because the gap is in what the analysis layer produces, and acted on by whoever owns the UI.
+
+### IN THE APP — the per-coin Social card (`renderer/app.js`, ~line 315)
+Shows: people posting (RAW count), tone, "vs usual", bot-looking %, spam filtered, a confidence
+tier, a plain-English verdict line that leads with manipulation-or-thin, the ticker-collision
+warning, and the five example posts with handle/views/tone. ✓ the verdict leading, and thin vs
+manufactured being different sentences, are both working as D-24 requires.
+- !! but it renders the PRE-09-01 measures. `grep` across `renderer/` finds `manipulated` and
+  nothing else from today's work: no weighted people count, no raw-vs-weighted GAP, no coordination
+  ring, no `emerging` marker, no credibility. ∴ the card still says "13 different people" where the
+  point of D-100 is that thirteen accounts may weigh 1.4. **The strongest thing we now compute is
+  the one thing the screen does not say.**
+- the sector view does surface `identified` tickers (`app.js:591`), so discovery is visible.
+
+### ON THE PHONE — `cloudflare/telegram-alerts/src/index.js`
+Two alerts only, both bad-news-only, both purely market: liquidity −15% and price −12%, on HELD
+coins, 15-min cooldown.
+- !! **D-96 IS NOT BUILT.** "every notification carries the ANALYSIS, not just the number — what
+  moved, what the social read says, what market data says, then a call w/ conf% + falsifier." The
+  messages carry a price, a pool size and a position value. No social read reaches the phone at all.
+- !! **D-95 IS NOT BUILT.** "UPWARD moves ARE reported, on any tracked coin, held or not." The
+  worker has `LIQ_DROP_PCT` and `PRICE_DROP_PCT` and no upward branch, and it only ever looks at
+  held positions. Connal overruled me to get that decision made; it then never got implemented.
+- ! neither is a regression — they were decided and never built. But a decision logged as LOCKED
+  and absent from the code is worse than an open one, because the vault reads as though it exists.
+  ∴ recorded here so the next session does not re-derive the decision instead of shipping it.
+
+### ! THE SHAPE OF THIS PROBLEM, SO IT IS NOT REPEATED
+Analysis has been improved four times today; the two surfaces a human actually looks at have not
+changed once. `est:` conf 85% — an improvement nobody can see is indistinguishable from one that
+was never made, which is this project's most repeated defect wearing new clothes (D-60, D-63, D-85).
+∴ any future change to the social layer should name, in its own commit message, which screen or
+notification changes as a result — or say explicitly that none does.

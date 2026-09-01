@@ -247,6 +247,38 @@ function markQuery(kind) {
 
 // Runs remaining this month, so the leftover budget is spread across them rather than spent in
 // the first week. Collection stopping on the 20th is worse than a thinner reading all month.
+// One small file holding only the newest social reading per coin, so something that is NOT this
+// repo can read it cheaply. Written alongside social.jsonl, never instead of it.
+//
+// ! WHY A SEPARATE FILE AT ALL: the Telegram worker needs the social read to satisfy D-96 (every
+// notification carries the analysis, not just a number). It runs on Cloudflare every 5 minutes and
+// fetches from the public repo, so it cannot pull social.jsonl -- that file is ~850KB and grows
+// forever, and downloading it 288 times a day to read five lines is absurd. This is ~1KB, flat.
+// ! it is a DERIVED CACHE, never a source. social.jsonl remains the record (D-19). If the two ever
+// disagree, this one is wrong and should be regenerated rather than reconciled.
+function writeSocialLatest(rows) {
+  if (!rows || !rows.length) return;   // D-29: nothing collected writes nothing, never a zero
+  let out = {};
+  try { out = JSON.parse(fs.readFileSync(path.join(DATA, 'social-latest.json'), 'utf8')); } catch {}
+  for (const r of rows) {
+    if (!r.ca) continue;
+    out[r.ca] = {
+      sym: r.sym || null,
+      at: r.ts,
+      people: r.uniqueAuthors ?? null,
+      // ! tone is deliberately null rather than 0 when too few posts carried scoreable wording.
+      // D-86: one voice once produced a confident-looking "0.818". Absent must not read as neutral.
+      tone: r.sentimentThin ? null : (r.sentiment ?? null),
+      confidence: r.confidence || 'none',
+      manipulated: !!r.manipulated,
+      manipReasons: r.manipReasons || [],
+    };
+  }
+  try {
+    fs.writeFileSync(path.join(DATA, 'social-latest.json'), JSON.stringify(out, null, 2) + '\n');
+  } catch (e) { log(`  could not write social-latest.json: ${e.message}`); }
+}
+
 function hoursLeftInMonth() {
   const now = new Date();
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -511,6 +543,7 @@ async function main() {
   const chatter = await collectSocial(tokens);
   append('social.jsonl', chatter.social);
   append('sector.jsonl', chatter.sector);
+  writeSocialLatest(chatter.social);
 
   log('holder ground truth:');
   append('holders-onchain.jsonl', await verifyHolders(tokens));

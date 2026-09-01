@@ -29,6 +29,21 @@ const DUST_USD = 1;              // below this it is an airdrop, not a position.
 const PRICE_BATCH = 30;          // DexScreener's documented ceiling per call
 const STALE_HOLDINGS_HOURS = 72; // warn once if the app has not pushed in this long
 
+// D-95: upward moves are reported too, on any TRACKED coin, held or not. `proof: PRICE_RISE_PCT`
+// ! ASYMMETRIC ON PURPOSE (+20 against -12), and the asymmetry is the whole design:
+//   - a fall in something you hold costs money NOW; a rise in something you do not hold costs
+//     nothing and only becomes information.
+//   - these coins rise more often than they fall hard, so a symmetric bar would produce mostly
+//     upward alerts, and an alerter that mostly cries "up" trains you to ignore it — which would
+//     cost you the rug alert it exists for.
+// ! falsifier for this number: if rise alerts arrive more than about twice a day per coin, 20 is
+//   too low and should go up. Measure before tuning.
+const PRICE_RISE_PCT = 20;
+
+// How old a social reading may be before it is quoted as "no recent reading" rather than as fact.
+// Collection runs twice an hour; 3 hours means several consecutive misses, not one blip.
+const SOCIAL_STALE_HOURS = 3;
+
 export default {
   async scheduled(event, env, ctx) {
     // Two independent jobs. The collector watchdog runs even if the holdings check throws --
@@ -70,6 +85,11 @@ export default {
 const COLLECT_STALE_MIN = 95;      // two missed 30-min cycles + slack. not a fixed number: see below
 const WATCHDOG_COOLDOWN_SEC = 3600;
 const REPO = 'connalhedgcock-design/mcii';
+// ! declared AFTER REPO on purpose — a `const` referencing another `const` above its declaration
+// line throws at module load (temporal dead zone), and a worker that throws on load never runs.
+// Read-only, and both files it serves are already public: D-92 keeps HOLDINGS out of the repo,
+// while the watchlist and the social summary carry no position information.
+const RAW = `https://raw.githubusercontent.com/${REPO}/main`;
 
 async function watchCollector(env) {
   let iso;
@@ -121,30 +141,48 @@ async function watchCollector(env) {
 // writes/day flat, however many coins are held -- the per-coin cost was a property of the first
 // design, not a real constraint. Same lesson as D-65.
 async function run(env) {
-  const { positions, pushedAt } = await readHoldings(env);
+  // Holdings and the tracked list are fetched together and are independent: either alone is
+  // enough to do useful work, and a failure of one must not silence the other.
+  const [{ positions, pushedAt }, watchlist, social] =
+    await Promise.all([readHoldings(env), readTracked(), readSocialLatest()]);
+
+  // D-95: watch every tracked coin, held or not. Held coins first so a held coin always wins the
+  // dedupe if it also appears on the watchlist.
+  const heldBy = new Map(positions.map((p) => [p.ca, p]));
+  const watching = [...new Set([...positions.map((p) => p.ca), ...watchlist.map((t) => t.ca)])];
+
+  if (!watching.length) {
+    console.error('nothing to watch -- no holdings in KV and no readable watchlist');
+    return { positionsTracked: 0, reason: 'nothing to watch' };
+  }
   if (!positions.length) {
-    console.error('no holdings in KV -- has the desktop app pushed yet?');
-    return { positionsTracked: 0, reason: 'no holdings in KV' };
+    // ! not an early return any more. Alerting on tracked coins is still worth doing, and the
+    // stale-holdings warning below is what tells anyone the push side is broken.
+    console.error('no holdings in KV -- watching tracked coins only');
   }
 
   const prevRaw = await env.ALERTS_KV.get('last-seen');
   const prev = prevRaw ? safeParse(prevRaw, {}) : {};
 
   const priceDiag = [];
-  const priced = await priceMints(positions.map((p) => p.ca), priceDiag);
-  const bySym = new Map(positions.map((p) => [p.ca, p]));
+  const priced = await priceMints(watching, priceDiag);
+  const bySym = heldBy;
 
   const next = {};
   const tracked = [];
   for (const [ca, m] of priced) {
     const held = bySym.get(ca);
+    const isHeld = !!held;
     const tokens = held?.tokens || 0;
-    const valueUsd = tokens * m.priceUsd;
-    if (valueUsd < DUST_USD) continue;   // dust is not a position worth waking someone for
+    const valueUsd = isHeld ? tokens * m.priceUsd : null;
+    // ! the dust rule applies ONLY to coins actually held. A watched coin has no position, so
+    // testing its value would silently drop every tracked-but-unheld coin -- which is exactly the
+    // "empty result shaped like a real answer" failure D-55 and D-93 are both about.
+    if (isHeld && valueUsd < DUST_USD) continue;
 
     const sym = held?.sym || m.sym;
     next[ca] = { liquidityUsd: m.liquidityUsd, priceUsd: m.priceUsd, at: Date.now() };
-    tracked.push(`${sym} $${valueUsd.toFixed(2)}`);
+    tracked.push(isHeld ? `${sym} $${valueUsd.toFixed(2)}` : `${sym} (watched)`);
 
     const before = prev[ca];
     if (!before) continue;               // first sighting -- nothing to compare against yet
@@ -154,17 +192,29 @@ async function run(env) {
     const pxPct = before.priceUsd
       ? ((m.priceUsd - before.priceUsd) / before.priceUsd) * 100 : 0;
 
+    const soc = social[ca] || null;
+    const evidence = (direction) =>
+      alertAnalysis({ soc, liquidityUsd: m.liquidityUsd, valueUsd, held: isHeld, direction });
+
     if (liqPct <= LIQ_DROP_PCT) {
       await maybeAlert(env, ca, 'liquidity-pull',
         `🚨 ${sym}: liquidity dropped ${Math.abs(liqPct).toFixed(0)}%`,
         `Pool liquidity fell from $${Math.round(before.liquidityUsd).toLocaleString()} to ` +
-        `$${Math.round(m.liquidityUsd).toLocaleString()}. Your position is worth about ` +
-        `$${valueUsd.toFixed(2)}. A sudden drop is how a rug looks while it is happening.`);
+        `$${Math.round(m.liquidityUsd).toLocaleString()}. A sudden drop is how a rug looks while ` +
+        `it is happening.\n\n${evidence('down')}`);
     } else if (pxPct <= PRICE_DROP_PCT) {
       await maybeAlert(env, ca, 'price-drop',
         `⚠️ ${sym}: price fell ${Math.abs(pxPct).toFixed(0)}%`,
-        `From $${before.priceUsd.toPrecision(4)} to $${m.priceUsd.toPrecision(4)}. Position worth ` +
-        `about $${valueUsd.toFixed(2)}. Check liquidity before assuming this is just a dip.`);
+        `From $${before.priceUsd.toPrecision(4)} to $${m.priceUsd.toPrecision(4)}. Check liquidity ` +
+        `before assuming this is just a dip.\n\n${evidence('down')}`);
+    } else if (pxPct >= PRICE_RISE_PCT) {
+      // D-95. ! deliberately reported for coins they do NOT hold as well. Connal overruled my
+      // objection and was right on the substance: reporting a move with its evidence is analysis;
+      // it is only a tip if it carries a directive, and alertAnalysis() never does.
+      await maybeAlert(env, ca, 'price-rise',
+        `📈 ${sym}: price rose ${pxPct.toFixed(0)}%${isHeld ? '' : ' (not held)'}`,
+        `From $${before.priceUsd.toPrecision(4)} to $${m.priceUsd.toPrecision(4)}.` +
+        `\n\n${evidence('up')}`);
     }
   }
 
@@ -193,6 +243,93 @@ function safeParse(raw, fallback) {
 // Written by the desktop app (see app/main/alerts-push.js). Shape:
 //   { pushedAt: <epoch ms>, positions: [{ ca, sym, tokens }] }
 // A bare array is also accepted so the key can be set by hand from wrangler for testing.
+// --- WHAT ELSE THE PHONE NEEDS TO KNOW --------------------------------------------------------
+
+// The coins being tracked, held or not (D-95). Read from the public repo rather than KV because
+// the app already publishes it there on every add/remove (D-66), so there is nothing new to keep
+// in sync and no second copy to go stale.
+// ! a failure here must NEVER stop the held-position alerts. Tracking is a bonus; holdings are the
+//   job. Returns [] on any problem and says so in the log.
+async function readTracked() {
+  try {
+    const res = await fetchWithTimeout(`${RAW}/data/watchlist.json`, {}, 10000, 2);
+    const v = await res.json();
+    return Array.isArray(v) ? v.filter((t) => t && typeof t.ca === 'string' && t.ca.trim()) : [];
+  } catch (e) {
+    console.error(`watchlist unreadable, alerting on holdings only: ${e.message}`);
+    return [];
+  }
+}
+
+// Newest social reading per coin, written by the collector (`writeSocialLatest`).
+// ! same rule: unreadable means the alert goes out WITHOUT the social half, never that the alert
+//   is withheld. A rug alert delayed because a summary file 404'd would be an absurd trade.
+async function readSocialLatest() {
+  try {
+    const res = await fetchWithTimeout(`${RAW}/data/social-latest.json`, {}, 10000, 2);
+    const v = await res.json();
+    return v && typeof v === 'object' ? v : {};
+  } catch (e) {
+    console.error(`social summary unreadable, alerts will omit it: ${e.message}`);
+    return {};
+  }
+}
+
+// D-96: every notification carries the ANALYSIS, not just the number. `proof: alertAnalysis`
+//
+// Builds the evidence block that goes under every alert: what the social read says, what the
+// market data says, then a call with a confidence band and a falsifier.
+// ! NEVER a directive. D-95's whole argument was that reporting a move is analysis while telling
+//   someone to act on it is not, and the mandate bans "buy"/"sell"/"you should" outright.
+// ! bands, not decimals. "hype score 73.4" is the false precision the mandate names by example, so
+//   this says low/moderate/good and states what it is based on.
+export function alertAnalysis({ soc, liquidityUsd, valueUsd, held, direction }) {
+  const lines = [];
+
+  // --- the social half ---
+  const ageH = soc?.at ? (Date.now() - soc.at) / 36e5 : null;
+  const fresh = ageH != null && ageH <= SOCIAL_STALE_HOURS;
+  let socialQuality = 'none';
+  if (!soc || !fresh) {
+    lines.push(`Social: no recent reading${ageH != null ? ` (last one ${Math.round(ageH)}h ago)` : ''}, so this is a market-data-only call.`);
+  } else if (soc.manipulated) {
+    // D-23/D-105: a manufactured conversation is a WARNING, never enthusiasm to be added up.
+    const why = (soc.manipReasons || []).slice(0, 2).join('; ');
+    lines.push(`Social: the conversation has the shape of a promoted one${why ? ` (${why})` : ''}. Treat the enthusiasm as a warning, not as interest.`);
+    socialQuality = 'manipulated';
+  } else if (soc.confidence === 'none' || soc.confidence === 'low' || (soc.people ?? 0) < 12) {
+    // D-24: THIN is not the same as MANIPULATED and must not collapse into one word.
+    lines.push(`Social: only ${soc.people ?? 0} different people posted — too few to read anything into.`);
+    socialQuality = 'thin';
+  } else {
+    const tone = soc.tone == null ? 'no clear tone'
+      : soc.tone > 0.2 ? 'mostly positive' : soc.tone < -0.2 ? 'mostly negative' : 'mixed';
+    lines.push(`Social: ${soc.people} different people posted, ${tone}.`);
+    socialQuality = 'ok';
+  }
+
+  // --- the market half ---
+  const liq = liquidityUsd ? `$${Math.round(liquidityUsd).toLocaleString()}` : 'unknown';
+  lines.push(`Market: pool depth ${liq}${held && valueUsd != null ? `, your position about $${valueUsd.toFixed(2)}` : ', not held by you'}.`);
+
+  // --- the call ---
+  // Confidence is about the EVIDENCE, not about what happens next. Nothing here forecasts a price.
+  let conf = 'low';
+  if (socialQuality === 'ok' && liquidityUsd) conf = 'moderate';
+  if (socialQuality === 'manipulated') conf = 'low';
+  const thinPool = liquidityUsd != null && liquidityUsd < 30000;
+
+  if (direction === 'down') {
+    lines.push(`Read: a fall on ${thinPool ? 'a thin pool' : 'this depth'} is either people leaving or liquidity going. Confidence ${conf} — that is confidence in the EVIDENCE, not a forecast.`);
+    lines.push(`Wrong if: the pool depth is unchanged and it recovers within an hour — then this was a trade, not an exit.`);
+  } else {
+    lines.push(`Read: a rise this size on ${thinPool ? 'a pool this thin' : 'this depth'} moves easily and can reverse just as fast. Confidence ${conf} — in the evidence, not in what happens next.`);
+    lines.push(`Wrong if: the people posting turn out to be the same few accounts, or the pool has not grown with the price.`);
+  }
+  lines.push(`Not advice, and not a suggestion to do anything.`);
+  return lines.join('\n');
+}
+
 async function readHoldings(env) {
   const raw = await env.ALERTS_KV.get('holdings');
   if (!raw) return { positions: [], pushedAt: null };

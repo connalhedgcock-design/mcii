@@ -52,6 +52,12 @@ conf=N% = my calibrated confidence. Every claim in this vault carries one or is 
 - ! `.obsidian/workspace.json` must stay gitignored — it is per-person UI state, not shared data.
 - next action gate that mattered at SPEC phase (read GRILL before any code) is DONE and moot now;
   the live gate is: read the OVERVIEW above before proposing anything that already exists.
+- !! RUN `./check-decisions.sh` BEFORE STARTING ANY NEW WORK. It lists decisions that were LOCKED
+  and never built. Those get built FIRST, ahead of anything new, or the row gets reopened on
+  purpose with a reason. Added 2026-09-01 on Connal's instruction ("things that get locked but not
+  built should be built automatically") after D-95 and D-96 sat locked-and-absent for a day while
+  the vault read as though they existed. ! a locked row with no code behind it is worse than an
+  open question — an open question gets revisited, a false certainty does not.
 - ! AND CHECK `git log --oneline -15` BEFORE AUDITING OR PROPOSING ANYTHING. added 2026-09-01 after
   a full social-collection audit was run against a state the other operator had already rebuilt
   hours earlier — the files were read correctly, the COMMITS were not. two people in one folder
