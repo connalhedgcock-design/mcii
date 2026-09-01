@@ -245,6 +245,33 @@ door". All four were fair. What the rebuild settled:
   failed the moment facets got WIDER, while covering more of the room than before. It asserts
   angular coverage now. A test that pins the detail instead of the invariant fails on improvements.
 
+## PERFORMANCE: WHAT THE COMPOSITOR ACTUALLY OWNS (09-01)
+!! Operator, twice: the turn is laggy. Both times the cause was in this file, and both times a
+comment right above the offending rule claimed the opposite.
+- `X` **animating `background-position`.** It is a PAINT property. Animating it on ~25 panes meant
+  repainting a multi-layer gradient stack on every one, every frame, on top of a heading change that
+  already re-rasterises the room.
+- `X` **animating `filter: brightness()`** across the bulkhead. `filter` forces a re-raster of the
+  element and everything it groups. This file ALREADY carried the warning — "never animate filter
+  across a large layer" — and it got broken anyway, by me, with a comment asserting it was cheap.
+- ✓ **ONLY `transform` AND `opacity` MAY BE ANIMATED IN THIS ROOM.** Both are composited; neither
+  repaints. This is checkable: walk every `@keyframes` block and confirm the properties inside. Do
+  that instead of trusting the comment above the rule.
+- ✓ **THE SKY IS PRERENDERED TO A BITMAP** (`buildSky()`, canvas → data URI). It was ~24 CSS gradient
+  layers painted per pane on ~25 panes; a gradient stack is not free just because it is declarative,
+  it is re-evaluated on every repaint, per element. One decode, then every pane is a blit.
+  The tile is seamless and its width is a whole number of wall facets, which is what lets the panes
+  line up — sizing the image at one scale and computing the offsets at another is what left the
+  planets not lining up.
+- ! **A LINE-BASED EDIT THAT DELETES A CSS RULE CAN LEAVE ITS SELECTOR LIST BEHIND.** Removing an
+  animation declaration left `.st-hull-seg::before, .st-hull-jamb::after,` dangling, which merged
+  into the NEXT rule's selector list and silently gave the window band the white panel's styling.
+  The stylesheet still parsed and the braces still balanced. Symptom: the windows went black.
+  Diagnosed by probing `getComputedStyle(pane, '::before')`, not by reading — the file looked right.
+- ! the floor is PLATES, not a grid. Line-work over a flat tone is a wireframe however many lines
+  you add. Two alternating radial wedges crossed with two alternating transverse bands give four
+  tone levels, and the eye resolves those as panels before it ever sees a line.
+
 ## NO DISCLAIMERS, NO SELF-EXPLANATION (operator, 08-31)
 `X` on-screen copy whose job is to explain the app to its user or reassure them about what it does
 — privacy/no-keys notes, "how this works" text, onboarding prose. The audience is TWO PEOPLE and

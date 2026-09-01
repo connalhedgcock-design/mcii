@@ -13,7 +13,7 @@ import {
   yawFor, offsetFor, starPan, stepDoorScreen, doorVisible, homeIndex,
   boardsFor, columnHeight, globeSize,
   hullSegments, vaultSegments, hullFacetWidth, vaultFacetWidth, doorBayWidth, hullVisible, vaultVisible,
-  HULL_SEG_DEG, HULL_SPAN_DEG,
+  HULL_SEG_DEG, HULL_SPAN_DEG, VAULT_SEG_DEG, DOOR_BAY_DEG,
   WALL_Z, VAULT_TILT_DEG,
 } from './station-geometry.js'
 import { mountGlobe } from './holo-globe.js'
@@ -62,10 +62,18 @@ function build(root) {
   // every other window was empty void. At 1700px a viewful (~10 panes) spans
   // about 70% of the sky — you always have something in frame — while the repeat
   // lands ~100° away, so you never catch two of the same planet at once.
+  // ⚠️ ONE SCALE FOR BOTH. The tile is a whole number of wall facets wide and the
+  // offsets step by the same px-per-degree, so every pane lands exactly on its own
+  // slice and the join between panes is continuous. Sizing the image at one scale
+  // and computing offsets at another is what left the planets not lining up.
   const pxPerDeg = hullFacetWidth() / HULL_SEG_DEG
-  const skyW = 1700
-  const skyAt = (angle, paneW) =>
-    `--sky-w:${skyW}px; --sky-x:${Math.round(-((angle + HULL_SPAN_DEG) * pxPerDeg) + paneW / 2)}px`
+  const SKY_FACETS = 12                       // ≈84° of sky before it repeats —
+  const skyW = Math.round(hullFacetWidth() * SKY_FACETS)   // wider than a viewful
+  const skyUrl = buildSky(skyW, 420)
+  // Offset to this pane's slice, measured from its LEFT EDGE — the pane spans
+  // [angle − half, angle + half], and the sky must start where the pane starts.
+  const skyAt = (angle, halfDeg) =>
+    `--sky-x:${Math.round(-(angle - halfDeg + HULL_SPAN_DEG) * pxPerDeg)}px`
 
   root.innerHTML = `
     <div class="st-room st-room-bridge">
@@ -77,7 +85,7 @@ function build(root) {
                stylesheet goes stale the moment either is touched -- leaving hairline gaps
                between wall panels that show the void through the hull. A custom property
                is not a grouping property, so it is safe on this element. -->
-          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px; --st-jamb-w:${Math.round(doorBayWidth())}px; --st-vault-w:${Math.ceil(vaultFacetWidth()) + 2}px">
+          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px; --st-jamb-w:${Math.round(doorBayWidth())}px; --st-vault-w:${Math.ceil(vaultFacetWidth()) + 2}px; --st-sky-w:${skyW}px">
             <!-- The hull FIRST: the corridor the doors are set into. Before the
                  floor and the portals so it is the surface everything else sits
                  against, and so a facet can never paint over an arch. -->
@@ -86,18 +94,18 @@ function build(root) {
                  door the way the screen-fixed ceiling did. -->
             ${vaultSegments().map((v) => `
               <div class="st-vault st-vault-${v.kind}" data-a="${v.angle}"
-                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg); ${skyAt(v.angle, vaultFacetWidth())}"></div>`).join('')}
+                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg); ${skyAt(v.angle, VAULT_SEG_DEG / 2)}"></div>`).join('')}
             <!-- THE WALL. Facets a doorway covers are simply absent — the jamb is
                  the wall there, and it carries the opening. -->
             ${hullSegments().map((h) => `
               <div class="st-hull-seg st-hull-${h.kind}" data-a="${h.angle}"
-                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(h.angle, hullFacetWidth())}"></div>`).join('')}
+                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(h.angle, HULL_SEG_DEG / 2)}"></div>`).join('')}
             <!-- THE JAMBS. A wall panel with the doorway cut out of it, sitting in
                  FRONT of the door ring, so the door is seen through a hole in the
                  wall with the wall's own thickness showing as a reveal. -->
             ${DOORS.map((d) => `
               <div class="st-hull-jamb" data-a="${d.angle}"
-                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(d.angle, doorBayWidth())}"></div>`).join('')}
+                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(d.angle, DOOR_BAY_DEG / 2)}"></div>`).join('')}
             <div class="st-beyond-floor"></div>
             ${DOORS.map((d, i) => `
               <div class="st-portal${d.built ? '' : ' is-sealed'}" data-i="${i}"
@@ -117,6 +125,7 @@ function build(root) {
           </div>
           <div class="st-beyond-haze"></div>
           <div class="st-smear"></div>
+          <div class="st-sweep"></div>
         </div>
 
         <div class="st-ceiling">
@@ -167,6 +176,11 @@ function build(root) {
 
   stage = root
   world = root.querySelector('.st-beyond-world')
+  // ⚠️ Set as a property, NOT inlined into the template string. The prerendered
+  // sky is a few hundred KB of base64; pasting that into an attribute inside the
+  // HTML makes the markup unreadable in devtools and re-parses it on every
+  // remount. One property on the panes' shared ancestor, inherited by all of them.
+  if (skyUrl) world.style.setProperty('--st-sky-img', `url(${skyUrl})`)
   stars = root.querySelector('.st-ceil-stars')
   hub = root.querySelector('.st-hub')
   globeHost = root.querySelector('.st-globe')
@@ -609,6 +623,80 @@ function onKey(e) {
 /* ═══════════════════════════════════════════════════════════════════════════
    MOUNT
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SKY, PRERENDERED ONCE.
+
+   ⚠️ IT USED TO BE ~24 CSS GRADIENT LAYERS, PAINTED PER PANE, ON ~25 PANES.
+   Every heading change re-rasterised all of it inside a 3D transform, and the
+   turn was visibly laggy. A gradient stack is not free just because it is
+   declarative: it is re-evaluated on every repaint, per element.
+
+   Drawn once into a canvas here and handed to CSS as a single data-URI image.
+   One decode, then every pane is a blit. `img-src 'self' data:` in the app's CSP
+   already allows this.
+
+   ⚠️ THE TILE IS SEAMLESS AND ITS WIDTH IS A WHOLE NUMBER OF WALL FACETS. That is
+   what lets the panes line up: each pane is offset to its own slice by the SAME
+   px-per-degree the wall itself uses, and the tile repeats without a visible
+   join. Sizing the image and the offsets at two different scales is what made
+   the planets fail to line up before — the maths was continuous, the two scales
+   were not.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function buildSky(tileW, h) {
+  const c = document.createElement('canvas')
+  c.width = tileW; c.height = h
+  const x = c.getContext('2d')
+  if (!x) return null
+
+  // Anything that could cross an edge is drawn three times, so the tile wraps.
+  const wrap = (fn) => { for (const dx of [-tileW, 0, tileW]) { x.save(); x.translate(dx, 0); fn(); x.restore() } }
+  const blob = (cx, cy, r, stops) => wrap(() => {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, r)
+    stops.forEach(([o, col]) => g.addColorStop(o, col))
+    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 6.2832); x.fill()
+  })
+
+  // the void — never pure black, which reads as a hole rather than as distance
+  const v = x.createLinearGradient(0, 0, 0, h)
+  v.addColorStop(0, '#12161f'); v.addColorStop(1, '#0a0d14')
+  x.fillStyle = v; x.fillRect(0, 0, tileW, h)
+
+  // nebulosity: findable edges, unequal sizes, none of them centred
+  blob(tileW * 0.72, h * 0.24, h * 0.72, [[0, 'rgba(56,132,168,0.30)'], [0.45, 'rgba(38,86,126,0.13)'], [1, 'rgba(0,0,0,0)']])
+  blob(tileW * 0.30, h * 0.66, h * 0.60, [[0, 'rgba(58,96,170,0.22)'], [1, 'rgba(0,0,0,0)']])
+  blob(tileW * 0.94, h * 0.40, h * 0.50, [[0, 'rgba(48,126,150,0.20)'], [1, 'rgba(0,0,0,0)']])
+
+  // the dust lane
+  x.save(); x.globalAlpha = 0.5
+  const d = x.createLinearGradient(0, h * 0.1, tileW * 0.4, h)
+  d.addColorStop(0, 'rgba(0,0,0,0)'); d.addColorStop(0.5, 'rgba(150,178,205,0.13)'); d.addColorStop(1, 'rgba(0,0,0,0)')
+  x.fillStyle = d; x.fillRect(0, 0, tileW, h); x.restore()
+
+  // stars, three magnitudes — one size reads as noise, three reads as a sky.
+  // Deterministic: a hash, not Math.random, so the sky is the same every launch
+  // and nobody ever debugs a star that moved.
+  let seed = 20260901
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296
+  for (const [n, r, a] of [[210, 0.7, 0.55], [70, 1.1, 0.8], [22, 1.7, 0.95]]) {
+    for (let i = 0; i < n; i++) {
+      const sx = rnd() * tileW, sy = rnd() * h
+      x.fillStyle = `rgba(232,242,255,${a * (0.5 + rnd() * 0.5)})`
+      wrap(() => { x.beginPath(); x.arc(sx, sy, r, 0, 6.2832); x.fill() })
+    }
+  }
+
+  // a planet, low, lit from the left, with its atmosphere on the limb
+  const px = tileW * 0.20, py = h * 1.06, pr = h * 0.52
+  blob(px, py, pr * 1.16, [[0, 'rgba(120,196,226,0.0)'], [0.86, 'rgba(120,196,226,0.34)'], [1, 'rgba(120,196,226,0)']])
+  blob(px, py, pr, [[0, '#3f7fa8'], [0.55, '#2b5c80'], [0.82, '#16304a'], [1, '#0d1e30']])
+  // two moons, well away from it, so no slice of the sky is dead
+  blob(tileW * 0.62, h * 0.32, h * 0.085, [[0, '#c3cdd8'], [0.65, '#8f9aa8'], [1, '#5c6672']])
+  blob(tileW * 0.88, h * 0.62, h * 0.034, [[0, '#9fb3c4'], [1, '#5a6874']])
+
+  return c.toDataURL('image/png')
+}
+
 export function initObservatory(root) {
   build(root)
   active = true
