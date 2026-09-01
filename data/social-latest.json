@@ -1,0 +1,20 @@
+{
+  "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
+    "sym": "CATE",
+    "at": 1788300781736,
+    "people": 1,
+    "tone": null,
+    "confidence": "none",
+    "manipulated": true,
+    "manipReasons": []
+  },
+  "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump": {
+    "sym": "ANSEM",
+    "at": 1788300781742,
+    "people": 2,
+    "tone": null,
+    "confidence": "low",
+    "manipulated": false,
+    "manipReasons": []
+  }
+}
