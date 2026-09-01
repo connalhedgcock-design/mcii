@@ -90,6 +90,18 @@ async function watchCollector(env) {
   const ageMin = (Date.now() - Date.parse(iso)) / 60000;
   if (ageMin <= COLLECT_STALE_MIN) {
     await env.ALERTS_KV.delete('watchdog:firing').catch(() => {});
+    // ! WHO WATCHES THE WATCHDOG. If this worker, Cloudflare, the bot token or the chat ever
+    // breaks, no alert arrives -- and silence looks EXACTLY like everything being fine. That
+    // ambiguity is this project's oldest recurring injury (D-60: a collector whose age nothing
+    // shows is indistinguishable from a broken one). One message a week resolves it: silence for
+    // more than a week now means the alerting is broken, not that nothing happened. Weekly is
+    // deliberately rare enough not to train them to swipe it away.
+    await maybeAlert(env, 'system', 'heartbeat',
+      `✅ MCII: everything is running`,
+      `Data was collected ${Math.round(ageMin)} minutes ago. Alerts are working — this message is ` +
+      `the proof, and you get it once a week. If a week goes by with nothing at all, the alerting ` +
+      `itself has broken rather than the world having gone quiet.`,
+      7 * 24 * 3600);
     return { watchdog: 'ok', dataAgeMin: Math.round(ageMin) };
   }
 
