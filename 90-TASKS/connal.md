@@ -30,6 +30,22 @@ and a spot on the board next time we talk.
       · why: it can quietly stop watching your coins and look completely fine while doing it
       · [[decisions]] D-94
 
+- [ ] T-016 P3 @connal · one system that decides which coins to track, reading whale wallet moves
+      AND the social tracker AND the coins' own market numbers together · why: right now the three
+      never meet. Market data and social each go to their own screen, whale activity does not exist
+      at all, and the coin list is whatever either of you typed in by hand. Connal, 09-01: "we need
+      to develop a system for you watching combined wallet activity from whales, social media
+      tracker data, and the numbers from the coins/market themselves so you can automatically pick
+      which coins to be tracking and which not to be." ! BLOCKED on the whale half (T-017) — two of
+      the three inputs exist, the third has no mechanism yet. ! design already researched:
+      competitive admission + automatic expiry, [[60-KB/watchlist-admission-research]]
+      · [[80-WHISPERS/analysis-algorithm/README]]
+- [ ] T-017 P3 @connal · work out what whale wallet tracking would actually WATCH and what a move
+      MEANS · why: T-016 cannot be built without it, and "track whales" is not yet a spec — which
+      wallets, and whether a whale selling is even bad news, are both unanswered. ! D-93 is the hard
+      constraint: no free keyless RPC will read a wallet from a datacenter, so anything always-on
+      needs a different home than the alert worker · [[80-WHISPERS/whale-tracking/README]]
+
 ## NEXT
 - [ ] T-005 P3 @connal · the thing that actually picks which coins to buy and when to sell
       · why: this is the whole point of the trading strategy, and it's the piece that doesn't

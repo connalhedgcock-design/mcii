@@ -103,6 +103,24 @@ coin will do well.
    everything. A policy that could quietly stop watching a coin someone holds is not acceptable at
    any hit-rate.
 
+## !! THE THIRD INPUT IS MISSING, AND CONNAL NAMED IT ON THE DAY THIS WAS WRITTEN
+Everything above scores a candidate on TWO inputs: the social read and the coin's own market
+numbers. Connal, 2026-09-01: "we need to develop a system for you watching combined wallet activity
+from whales, social media tracker data, and the numbers from the coins/market themselves so you can
+automatically pick which coins to be tracking and which not to be."
+- ∴ the admission contest above should be a THREE-input score, and the third input does not exist.
+  See [[80-WHISPERS/whale-tracking/README]] — reading one wallet works; which wallets and what a
+  move means are unanswered, and D-93 blocks anything always-on from the cloud worker.
+- ! `est:` conf 70% that wallet flow is the STRONGEST of the three for this particular decision,
+  and the reasoning is w-005's own rule: money moving is the thing itself, chatter is a hint about
+  it. A wallet that has been early on things before, buying now, is a fact about behaviour rather
+  than an opinion about a coin.
+- ! but it is also the most gameable input of the three at the wallet level (wash trading between
+  addresses you control is cheap), so it needs the same manufactured-versus-real treatment the
+  social side already has. ∴ do NOT assume it arrives cleaner just because it is on-chain.
+- ! falsifier: if, over n≥50 admitted coins, the wallet input changes the admission decision in
+  fewer than ~1 in 10 cases, it is not earning its build cost and the two-input version stands.
+
 ## ! WHAT THIS DOES NOT DO — read before anyone calls it a strategy
 - it decides what to WATCH, never what to buy. No admission rule here is an entry signal, and
   promoting a coin to probation must never render as a recommendation on screen.

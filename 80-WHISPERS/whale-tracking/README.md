@@ -39,6 +39,16 @@ reads named ACTORS. It would be a new data source feeding into
 - ! D-21: no deployer-history build; operators use J7Tracker manually. Whale tracking is adjacent
   to that rejected row — read it before proposing anything, and say explicitly if this reopens it.
 
+## !! THIS NOW HAS A JOB, AS OF 2026-09-01
+Connal, verbatim: "we need to develop a system for you watching combined wallet activity from
+whales, social media tracker data, and the numbers from the coins/market themselves so you can
+automatically pick which coins to be tracking and which not to be."
+∴ whale tracking is no longer a standalone wish — it is **the third input to the tracking decision**
+described in [[60-KB/watchlist-admission-research]]. The other two inputs already exist. This one
+does not, and it is what blocks the combined system (T-016 / T-017).
+! that also sharpens the open questions below from "what would we build" into "what would make a
+coin worth a slot", which is a narrower and more answerable question.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.
