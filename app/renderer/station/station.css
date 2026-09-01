@@ -66,6 +66,62 @@
   --st-ease:      cubic-bezier(0.3, 0.86, 0.36, 1);
   --st-turn:      300ms;
   --st-travel:    320ms;
+
+  /* ── SPACE, as television shows it ──────────────────────────────────────────
+     ⚠️ Two dots on black is not a sky, it is a bug you cannot prove. Real space
+     photographed by a real camera is mostly EMPTY and slightly boring; screen
+     space has structure — a dust lane, nebulosity with an edge you can find, and
+     stars at three magnitudes so the eye reads a distribution rather than noise.
+     This is deliberately the second thing, and it is one custom property so
+     every pane in the room is looking at the SAME sky. */
+  --st-sky:
+    /* the planet, low and lit from the left, with its atmosphere on the limb */
+    radial-gradient(circle 210px at 20% 116%,
+      oklch(0.86 0.075 218 / 0.55) 0 63%, transparent 66%),
+    radial-gradient(circle 200px at 20% 118%,
+      oklch(0.58 0.115 236) 0 55%,
+      oklch(0.34 0.085 244) 55% 78%,
+      oklch(0.20 0.050 250) 78% 100%, transparent 100%),
+    /* a moon, well away from the planet so no slice of the sky is empty */
+    radial-gradient(circle 34px at 63% 34%,
+      oklch(0.80 0.020 240) 0 62%, oklch(0.46 0.016 244) 62% 88%, transparent 92%),
+    /* and a far, small one */
+    radial-gradient(circle 13px at 88% 62%,
+      oklch(0.68 0.030 232) 0 70%, transparent 78%),
+    /* nebulosity — two clouds, different sizes, neither centred */
+    radial-gradient(ellipse 34% 46% at 74% 20%,
+      oklch(0.52 0.090 214 / 0.32) 0%, oklch(0.34 0.065 226 / 0.15) 44%, transparent 74%),
+    radial-gradient(ellipse 22% 52% at 41% 64%,
+      oklch(0.46 0.075 258 / 0.24) 0%, transparent 68%),
+    radial-gradient(ellipse 26% 40% at 96% 34%,
+      oklch(0.50 0.080 220 / 0.24) 0%, transparent 70%),
+    radial-gradient(ellipse 20% 44% at 8% 30%,
+      oklch(0.44 0.070 246 / 0.20) 0%, transparent 70%),
+    /* the dust lane */
+    linear-gradient(102deg,
+      transparent 0 34%, oklch(0.62 0.030 236 / 0.10) 44%,
+      oklch(0.70 0.026 232 / 0.14) 50%, oklch(0.62 0.030 236 / 0.09) 56%,
+      transparent 66% 100%),
+    /* bright stars */
+    radial-gradient(2.2px 2.2px at 18% 24%, oklch(0.99 0.010 240), transparent 60%),
+    radial-gradient(2px 2px   at 63% 12%, oklch(0.98 0.014 232), transparent 60%),
+    radial-gradient(1.9px 1.9px at 84% 58%, oklch(0.97 0.010 244), transparent 60%),
+    radial-gradient(2.1px 2.1px at 41% 74%, oklch(0.99 0.012 236), transparent 60%),
+    /* mid */
+    radial-gradient(1.3px 1.3px at 9% 62%,  oklch(0.92 0.012 240 / 0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 33% 38%, oklch(0.90 0.014 234 / 0.8), transparent 60%),
+    radial-gradient(1.3px 1.3px at 54% 52%, oklch(0.93 0.010 244 / 0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 71% 78%, oklch(0.90 0.012 238 / 0.75), transparent 60%),
+    radial-gradient(1.3px 1.3px at 92% 30%, oklch(0.92 0.012 242 / 0.8), transparent 60%),
+    /* faint */
+    radial-gradient(0.9px 0.9px at 26% 84%, oklch(0.86 0.010 240 / 0.6), transparent 60%),
+    radial-gradient(0.9px 0.9px at 47% 18%, oklch(0.84 0.012 236 / 0.55), transparent 60%),
+    radial-gradient(0.9px 0.9px at 78% 40%, oklch(0.86 0.010 242 / 0.6), transparent 60%),
+    radial-gradient(0.9px 0.9px at 12% 44%, oklch(0.83 0.012 238 / 0.5), transparent 60%),
+    radial-gradient(0.9px 0.9px at 66% 66%, oklch(0.85 0.010 240 / 0.55), transparent 60%),
+    /* the void behind all of it — never pure black, which reads as a hole */
+    linear-gradient(to bottom, oklch(0.115 0.022 254), oklch(0.072 0.016 256));
+
   --st-mono:      ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
 }
 
@@ -231,13 +287,19 @@
 .st-hull-seg,
 .st-hull-jamb {
   position: absolute;
-  /* ⚠️ A coordinate system, not a guess: pct = (world_y + 560) / 760.
-       door head  y −400 → 21%      door base y +160 → 94.7%
-     An earlier box ran from −900 and put the cove at 7% — world −828, far above
-     the window, behind the ceiling. The wall rendered flat for two passes while
-     every theory was about seam widths. */
-  top: -560px;
-  height: 760px;
+  /* ⚠️ A COORDINATE SYSTEM, NOT A GUESS: pct = (world_y + 660) / 860.
+       window band  −620 → 4.7%   ·  −380 → 32.6%
+       cove         −370 → 33.7%  ·  −345 → 36.6%
+       door head    −340 → 37.2%     (.st-portal is top:-340 height:500)
+       door base    +160 → 95.3%
+     The box was raised from −560 to −660 and the doors shortened, to open a band
+     of wall above the door heads wide enough to be a WINDOW rather than a strip.
+     ⚠️ Raising it further is not free: at −760 the wall's top edge lands at the
+     top of the frame and there is no room left for the vault above it. The camera
+     stands at the ring's centre, so vertical frame is the scarce resource here —
+     window band and overhead are spending the same budget. */
+  top: -660px;
+  height: 860px;
   backface-visibility: hidden;
 }
 .st-hull-seg { width: var(--st-hull-w); left: calc(var(--st-hull-w) / -2); }
@@ -247,87 +309,91 @@
 .st-hull-seg,
 .st-hull-jamb {
   background:
-    /* the light cove, just above the door heads — the corridor's own fixture,
-       and the reason every surface below falls off downward */
+    /* the light cove, just above the door heads */
     linear-gradient(to bottom,
-      transparent 0 13.4%,
-      oklch(0.62 0.045 244 / 0.55) 13.4% 14.1%,
-      oklch(0.97 0.022 238) 14.1% 16.4%,
-      oklch(0.70 0.050 242 / 0.65) 16.4% 17.4%,
-      oklch(0.55 0.040 245 / 0.28) 17.4% 19.6%,
-      transparent 19.6% 100%),
-    /* stiles down both edges of the panel — structure, catching the cove */
+      transparent 0 33.7%,
+      oklch(0.62 0.045 244 / 0.55) 33.7% 34.2%,
+      oklch(0.97 0.022 238) 34.2% 35.9%,
+      oklch(0.70 0.050 242 / 0.65) 35.9% 36.6%,
+      oklch(0.55 0.040 245 / 0.28) 36.6% 38.4%,
+      transparent 38.4% 100%),
+    /* stiles down both edges — structure, catching the cove */
     linear-gradient(to right,
       oklch(0.60 0.042 246) 0 3px,
       oklch(0.30 0.030 250) 3px 7px,
       transparent 7px calc(100% - 7px),
       oklch(0.30 0.030 250) calc(100% - 7px) calc(100% - 3px),
       oklch(0.60 0.042 246) calc(100% - 3px) 100%),
-    /* the structural frame itself */
+    /* the structural frame */
     linear-gradient(to bottom,
-      oklch(0.300 0.030 249) 0%,
-      oklch(0.360 0.034 248) 13%,
-      oklch(0.520 0.042 246) 20%,
-      oklch(0.455 0.038 247) 46%,
-      oklch(0.390 0.034 248) 74%,
-      oklch(0.320 0.030 249) 92%,
+      oklch(0.255 0.026 250) 0%,
+      oklch(0.300 0.030 249) 3%,
+      oklch(0.330 0.032 249) 33%,
+      oklch(0.520 0.042 246) 38%,
+      oklch(0.455 0.038 247) 58%,
+      oklch(0.390 0.034 248) 80%,
+      oklch(0.320 0.030 249) 93%,
       oklch(0.255 0.026 250) 100%);
 }
 
-/* ── the white panel insert ───────────────────────────────────────────────── */
-.st-hull-seg::before {
+/* ── THE WINDOW BAND: the corridor looks out, all the way round ───────────── */
+/* Operator asked to see "a big space panel" behind the doors, so the doors were
+   shortened and this band opened above them. It runs on the wall facets AND the
+   jambs, at the same height, so it reads as one continuous run of glazing that
+   the doorways hang beneath — not as portholes punched one per panel. */
+.st-hull-seg::before,
+.st-hull-jamb::after {
+  content: '';
+  position: absolute;
+  left: 9px; right: 9px;
+  top: 8%; height: 22%;
+  border-radius: 3px;
+  background: var(--st-sky);
+  /* Sized to the whole corridor and offset to this pane's own slice — see
+     skyAt() in station.js. The view through the glass is continuous across
+     panels; it is one sky, not one copy each. */
+  background-size: var(--sky-w) 132%;
+  background-position: var(--sky-x) 34%;
+  box-shadow:
+    inset 0 0 0 3px oklch(0.56 0.040 246),
+    inset 0 3px 9px 1px oklch(0.02 0.010 250 / 0.85),
+    inset 0 -1px 0 oklch(0.72 0.040 244),
+    0 0 16px -4px oklch(0.70 0.090 235 / 0.30);
+}
+/* The sky drifts. Ambient motion: never linear, tiny amplitude, gone entirely
+   under prefers-reduced-motion. Only background-position moves — the compositor
+   owns that and the main thread never sees it. */
+.st-hull-seg::before,
+.st-hull-jamb::after,
+.st-vault-glazed { animation: st-sky-drift 240s ease-in-out infinite alternate; }
+
+/* ── the white panel below the door head ─────────────────────────────────── */
+.st-hull-seg::after {
   content: '';
   position: absolute;
   left: 11px; right: 11px;
-  top: 23%; height: 62%;
+  top: 40%; height: 51%;
   border-radius: 2px;
-  background: linear-gradient(to bottom,
-    oklch(0.855 0.014 244) 0%,
-    oklch(0.805 0.013 245) 34%,
-    oklch(0.735 0.013 246) 72%,
-    oklch(0.680 0.014 247) 100%);
-  /* a real panel has thickness: bright top lip catching the cove, shadow under */
+  background:
+    /* a louvred return-air grille, low on the panel — station kit, not ornament */
+    linear-gradient(to bottom,
+      transparent 0 42%,
+      oklch(0.44 0.030 248 / 0.9) 42% 43.5%,
+      transparent 43.5% 46%, oklch(0.44 0.030 248 / 0.9) 46% 47.5%,
+      transparent 47.5% 50%, oklch(0.44 0.030 248 / 0.9) 50% 51.5%,
+      transparent 51.5% 54%, oklch(0.44 0.030 248 / 0.9) 54% 55.5%,
+      transparent 55.5% 58%, oklch(0.44 0.030 248 / 0.9) 58% 59.5%,
+      transparent 59.5% 100%),
+    linear-gradient(to bottom,
+      oklch(0.855 0.014 244) 0%,
+      oklch(0.805 0.013 245) 34%,
+      oklch(0.735 0.013 246) 72%,
+      oklch(0.680 0.014 247) 100%);
   box-shadow:
     inset 0 1px 0 oklch(0.97 0.010 240),
     inset 0 -2px 3px -1px oklch(0.30 0.030 250 / 0.55),
     0 2px 5px -2px oklch(0.18 0.020 250 / 0.65);
 }
-/* Space-station stuff: a louvred return-air grille low on the panel, and the
-   fastener line across its head. Structural kit, not ornament — a bulkhead with
-   nothing on it is a wall in a render, not a wall on a ship. */
-.st-hull-seg::after {
-  content: '';
-  position: absolute;
-  left: 24px; right: 24px;
-  top: 63%; height: 17%;
-  border-radius: 1px;
-  background:
-    repeating-linear-gradient(to bottom,
-      oklch(0.44 0.030 248 / 0.85) 0 2px,
-      oklch(0.79 0.014 245 / 0.55) 2px 6px);
-  box-shadow: inset 0 0 0 2px oklch(0.40 0.032 248 / 0.7);
-}
-
-/* ── a glazed bay: the corridor looks out ─────────────────────────────────── */
-.st-hull-window::before {
-  background:
-    /* the planet's limb, low in the frame */
-    radial-gradient(ellipse 150% 62% at 50% 128%,
-      oklch(0.66 0.115 232) 0%, oklch(0.42 0.090 238) 42%, transparent 66%),
-    /* stars, three magnitudes — one size reads as noise, three reads as sky */
-    radial-gradient(1.6px 1.6px at 22% 24%, oklch(0.97 0.010 240 / 0.95), transparent 55%),
-    radial-gradient(1.1px 1.1px at 63% 14%, oklch(0.93 0.015 235 / 0.75), transparent 55%),
-    radial-gradient(1.1px 1.1px at 78% 44%, oklch(0.90 0.012 245 / 0.65), transparent 55%),
-    radial-gradient(2px 2px   at 41% 58%, oklch(0.99 0.010 240 / 0.9), transparent 55%),
-    radial-gradient(1px 1px   at 13% 68%, oklch(0.88 0.012 240 / 0.6), transparent 55%),
-    radial-gradient(1px 1px   at 88% 72%, oklch(0.90 0.012 240 / 0.55), transparent 55%),
-    linear-gradient(to bottom, oklch(0.085 0.018 252), oklch(0.055 0.012 254));
-  box-shadow:
-    inset 0 0 0 3px oklch(0.52 0.040 246),
-    inset 0 2px 7px 1px oklch(0.02 0.010 250 / 0.9),
-    0 0 14px -3px oklch(0.70 0.090 235 / 0.35);
-}
-.st-hull-window::after { display: none; }
 
 /* ── THE JAMB: the doorway is a hole in the wall ──────────────────────────── */
 /* ⚠️ THIS IS WHAT MAKES A DOOR READ AS A DOOR AND NOT A PORTAL STUCK ON THE
@@ -339,8 +405,14 @@
    angle and leaves a sliver of void down each side of the door. Scaled by
    (RING+WALL_Z)/RING. clip-path is legal here only because this is a leaf. */
 .st-hull-jamb {
+  /* ⚠️ Re-derived for the raised box (860 tall) and the shortened door.
+     hole top  = −340 × (RING+WALL_Z)/RING → jamb y 325
+     hole base = +160 × same            → jamb y 817
+     arch springs at 325 + 207 = 532. The 0.9837 scale is not fussiness: the jamb
+     plane is NEARER the camera than the door, so an identically sized hole
+     subtends a WIDER angle and leaves a sliver of void down each side. */
   clip-path: path(evenodd,
-    'M0,0 H499 V760 H0 Z M43.5,719 V369 A206,206 0 0 1 455.5,369 V719 Z');
+    'M0,0 H499 V860 H0 Z M43,817 V532 A207,207 0 0 1 457,532 V817 Z');
 }
 /* The reveal: the wall's own cut edge around the opening, catching the cove.
    Without it the hole has no thickness and the wall reads as paper. */
@@ -348,25 +420,14 @@
   content: '';
   position: absolute;
   left: 39px; right: 39px;
-  top: 158px; bottom: 37px;
+  top: 321px; bottom: 39px;
   border-radius: 210px 210px 3px 3px;
   box-shadow:
     0 0 0 3px oklch(0.66 0.045 244),
     0 0 0 5px oklch(0.26 0.028 250),
     0 0 18px 5px oklch(0.05 0.010 250 / 0.55);
 }
-/* Placard beside the opening — the door's own subsystem tag, on the wall where
-   a real one would be riveted rather than floating in the air. */
-.st-hull-jamb::after {
-  content: '';
-  position: absolute;
-  left: 12px; width: 22px;
-  top: 30%; height: 26%;
-  border-radius: 1px;
-  background: linear-gradient(to bottom,
-    oklch(0.80 0.014 245), oklch(0.70 0.014 246));
-  box-shadow: inset 0 0 0 2px oklch(0.42 0.032 248 / 0.8);
-}
+
 
 /* ── THE VAULT: the overhead ──────────────────────────────────────────────── */
 /* Tipped inward off the top of the wall, per facet, so it STOPS WHERE THE
@@ -376,8 +437,8 @@
    Brightest surface in the room, per the orientation gradient above. */
 .st-vault {
   position: absolute;
-  width: var(--st-hull-w);
-  left: calc(var(--st-hull-w) / -2);
+  width: var(--st-vault-w);
+  left: calc(var(--st-vault-w) / -2);
   /* ⚠️ SPRINGS FROM JUST ABOVE THE COVE (world y −490), NOT FROM THE WALL'S TOP
      EDGE (−560). The camera stands at the ring's centre, so the overhead is
      nearly overhead: sprung from the wall top at 62° it left the frame before it
@@ -391,8 +452,11 @@
      black gaps — which read as debris floating above the room rather than as its
      roof. Positive brings the top toward you, so the overhead passes over your
      head and fills the top of the frame the way a ceiling does. */
-  top: -870px;
-  height: 380px;
+  /* Springs from the wall's top edge (−660). Shallow, because the window band
+     below it took the vertical budget — and a shallow soffit that is ALIGNED
+     beats a deep vault that is not. */
+  top: -900px;
+  height: 240px;
   transform-origin: 50% 100%;
   backface-visibility: hidden;
 }
@@ -414,17 +478,10 @@
    also where the room's light is coming from, so this is not decoration. */
 .st-vault-glazed {
   background:
-    radial-gradient(1.7px 1.7px at 26% 22%, oklch(0.98 0.010 240 / 0.95), transparent 55%),
-    radial-gradient(1.2px 1.2px at 68% 12%, oklch(0.94 0.014 236 / 0.8), transparent 55%),
-    radial-gradient(1.2px 1.2px at 82% 48%, oklch(0.90 0.012 244 / 0.6), transparent 55%),
-    radial-gradient(2.1px 2.1px at 44% 62%, oklch(0.99 0.010 240 / 0.9), transparent 55%),
-    radial-gradient(1px 1px   at 15% 74%, oklch(0.88 0.012 240 / 0.55), transparent 55%),
-    radial-gradient(1.3px 1.3px at 91% 80%, oklch(0.92 0.012 238 / 0.6), transparent 55%),
-    /* ⚠️ Glass, not a hole. Pure black panes between white ribs made the vault
-       read as separate tiles floating over a void instead of as one glazed roof
-       — the panes have to keep a sheen of the room in them. */
-    linear-gradient(to top,
-      oklch(0.235 0.030 248) 0%, oklch(0.150 0.024 250) 42%, oklch(0.098 0.018 252) 100%);
+    /* ⚠️ Glass, not a hole — the pane keeps a sheen of the room in it. */
+    var(--st-sky);
+  background-size: var(--sky-w) 132%;
+  background-position: var(--sky-x) 62%;
   box-shadow:
     inset 0 0 0 4px oklch(0.52 0.036 246),
     inset 0 3px 12px 0 oklch(0.62 0.040 244 / 0.30),
@@ -433,12 +490,39 @@
 /* The sky drifts. Ambient motion class: never linear, tiny amplitude, and gone
    entirely under prefers-reduced-motion. Only background-position moves — the
    compositor owns it and the main thread never sees it. */
-.st-vault-glazed { animation: st-sky-drift 190s ease-in-out infinite alternate; }
+/* ⚠️ ONE position pair, not one per layer. --st-sky is ~20 background layers and
+   a shorter position list REPEATS, which drifts the layers against each other and
+   tears the planet off its own atmosphere. One pair pans the whole sky together,
+   which is also what a slowly rotating station actually looks like from inside.
+   The 118% size is what gives it somewhere to pan TO — at 100% the pan walks the
+   gradient's own edge into frame. */
+/* ⚠️ The drift moves the sky's VERTICAL position only. Panning it horizontally
+   would slide each pane off its own slice and break the continuity above — the
+   planet would walk from one window into the next. */
 @keyframes st-sky-drift {
-  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
-  to   { background-position: 14px 9px, -11px 6px, 9px -7px, -13px 8px, 10px 5px, -8px -6px, 0 0; }
+  from { background-position-y: 30%; }
+  to   { background-position-y: 44%; }
 }
-@media (prefers-reduced-motion: reduce) { .st-vault-glazed { animation: none; } }
+/* ── AMBIENCE: the room is RUNNING ────────────────────────────────────────────
+   Every one of these is slow, tiny, unsynchronised and animates only properties
+   the compositor owns. A room that is perfectly still reads as a render; a room
+   with three things quietly moving reads as a place with power in it. ! nothing
+   here encodes data — it is all structure, which is the one category permitted
+   to be decorative. */
+/* The cove is a real fixture on a real bus: it breathes, barely. */
+.st-hull-seg, .st-hull-jamb { animation: st-cove-breathe 27s ease-in-out infinite alternate; }
+@keyframes st-cove-breathe { from { filter: brightness(1); } to { filter: brightness(1.045); } }
+/* Air moving through the return grille. Different period to the cove, on purpose
+   — two ambient loops on the same clock read as one stutter. */
+.st-hull-seg::after { animation: st-air 19s ease-in-out infinite alternate; }
+@keyframes st-air {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 5px, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-vault-glazed, .st-hull-seg, .st-hull-jamb,
+  .st-hull-seg::before, .st-hull-seg::after, .st-hull-jamb::after { animation: none; }
+}
 
 /* §9.12 — past the camera plane. Hidden, never unmounted. */
 .st-hull-seg.is-offscreen,
@@ -675,9 +759,14 @@
      FRAME the sphere, never be hidden behind it. Change globeSize() and these
      move with it. */
   left: -210px;
-  top: -400px;
+  /* ⚠️ SHORTENED from 560 and dropped from −400, to open the window band above
+     the door heads. The invariant that governs these is unchanged and asserted:
+     the arch must FRAME the globe, never be hidden behind it. Width is untouched,
+     so doorScreenWidth() and the globe relationship are exactly as they were;
+     500px still renders 239px tall against a 201px globe. */
+  top: -340px;
   width: 420px;
-  height: 560px;
+  height: 500px;
   transform-style: preserve-3d;
   cursor: pointer;
   opacity: 0.62;
@@ -831,7 +920,12 @@
 .st-portal-plate {
   position: absolute;
   left: 50%; bottom: -40px;
-  transform: translateX(-50%);
+  /* ⚠️ translateZ IS LOAD-BEARING. The wall now sits in FRONT of the door ring
+     (WALL_Z is negative), so a plate left on the door's own plane is behind the
+     bulkhead and simply gone — which is what "the text is behind the panels"
+     was. 30px brings it out through the opening onto the wall's face, where a
+     real door placard is riveted anyway. */
+  transform: translateX(-50%) translateZ(30px);
   display: flex; align-items: center; gap: 5px;
   padding: 6px 18px;
   border-radius: 3px;

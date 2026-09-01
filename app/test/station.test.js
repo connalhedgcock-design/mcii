@@ -160,9 +160,17 @@ const check = (n, c, x = '') => {
     g.DOORS.every((_, f) =>
       vault.filter((v) => g.vaultVisible(v.angle, f))
         .every((v) => Math.abs(v.angle - g.DOORS[f].angle) < 85 - 20)));
-  check('...but still spans the room at every heading',
-    g.DOORS.every((_, f) => vault.filter((v) => g.vaultVisible(v.angle, f)).length >= 9),
-    `fewest ${Math.min(...g.DOORS.map((_, f) => vault.filter((v) => g.vaultVisible(v.angle, f)).length))} facets`);
+  // ⚠️ COVERAGE IN DEGREES, NOT A FACET COUNT. This asserted "at least 9 facets"
+  // and broke the moment the vault moved from 7° facets to 14° ones — even though
+  // the vault covered MORE of the room than before. The invariant is that the
+  // overhead spans the view (~70-80° wide); how many panels that takes is an
+  // implementation detail, and a test that pins the detail instead of the
+  // invariant fails on improvements.
+  const vaultCover = (f) =>
+    vault.filter((v) => g.vaultVisible(v.angle, f)).length * g.VAULT_SEG_DEG;
+  check('...but still spans the whole view at every heading',
+    g.DOORS.every((_, f) => vaultCover(f) >= 90),
+    `narrowest ${Math.min(...g.DOORS.map((_, f) => vaultCover(f)))}° of overhead`);
   check('the vault is glazed in bays, not one continuous pane',
     vault.some((v) => v.kind === 'glazed') && vault.some((v) => v.kind === 'rib'));
 

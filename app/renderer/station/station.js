@@ -12,7 +12,8 @@ import {
   DOORS, RING, TURN_MS, NAVIGATING_MS, TRAVEL_MS, WINDOWS,
   yawFor, offsetFor, starPan, stepDoorScreen, doorVisible, homeIndex,
   boardsFor, columnHeight, globeSize,
-  hullSegments, vaultSegments, hullFacetWidth, doorBayWidth, hullVisible, vaultVisible,
+  hullSegments, vaultSegments, hullFacetWidth, vaultFacetWidth, doorBayWidth, hullVisible, vaultVisible,
+  HULL_SEG_DEG, HULL_SPAN_DEG,
   WALL_Z, VAULT_TILT_DEG,
 } from './station-geometry.js'
 import { mountGlobe } from './holo-globe.js'
@@ -24,6 +25,15 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
 let stage, world, stars, hub, globeHost, smearHost, sill, colL, colR, notice
 let globe = null
 let door = homeIndex()
+// ⚠️ THE ROOM KEEPS EVERYTHING THE OLD HEADING COULD SEE UNTIL THE TURN HAS
+// FINISHED. render() runs the instant the heading changes, while the CSS
+// transition is still playing, so pruning to the NEW heading's visible set
+// deletes wall and vault panels out from under a rotation that is still showing
+// them. That is the flicker: sections of the room blinking out mid-turn. Hold
+// the union for the length of the turn, then prune once, when nothing moves.
+let prevDoor = door
+let settling = false
+let settleTimer = null
 let navTimer = 0
 let winId = '24h'
 let selectedCa = null   // which coin the caution panel has selected, if any
@@ -40,6 +50,23 @@ let inFlight = false
 function build(root) {
   root.className = 'st-stage'
   root.dataset.room = 'observatory'
+  // ⚠️ ONE SKY, WRAPPED ROUND THE RING. Every pane used to carry its own copy of
+  // --st-sky, so the same planet appeared in all six windows at once — six
+  // planets in a row, which is the single most obvious way to say "these are
+  // wallpaper, not windows". Instead the sky is sized to the WHOLE corridor and
+  // each pane is offset to its own slice of it, so the view through the glass is
+  // continuous across the panels the way a real run of glazing is.
+  // ⚠️ THE SKY IS 1700px, NOT THE WHOLE RING. Sized to the full 266° corridor it
+  // was continuous and correct and looked like nothing: each 118px pane showed
+  // 2.6% of it, so the planet lived in two panes somewhere off to the side and
+  // every other window was empty void. At 1700px a viewful (~10 panes) spans
+  // about 70% of the sky — you always have something in frame — while the repeat
+  // lands ~100° away, so you never catch two of the same planet at once.
+  const pxPerDeg = hullFacetWidth() / HULL_SEG_DEG
+  const skyW = 1700
+  const skyAt = (angle, paneW) =>
+    `--sky-w:${skyW}px; --sky-x:${Math.round(-((angle + HULL_SPAN_DEG) * pxPerDeg) + paneW / 2)}px`
+
   root.innerHTML = `
     <div class="st-room st-room-bridge">
       <div class="st-bridge">
@@ -50,7 +77,7 @@ function build(root) {
                stylesheet goes stale the moment either is touched -- leaving hairline gaps
                between wall panels that show the void through the hull. A custom property
                is not a grouping property, so it is safe on this element. -->
-          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px; --st-jamb-w:${Math.round(doorBayWidth())}px">
+          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px; --st-jamb-w:${Math.round(doorBayWidth())}px; --st-vault-w:${Math.ceil(vaultFacetWidth()) + 2}px">
             <!-- The hull FIRST: the corridor the doors are set into. Before the
                  floor and the portals so it is the surface everything else sits
                  against, and so a facet can never paint over an arch. -->
@@ -59,18 +86,18 @@ function build(root) {
                  door the way the screen-fixed ceiling did. -->
             ${vaultSegments().map((v) => `
               <div class="st-vault st-vault-${v.kind}" data-a="${v.angle}"
-                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg)"></div>`).join('')}
+                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg); ${skyAt(v.angle, vaultFacetWidth())}"></div>`).join('')}
             <!-- THE WALL. Facets a doorway covers are simply absent — the jamb is
                  the wall there, and it carries the opening. -->
             ${hullSegments().map((h) => `
               <div class="st-hull-seg st-hull-${h.kind}" data-a="${h.angle}"
-                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px)"></div>`).join('')}
+                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(h.angle, hullFacetWidth())}"></div>`).join('')}
             <!-- THE JAMBS. A wall panel with the doorway cut out of it, sitting in
                  FRONT of the door ring, so the door is seen through a hole in the
                  wall with the wall's own thickness showing as a reveal. -->
             ${DOORS.map((d) => `
               <div class="st-hull-jamb" data-a="${d.angle}"
-                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px)"></div>`).join('')}
+                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(d.angle, doorBayWidth())}"></div>`).join('')}
             <div class="st-beyond-floor"></div>
             ${DOORS.map((d, i) => `
               <div class="st-portal${d.built ? '' : ' is-sealed'}" data-i="${i}"
@@ -153,7 +180,7 @@ function build(root) {
     p.addEventListener('click', () => {
       const i = Number(p.dataset.i)
       if (i === door) enter()
-      else { door = i; afterTurn() }
+      else setDoor(i)
     })
   })
   wirePrompt(root)
@@ -237,11 +264,12 @@ function render() {
 
   // The hull obeys the same camera-plane rule as the doors (§9.12): a facet more
   // than ~85 deg off your heading has passed the camera and re-projects huge.
+  const shown = (fn, a) => fn(a, door) || (settling && fn(a, prevDoor))
   stage.querySelectorAll('.st-hull-seg, .st-hull-jamb').forEach((h) => {
-    h.classList.toggle('is-offscreen', !hullVisible(Number(h.dataset.a), door))
+    h.classList.toggle('is-offscreen', !shown(hullVisible, Number(h.dataset.a)))
   })
   stage.querySelectorAll('.st-vault').forEach((v) => {
-    v.classList.toggle('is-offscreen', !vaultVisible(Number(v.dataset.a), door))
+    v.classList.toggle('is-offscreen', !shown(vaultVisible, Number(v.dataset.a)))
   })
 
   stage.querySelectorAll('.st-portal').forEach((p) => {
@@ -293,7 +321,17 @@ function turn(screenDelta) {
   // index directly walks the selection the wrong way.
   const next = stepDoorScreen(door, screenDelta)
   if (next === door) return          // clamped at the wall, not wrapped
+  setDoor(next)
+}
+
+/** Change heading, holding the old heading's panels until the turn has landed. */
+function setDoor(next) {
+  prevDoor = door
   door = next
+  settling = true
+  clearTimeout(settleTimer)
+  // A little past the turn so the prune never lands on the last frame of it.
+  settleTimer = setTimeout(() => { settling = false; render() }, TURN_MS + 90)
   afterTurn()
 }
 

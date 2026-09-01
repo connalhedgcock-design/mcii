@@ -339,14 +339,21 @@ export function hullSegments() {
  *  at a large heading. A RING of facets is centred on the camera by construction,
  *  so it cannot leave the top of the frame — and unlike the screen-fixed ceiling
  *  it stops where the walls stop, instead of running out past the last door. */
+/** Vault facets are TWICE the wall's width and phase-locked to the doors.
+ *  ⚠️ ALIGNMENT IS THE POINT. At the wall's own 7° the ribs landed wherever, and
+ *  the overhead read as a separate object resting on the room rather than as its
+ *  roof. At 14° every facet centre is an even multiple of 14 — and every door
+ *  angle (0, ±28, ±56, ±84) is an EVEN multiple of 14 while every pillar between
+ *  doors is an ODD one. So a rib sits over each doorway and a glazed bay sits
+ *  over each pillar, every time, at every heading. Halving the facet count also
+ *  halves what has to be re-rasterised on a turn. */
+export const VAULT_SEG_DEG = 14
 export function vaultSegments() {
   const out = []
-  for (let k = -19; k <= 19; k++) {
-    const angle = k * HULL_SEG_DEG
+  for (let k = -10; k <= 10; k++) {
+    const angle = k * VAULT_SEG_DEG
     if (Math.abs(angle) > HULL_SPAN_DEG) continue
-    // Every third bay is glazed. A continuous strip of window is a greenhouse;
-    // ribs between the panes are what make it read as structure holding glass.
-    out.push({ angle, kind: k % 3 === 0 ? 'glazed' : 'rib' })
+    out.push({ angle, kind: k % 2 === 0 ? 'rib' : 'glazed' })
   }
   return out
 }
@@ -357,6 +364,12 @@ export function vaultSegments() {
  *  as a rendering fault. The renderer adds a pixel of overlap deliberately. */
 export function hullFacetWidth() {
   return 2 * (RING + WALL_Z) * Math.sin(((HULL_SEG_DEG / 2) * Math.PI) / 180)
+}
+
+/** Chord width of one VAULT facet. Wider than the wall's, because the vault is
+ *  phase-locked to the doors at 14° rather than the wall's 7°. */
+export function vaultFacetWidth() {
+  return 2 * (RING + WALL_Z) * Math.sin(((VAULT_SEG_DEG / 2) * Math.PI) / 180)
 }
 
 /** Chord width of a door's jamb panel at the wall plane. */

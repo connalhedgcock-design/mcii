@@ -207,6 +207,44 @@ door". All four were fair. What the rebuild settled:
   "polished deck" from "dark carpet".
 - ✓ space-station kit on the bulkheads: louvred return-air grilles, panel fasteners, door placards.
 
+## THE ROOM, SECOND PASS: GLAZING, MOTION, AND THE TURN (operator, 09-01)
+- !! **FLICKER ON A TURN WAS PANELS BEING DELETED MID-ROTATION.** `render()` runs the instant the
+  heading changes, while the CSS transition is still playing, so pruning to the NEW heading's
+  visible set removes wall and vault panels out from under a rotation that is still showing them.
+  The room now holds the UNION of the old and new headings for the length of the turn and prunes
+  once, when nothing is moving (`setDoor()`, `settling`). ! any future visibility rule keyed to
+  heading must do the same, or it reintroduces exactly this.
+- !! **"THE TEXT IS BEHIND THE PANELS" WAS A REGRESSION FROM RECESSING THE DOORS.** Once the wall
+  moved in FRONT of the door ring, anything left on the door's own plane — the door plate — was
+  behind the bulkhead and simply gone. Fixed with `translateZ(30px)` on `.st-portal-plate`, which
+  is also where a real door placard lives: on the wall, not floating in the opening.
+- ✓ **ONE SKY, WRAPPED ROUND THE RING.** Every pane carrying its own copy of `--st-sky` put the
+  same planet in all six windows at once, which is the fastest way to say "wallpaper, not windows".
+  `skyAt()` sizes the sky to the corridor and offsets each pane to its own slice.
+  ! but NOT to the full 266°: sized that way it was continuous, correct, and looked like nothing —
+  each 118px pane showed 2.6% of the sky, so the planet sat in two panes off to one side and every
+  other window was empty. 1700px is the number: a viewful spans ~70% of the sky, and the repeat
+  lands ~100° away so two planets are never in frame together.
+  ! the drift animates background-position-Y ONLY. Panning horizontally slides each pane off its
+  slice and walks the planet from one window into the next.
+- ✓ **space is TV space, not photographic space** (operator: "not actuality space, tv space"). Real
+  space is mostly empty and slightly boring; this has a dust lane, nebulosity with a findable edge,
+  a planet, two moons, and stars at three magnitudes so the eye reads a distribution rather than
+  noise. Content is spread across the sky's width so no slice of it is dead.
+- ✓ **the window band above the doors.** Doors shortened (560→500, top −400→−340) and the wall
+  raised (−560→−660) to open it. ! this budget is zero-sum: the camera stands at the ring's centre,
+  so vertical frame is scarce — the window band and the overhead are spending the same pixels. At a
+  wall top of −760 there is no room left for a vault at all.
+- ✓ **the vault is phase-locked to the doors at 14°.** Every door angle is an EVEN multiple of 14
+  and every pillar an odd one, so a rib sits over each doorway and a glazed bay over each pillar, at
+  every heading. At the wall's own 7° the ribs landed wherever and the overhead read as a separate
+  object resting on the room. Halving the facet count also halves what a turn re-rasterises.
+- ✓ ambience: the cove breathes (27s), air moves through the return grilles (19s), the sky drifts
+  (240s). ! deliberately unsynchronised — two ambient loops on one clock read as a single stutter.
+- ! **ASSERT THE INVARIANT, NOT THE IMPLEMENTATION.** The vault test pinned "at least 9 facets" and
+  failed the moment facets got WIDER, while covering more of the room than before. It asserts
+  angular coverage now. A test that pins the detail instead of the invariant fails on improvements.
+
 ## NO DISCLAIMERS, NO SELF-EXPLANATION (operator, 08-31)
 `X` on-screen copy whose job is to explain the app to its user or reassure them about what it does
 — privacy/no-keys notes, "how this works" text, onboarding prose. The audience is TWO PEOPLE and
