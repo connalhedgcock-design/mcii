@@ -12,6 +12,7 @@ import {
   DOORS, RING, TURN_MS, NAVIGATING_MS, TRAVEL_MS, WINDOWS,
   yawFor, offsetFor, starPan, stepDoorScreen, doorVisible, homeIndex,
   boardsFor, columnHeight, globeSize,
+  hullSegments, hullFacetWidth, hullVisible, HULL_Z,
 } from './station-geometry.js'
 import { mountGlobe } from './holo-globe.js'
 import { snapshot, renderBoard } from './instruments.js'
@@ -43,7 +44,20 @@ function build(root) {
       <div class="st-bridge">
 
         <div class="st-beyond">
-          <div class="st-beyond-world">
+          <!-- ⚠️ The facet width comes from the geometry, never from a number typed into
+               the CSS. It is a function of RING and HULL_SEG_DEG, and a copy of it in a
+               stylesheet goes stale the moment either is touched -- leaving hairline gaps
+               between wall panels that show the void through the hull. A custom property
+               is not a grouping property, so it is safe on this element. -->
+          <div class="st-beyond-world" style="--st-hull-w:${Math.ceil(hullFacetWidth()) + 2}px">
+            <!-- The hull FIRST: the corridor the doors are set into. Before the
+                 floor and the portals so it is the surface everything else sits
+                 against, and so a facet can never paint over an arch. -->
+            ${hullSegments().map((h) => `
+              <div class="st-hull-cornice" data-a="${h.angle}"
+                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + HULL_Z}px)"></div>
+              <div class="st-hull-seg" data-a="${h.angle}"
+                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + HULL_Z}px)"></div>`).join('')}
             <div class="st-beyond-floor"></div>
             ${DOORS.map((d, i) => `
               <div class="st-portal${d.built ? '' : ' is-sealed'}" data-i="${i}"
@@ -207,6 +221,12 @@ function render() {
   const yaw = yawFor(door)
   world.style.transform = `rotateY(${yaw}deg)`
   stars.style.backgroundPosition = `${starPan(door)}px 0`
+
+  // The hull obeys the same camera-plane rule as the doors (§9.12): a facet more
+  // than ~85 deg off your heading has passed the camera and re-projects huge.
+  stage.querySelectorAll('.st-hull-seg, .st-hull-cornice').forEach((h) => {
+    h.classList.toggle('is-offscreen', !hullVisible(Number(h.dataset.a), door))
+  })
 
   stage.querySelectorAll('.st-portal').forEach((p) => {
     const i = Number(p.dataset.i)

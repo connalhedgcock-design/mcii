@@ -278,3 +278,60 @@ export const WINDOWS = [
   { id: '7d',  label: '7 days',  ms: 7 * 864e5 },
   { id: '30d', label: '30 days', ms: 30 * 864e5 },
 ]
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE HULL — the ring corridor the doors are set into.
+
+   Until 2026-08-31 the room had a floor and a ceiling and NOTHING BETWEEN THEM:
+   seven arches standing in open dark, with the void showing between and above
+   them. That is what "it looks like rooms in black nothingness" was describing.
+   The fix is not more texture on the dark — it is that the room had no walls.
+
+   The hull is a cylinder section at the SAME radius as the doors, built from
+   flat facets. The doors are drawn over it, so a doorway is an arch mounted on
+   a wall rather than a hole cut through one — far simpler than real apertures
+   and indistinguishable once the wall is opaque.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Facet width in degrees. Smaller is smoother and costs one more DOM node per
+ *  facet; 8° is under the angle at which the flats become readable as flats. */
+export const HULL_SEG_DEG = 8
+
+/** How far BEHIND the door ring the hull sits, in px.
+ *  ⚠️ NOT ZERO. At the doors' own radius the wall and the arches are coplanar,
+ *  the depth sort between them is arbitrary, and the hull paints over the doors
+ *  — the arches vanish and the room reads as a smooth tube with name plates
+ *  floating on it. Far enough back to sort reliably, near enough that the arch
+ *  still reads as set INTO the wall rather than standing in front of it. */
+export const HULL_Z = 14
+
+/** How far the corridor runs either side of the room's axis.
+ *  ! Must cover the outermost door (±84°) PLUS the half-field you can still see
+ *  past it once you are facing it, or the corridor visibly stops at the last
+ *  door and the void returns exactly where the eye was sent. */
+export const HULL_SPAN_DEG = 132
+
+/** The facets, centre-angle each, running the full span. */
+export function hullSegments() {
+  const out = []
+  for (let a = -HULL_SPAN_DEG; a < HULL_SPAN_DEG; a += HULL_SEG_DEG) {
+    out.push({ angle: +(a + HULL_SEG_DEG / 2).toFixed(3) })
+  }
+  return out
+}
+
+/** Chord width of one facet at the ring, in px.
+ *  ⚠️ Facets must BUTT or slightly overlap, never gap: a sub-pixel gap between
+ *  two wall panels shows the void through the hull as a bright hairline, which
+ *  reads as a rendering fault. The renderer adds a pixel of overlap deliberately
+ *  — the panels are opaque, so overlapping costs nothing. */
+export function hullFacetWidth() {
+  return 2 * (RING + HULL_Z) * Math.sin(((HULL_SEG_DEG / 2) * Math.PI) / 180)
+}
+
+/** Same camera-plane rule the doors obey (§9.12): a facet more than ~85° off
+ *  your heading has crossed the camera plane and re-projects at enormous scale.
+ *  Hidden, never unmounted. */
+export function hullVisible(angle, facingIndex) {
+  return Math.abs(angle - DOORS[facingIndex].angle) < 85
+}

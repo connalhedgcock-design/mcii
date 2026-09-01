@@ -117,6 +117,40 @@ const check = (n, c, x = '') => {
   check('neighbouring doors never overlap, at any heading', gap > doorPx,
     `tightest gap ${gap.toFixed(0)}px vs door ${doorPx.toFixed(0)}px`);
 
+  // ── the hull ──────────────────────────────────────────────────────────────
+  // ⚠️ The failure mode these guard against is not a crash — it is a HAIRLINE.
+  // A sub-pixel gap between two wall facets shows the void straight through the
+  // hull as a bright vertical line, which reads as a rendering fault rather than
+  // as geometry, and is invisible in the source.
+  const segs = g.hullSegments();
+  const chord = 2 * (g.RING + g.HULL_Z) * Math.sin((g.HULL_SEG_DEG / 2) * Math.PI / 180);
+  check('facets are wide enough to butt, never gap',
+    g.hullFacetWidth() >= chord - 1e-9,
+    `${g.hullFacetWidth().toFixed(1)}px facet vs ${chord.toFixed(1)}px chord`);
+  check('facets are evenly spaced with no hole in the ring',
+    segs.every((seg, i) => i === 0 ||
+      Math.abs((seg.angle - segs[i - 1].angle) - g.HULL_SEG_DEG) < 1e-6));
+
+  // The corridor has to run PAST the outermost door, or it visibly stops exactly
+  // where the eye was sent and the void comes back at the edge of the frame.
+  const outermost = Math.max(...g.DOORS.map((d) => Math.abs(d.angle)));
+  check('the corridor runs past the outermost door', g.HULL_SPAN_DEG > outermost + 40,
+    `hull ±${g.HULL_SPAN_DEG}° vs door ±${outermost}°`);
+
+  // ! The hull sits BEHIND the door ring. At the same radius the two are coplanar,
+  // the depth sort is arbitrary, and the wall paints over the arches.
+  check('the hull sits behind the doors, never level with them', g.HULL_Z > 0,
+    `${g.HULL_Z}px`);
+
+  // Same camera-plane rule the doors obey (§9.12), asserted at every heading:
+  // a facet past ~85° off your heading re-projects at enormous scale.
+  check('no facet is ever shown past the camera plane, at any heading',
+    g.DOORS.every((_, f) => segs.filter((seg) => g.hullVisible(seg.angle, f))
+      .every((seg) => Math.abs(seg.angle - g.DOORS[f].angle) < 85)));
+  check('...and the wall is never empty at any heading',
+    g.DOORS.every((_, f) => segs.filter((seg) => g.hullVisible(seg.angle, f)).length >= 12),
+    `fewest ${Math.min(...g.DOORS.map((_, f) => segs.filter((seg) => g.hullVisible(seg.angle, f)).length))} facets`);
+
   console.log(`\n  ${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();

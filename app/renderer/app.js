@@ -93,12 +93,18 @@ function chg24Of(t) {
   return v == null ? { pct: null, ours: false } : { pct: v, ours: false };
 }
 
-function card(t) {
+// The placard tag. A BAY NUMBER on the watchlist wall, not an identifier for the
+// coin -- the coin's own unique tail is already printed beside its name, and a
+// placard repeating it would be decoration. Bays renumber when one is removed,
+// which is what bays do. The taxonomy continues the room's: MKT/SIG/SYS/LIQ are
+// claimed by station-geometry.js: BOARDS, so the flat rooms take WCH/LOG/POS/EXT.
+function card(t, i) {
   const g = t.gate, m = t.market, x = t.exit;
   const cls = !g ? '' : g.verdict === 'FAIL' ? 'fail' : g.verdict === 'CAUTION' ? 'caution' : 'pass';
+  const slot = `WCH-${String((i ?? 0) + 1).padStart(2, '0')}`;
   const held = t.position?.tokens && m ? t.position.tokens * m.priceUsd : null;
   const chg24 = chg24Of(t);
-  return `<article class="card ${cls}" data-ca="${t.ca}">
+  return `<article class="card ${cls}" data-ca="${t.ca}" data-slot="${slot}">
     <div class="chead">
       <span class="sym">${esc(t.nick || t.sym)}</span>
       <span class="nm">${esc(m?.name || '')}
@@ -367,7 +373,7 @@ async function loadJournal() {
   if (!me) {
     // Scores are personal. Without knowing who is typing, the log would blend two people into
     // one number that describes neither -- so this is asked before anything can be recorded.
-    box.innerHTML = `<div class="jbox">
+    box.innerHTML = `<div class="jbox" data-slot="SYS-4">
       <h3>Who is using this machine?</h3>
       <p class="calverdict">Forecast accuracy is scored per person. Two people sharing one log
         would produce a single number that describes neither of you, so the journal needs to know
@@ -392,7 +398,7 @@ async function loadJournal() {
   $('#jcount').textContent = fx.length ? `(${fx.length})` : '';
 
   const cls = cal.brier == null ? 'none' : cal.brier <= cal.baseline ? 'good' : 'bad';
-  const cal_html = `<div class="jbox">
+  const cal_html = `<div class="jbox" data-slot="LOG-1">
     <h3>Calibration — ${esc(me)}${others.length ? ` <span style="color:var(--muted)">· also logging: ${others.map(esc).join(', ')}</span>` : ''}</h3>
     <div class="calnum ${cls}">${cal.brier != null ? cal.brier.toFixed(3) : '—'}</div>
     <p class="calverdict">${esc(cal.verdict)}</p>
@@ -420,7 +426,7 @@ async function loadJournal() {
       <div class="nomh"><span class="nowho">${esc(n.owner)}</span><span class="nowhen">${ago(n.ts)}</span></div>
       <div class="notext">${esc(n.text)}</div>
     </div>`;
-  const note_html = `<div class="jbox">
+  const note_html = `<div class="jbox" data-slot="LOG-2">
     <h3>Journal — ${esc(me)}</h3>
     <p class="socverdict" style="color:var(--muted);font-size:12.5px;margin-bottom:10px">
       Anything that isn't a dated forecast or a position yet — a thought, a doubt, something to
@@ -433,7 +439,7 @@ async function loadJournal() {
   </div>`;
 
   box.innerHTML = cal_html + note_html + `
-    <div class="jbox">
+    <div class="jbox" data-slot="LOG-3">
       <h3>Record a forecast</h3>
       <div class="fform">
         <div><label for="fq">Question — must be answerable yes or no on a date</label>
@@ -444,11 +450,11 @@ async function loadJournal() {
       </div>
       <p class="socverdict" style="color:var(--muted);font-size:12.5px">Write it so future-you cannot argue about whether it came true. "Does well" is not a forecast; "above $2M on 15 Sept" is.</p>
     </div>
-    <div class="jbox"><h3>Open forecasts — ${open.length}</h3>
+    <div class="jbox" data-slot="LOG-4"><h3>Open forecasts — ${open.length}</h3>
       ${open.length ? open.map(frow).join('') : '<p class="socverdict" style="color:var(--muted)">None yet.</p>'}</div>
-    <div class="jbox"><h3>Resolved — ${done.length}</h3>
+    <div class="jbox" data-slot="LOG-5"><h3>Resolved — ${done.length}</h3>
       ${done.length ? done.map(frow).join('') : '<p class="socverdict" style="color:var(--muted)">None resolved yet.</p>'}</div>
-    <div class="jbox"><h3>Positions — ${th.length}</h3>
+    <div class="jbox" data-slot="POS-1"><h3>Positions — ${th.length}</h3>
       ${th.length ? th.map((t) => `<div class="thesis">
         <h4>${esc(t.id ? t.id.replace('pos.', '').toUpperCase() : t.file)}</h4>
         <dl>
@@ -532,7 +538,7 @@ async function loadSector() {
     ? (s && s.sentimentThin ? 'too few posts to call' : 'no clear tone')
     : tone > 0.15 ? 'positive' : tone < -0.15 ? 'negative' : 'mixed';
 
-  const head = `<div class="card">
+  const head = `<div class="card" data-slot="SIG-2">
     <div class="chead"><b>What's happening in memecoins</b>
       <span class="v">${d.collectedAt ? 'chatter read ' + ago(d.collectedAt) : 'no chatter collected yet'}</span></div>
     ${d.lines.length ? d.lines.map((l) => `<p class="sline">${esc(l)}</p>`).join('')
@@ -541,7 +547,7 @@ async function loadSector() {
       ${d.caveats.map((c) => `<span>${esc(c)}</span>`).join('')}</div>
   </div>`;
 
-  const mood = s ? `<div class="card">
+  const mood = s ? `<div class="card" data-slot="SIG-3">
     <div class="chead"><b>The conversation</b><span class="v">${s.posts} posts</span></div>
     <div class="stats">
       <div class="stat"><dt>People posting</dt><dd class="v">${fmtNum(s.uniqueAuthors)}</dd></div>
@@ -569,7 +575,7 @@ async function loadSector() {
   const background = s && s.background ? s.background : [];
   const aside = s && s.setAsideSample ? s.setAsideSample : [];
 
-  const filtered = s ? `<div class="card">
+  const filtered = s ? `<div class="card" data-slot="SIG-4">
     <div class="chead"><b>Worth reading</b>
       <span class="v">${f ? `${important.length} of ${f.total} posts` : ''}</span></div>
     ${important.length ? `<div class="posts">${important.map(postCard).join('')}</div>`
@@ -598,7 +604,7 @@ async function loadSector() {
     const m = i.matches[0];
     return `${esc(i.resolved.name || i.resolved.sym)} · ${fmtUsd(m.liquidityUsd)} in the pool${m.ageDays != null ? ` · ${Math.round(m.ageDays)}d old` : ''}`;
   };
-  const tickers = named.length ? `<div class="card">
+  const tickers = named.length ? `<div class="card" data-slot="SIG-5">
     <div class="chead"><b>Coins people are naming</b><span class="v">by how many different people</span></div>
     <table class="tbl"><thead><tr><th>Named</th><th>People</th><th>Posts</th><th>Which coin this actually is</th></tr></thead><tbody>
       ${named.map((t) => `<tr><td>$${esc(t.ticker)}</td><td>${t.people}</td><td>${t.mentions}</td><td>${idCell(t)}</td></tr>`).join('')}
@@ -610,7 +616,7 @@ async function loadSector() {
 
   const b = d.breadth;
   const co = d.cohort;
-  const market = `<div class="card">
+  const market = `<div class="card" data-slot="MKT-3">
     <div class="chead"><b>The market as a whole</b><span class="v">counted over coins the scanner looked at</span></div>
     <div class="stats">
       <div class="stat"><dt>Passed the last scan</dt><dd class="v">${d.funnel ? `${d.funnel.survivors} of ${d.funnel.universe}` : '—'}</dd></div>
@@ -621,7 +627,7 @@ async function loadSector() {
     ${d.funnel && d.funnel.topRejects.length ? `<p class="note">Dropped for: ${d.funnel.topRejects.map(([r, n]) => `${esc(r)} (${n})`).join(', ')}.</p>` : ''}
   </div>`;
 
-  const recent = (d.recent || []).length ? `<div class="card">
+  const recent = (d.recent || []).length ? `<div class="card" data-slot="SIG-6">
     <div class="chead"><b>Coins the scanner found</b><span class="v">newest first — not ranked</span></div>
     <table class="tbl"><thead><tr><th>Coin</th><th>Found</th><th>Liquidity</th><th>24h</th><th>Age</th></tr></thead><tbody>
       ${d.recent.map((c) => `<tr>
@@ -637,7 +643,7 @@ async function loadSector() {
 
   // ! shown high up, not buried: it changes how every social number for that coin should be read.
   const col = Object.values(d.collisions || {});
-  const shared = col.length ? `<div class="card fail">
+  const shared = col.length ? `<div class="card fail" data-slot="SYS-3">
     <div class="chead"><b>One of your coins shares its name</b></div>
     ${col.map((c) => `<p class="sline">${c.of} different Solana coins use <b>$${esc(c.ticker)}</b>.
       Yours is number ${c.rank} of them by how much money is in the pool${c.rivals && c.rivals[0]
@@ -652,9 +658,9 @@ async function loadSector() {
   // and a normal-Chrome useragent (the standard mitigation) didn't clear it either. See
   // 70-AREAS/j7-tracker/LOG.md for the full attempt. A plain link is the only thing that reliably
   // works -- a real browser passes their check fine.
-  const j7 = `<div class="card">
-    <div class="chead"><b>J7 Tracker</b><span class="v">their site — not part of CII</span></div>
-    <p class="note">Opens in your regular browser. Their site couldn't be shown inside CII itself
+  const j7 = `<div class="card" data-slot="EXT-3">
+    <div class="chead"><b>J7 Tracker</b><span class="v">their site — not part of MCII</span></div>
+    <p class="note">Opens in your regular browser. Their site couldn't be shown inside MCII itself
       — their bot-check blocks embedded windows like this one.</p>
     <a class="btn accent" href="https://j7tracker.io" target="_blank"
       style="margin:0 20px 20px;display:inline-block;width:fit-content;text-decoration:none">Open j7tracker.io</a>
@@ -701,8 +707,14 @@ let lastAppWindowAt = 0;
 
 async function showVenue(id) {
   const host = $('#' + id);
-  const st = await window.mcii.venueStatus(id);
-  host.innerHTML = venueChrome(id, st);
+  // The wallet is fetched alongside the status because the bar states which address the portfolio
+  // reads for this venue. It is NOT the venue login -- those are unrelated, which is exactly why
+  // the readout labels it "portfolio" rather than implying you are signed in as it.
+  const [st, w] = await Promise.all([
+    window.mcii.venueStatus(id),
+    window.mcii.wallets().then((r) => r.wallets || {}).catch(() => ({})),
+  ]);
+  host.innerHTML = venueChrome(id, st, w);
   wireVenue(host, id);
   if (!st.configured || !st.embeddable) {
     await hideVenues();
@@ -718,6 +730,44 @@ async function showVenue(id) {
   await window.mcii.venueOpen(id, venueRect(host));
   // The rect is only right once the panel has actually laid out.
   requestAnimationFrame(() => window.mcii.venueBounds(id, venueRect(host)));
+  trackVenueLoad(id, host, w);
+}
+
+// The readout says "loading" until the page reports itself loaded, and venues.js emits no load
+// event to the renderer -- so this asks. ! BOUNDED, deliberately: a page that never finishes
+// loading must not leave a poll running for the life of the session. Same failure shape as the
+// unbounded retry loop that froze the app on launch (50-LOG/2026-08-29-app-freeze-exit-sim.md);
+// the fix there was an overall wall-clock budget, and this is one.
+async function trackVenueLoad(id, host, wallets) {
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (venueOn !== id) return;                       // walked out; stop asking
+    const el = host.querySelector('.venue-readout');
+    if (!el) return;
+    let st;
+    try { st = await window.mcii.venueStatus(id); } catch { return; }
+    el.innerHTML = venueReadout(id, st, wallets);
+    if (st.loaded) return;
+  }
+}
+
+// Real readings only. Every cell here is something the app actually knows -- a mark that maps to
+// nothing is a lie, and one fake mark costs the eye its trust in the real instruments beside it.
+// ⚠️ The SITE is shown as a host, not a full URL: the host is the security-relevant reading ("what
+// am I actually looking at") and it stays true as they navigate around inside the venue, whereas a
+// path captured at mount time goes stale the moment they click anything.
+function venueReadout(id, st, wallets) {
+  const hostOf = (u) => { try { return new URL(u).host; } catch { return null; } };
+  const site = hostOf(st.currentUrl) || hostOf(st.url);
+  const addr = wallets && wallets[id];
+  // Each reading is its own cell so a narrow window can drop one WHOLE cell rather than letting a
+  // label and its value be separated, or squeezed until two readings overlap. `is-opt` marks the
+  // cell that goes first when there is not room for all three.
+  return `<span class="cell"><span class="k">state</span><span class="v ${
+      st.loaded ? 'is-live' : 'is-wait'}">${st.loaded ? 'live' : 'loading'}</span></span>
+    <span class="cell"><span class="k">site</span><span class="v">${site ? esc(site) : '—'}</span></span>
+    <span class="cell is-opt"><span class="k">portfolio</span><span class="v">${
+      addr ? esc(shortAddr(addr)) : 'no wallet set'}</span></span>`;
 }
 
 async function hideVenues() {
@@ -740,18 +790,28 @@ function venueRect(host) {
   // a collapsed box's top, which is 0 and would give the view a negative height.
   const footShown = foot && foot.offsetParent !== null && foot.getBoundingClientRect().height > 0;
   const floor = footShown ? foot.getBoundingClientRect().top : window.innerHeight;
-  el.style.height = `${Math.max(320, Math.round(floor - top - 12))}px`;
+  // 20, not 12: the bezel is drawn OUTSIDE this box (see .venue-host in style.css) and needs the
+  // clearance, or the frame's bottom edge is cut off by the window.
+  el.style.height = `${Math.max(320, Math.round(floor - top - 20))}px`;
   const r = el.getBoundingClientRect();
   return { x: r.left, y: r.top, width: r.width, height: r.height };
 }
 
-function venueChrome(id, st) {
+function venueChrome(id, st, wallets) {
+  // The venue rooms show SOMEBODY ELSE'S product inside this shell, so the visual jump is real and
+  // permanent -- there is no version of this where their page adopts our design language. The
+  // placard is the honest answer to that: it names the room as an external feed patched into the
+  // machine, in the same taxonomy as every other panel, so the change of register reads as a
+  // viewport onto another system rather than as this app losing its footing.
+  const tag = id === 'fomo' ? 'EXT-1' : id === 'axiom' ? 'EXT-2' : null;
+  const placard = tag ? `<span class="venue-tag">${esc(tag)}</span>` : '';
+
   // A venue that refuses to be embedded gets a real room anyway: what it is, why it is not drawn
   // here, and a way straight into it. Better than a sealed door, and far better than defeating the
   // block -- see the note in main/venues.js.
   if (st.configured && !st.embeddable) {
     return `<div class="venue-bar">
-        <span class="st-label">${esc(st.label)}</span>
+        ${placard}<span class="st-label">${esc(st.label)}</span>
         <span class="venue-url">${esc(st.url)}</span>
         <button class="btn sm" data-venue-appwin>reopen ${esc(st.label)} window</button>
       </div>
@@ -764,7 +824,7 @@ function venueChrome(id, st) {
       </div>`;
   }
   if (!st.configured) {
-    return `<div class="venue-bar"><span class="st-label">${esc(st.label)}</span></div>
+    return `<div class="venue-bar">${placard}<span class="st-label">${esc(st.label)}</span></div>
       <div class="st-board venue-missing"><div class="st-board-screws"></div>
         <div class="st-board-head"><span class="st-label">no address for this venue yet</span></div>
         <div class="folio-empty">Every path tried on <b>axiom.trade</b> answered
@@ -781,9 +841,10 @@ function venueChrome(id, st) {
   // offers that, so a real-browser-window escape hatch stays one click away here too rather than
   // only appearing once a venue's own edge block trips.
   return `<div class="venue-bar">
-      <span class="st-label">${esc(st.label)}</span>
-      <span class="venue-url">signing in with Google won't work in here — try email, or:</span>
-      <button class="btn sm" data-venue-appwin>open in a real browser window</button>
+      ${placard}<span class="st-label">${esc(st.label)}</span>
+      <span class="venue-readout">${venueReadout(id, st, wallets)}</span>
+      <span class="venue-limit">google sign-in blocked in here — use email</span>
+      <button class="btn sm hatch" data-venue-appwin>open in a real browser window</button>
     </div>
     <div class="venue-host"></div>`;
 }
@@ -892,13 +953,13 @@ function folioBoards(data, wallets) {
     const p = data.pnl24;
     const dir = !p ? null : p.absUsd > 0 ? 'up' : p.absUsd < 0 ? 'down' : null;
     return `
-      ${statBoard('total, both venues', fmtUsd(c.totalUsd), null)}
+      ${statBoard('total, both venues', fmtUsd(c.totalUsd), null, null, 'FOL-1')}
       ${statBoard('24h profit / loss',
         !p ? '—' : (p.absUsd >= 0 ? '+' : '−') + fmtUsd(Math.abs(p.absUsd)).replace('$', '$'),
         dir, !p ? 'no price history yet'
-          : `${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(1)}% · mark-to-market, not realised`)}
+          : `${p.pct >= 0 ? '+' : ''}${p.pct.toFixed(1)}% · mark-to-market, not realised`, 'FOL-2')}
       ${statBoard('largest position', c.topWeightPct == null ? '—' : c.topWeightPct.toFixed(0) + '%',
-        hot ? 'down' : null, hot ? 'one bet, not a portfolio' : 'of the whole book')}
+        hot ? 'down' : null, hot ? 'one bet, not a portfolio' : 'of the whole book', 'FOL-3')}
       ${chartBoard(c)}
       ${posBoard('every position', c.positions, true)}`;
   }
@@ -907,10 +968,10 @@ function folioBoards(data, wallets) {
   if (v.error) return emptyBoard(esc(v.error), true);
   const dust = (v.dustCount || 0) + (v.unpricedCount || 0);
   return `
-    ${statBoard(`${v.venue} total`, fmtUsd(v.totalUsd), null, shortAddr(v.address))}
-    ${statBoard('sol', v.sol == null ? '—' : v.sol.toFixed(3), null, 'native balance')}
+    ${statBoard(`${v.venue} total`, fmtUsd(v.totalUsd), null, shortAddr(v.address), 'FOL-1')}
+    ${statBoard('sol', v.sol == null ? '—' : v.sol.toFixed(3), null, 'native balance', 'FOL-2')}
     ${statBoard('coins held', String(v.positions.length), null,
-      dust ? `${dust.toLocaleString()} dust mints ignored` : 'all priced')}
+      dust ? `${dust.toLocaleString()} dust mints ignored` : 'all priced', 'FOL-3')}
     ${posBoard(`${v.venue} positions`, v.positions, false)}`;
 }
 
@@ -939,6 +1000,7 @@ function chartBoard(c) {
 
   return `<div class="st-board folio-wide">
     <div class="st-board-screws"></div>
+    <span class="st-placard">FOL-4</span>
     <div class="st-board-head"><span class="st-label">value over time</span>
       <span class="folio-lamps folio-lamps-sm">${wins.map((w) => `
         <button class="folio-lamp ${w.d === folioDays ? 'is-sel' : ''}" data-folioday="${w.d}">${w.l}</button>`).join('')}</span>
@@ -974,9 +1036,10 @@ function folioLine(pts, w = 1060, h = 190) {
     <span>${esc(fmtT(t1))}</span></div>`;
 }
 
-function statBoard(label, value, dir, sub) {
+function statBoard(label, value, dir, sub, tag) {
   return `<div class="st-board folio-stat">
     <div class="st-board-screws"></div>
+    ${tag ? `<span class="st-placard">${esc(tag)}</span>` : ''}
     <div class="st-board-head"><span class="st-label">${esc(label)}</span></div>
     <div class="st-board-num ${dir ? 'is-' + dir : ''}">${esc(value)}</div>
     ${sub ? `<div class="folio-sub">${esc(sub)}</div>` : ''}
@@ -993,6 +1056,7 @@ function posBoard(label, positions, showVenues) {
   if (!positions.length) return emptyBoard('nothing here');
   return `<div class="st-board folio-wide">
     <div class="st-board-screws"></div>
+    <span class="st-placard">FOL-5</span>
     <div class="st-board-head"><span class="st-label">${esc(label)}</span>
       <span class="st-board-num">${positions.length}</span></div>
     <table class="folio-tbl">
