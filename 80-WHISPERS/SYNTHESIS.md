@@ -14,9 +14,12 @@ pass's rejected connections are worth re-reading before writing a new one — a 
 3 whispers can become strong at 15, and that upgrade is itself the signal.
 
 ## STATUS
-**Pass 0 — nothing to synthesize yet.** both inboxes are empty. This file is the shape the output
-takes, so the first real pass has something to fill in rather than inventing a format under time
-pressure.
+**Pass 0 — STALE, and knowingly so.** This file still says the inboxes are empty. They are not:
+Connal's holds w-001 … w-007 as of 2026-09-01. No synthesis pass has been run over them — the
+whispers were FILED into project folders (see the README's routing section) which is a different
+job, and a filing pass must not be reported as a synthesis pass.
+! run `/whispers` to produce a real pass. Until then treat every section below as unwritten, not as
+a finding that there is nothing to find.
 
 ## HOW TO READ THIS (when it has content)
 - `strong:` — I'd act on this. names a specific consequence, survives the "would this still be true

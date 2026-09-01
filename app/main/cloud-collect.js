@@ -22,6 +22,7 @@ const sector = require('../shared/sector');
 const imp = require('../shared/importance');
 const resolve = require('../shared/resolve');
 const postfacts = require('../shared/postfacts');
+const socialmarket = require('../shared/socialmarket');
 const { searchTokens } = require('./adapters/dexscreener');
 const screener = require('./screener');
 const onchain = require('./adapters/onchain');
@@ -306,6 +307,30 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     await new Promise((r) => setTimeout(r, 400));
   }
 
+  // THE SOCIAL MARKET SNAPSHOT. Every coin named in this sweep, with counts — not the handful
+  // that survived a filter. ! the sweep already names ~152 distinct coins and the old sector row
+  // reported a median of 3, so this is not new data, it is data that was already bought and then
+  // discarded one step before anyone saw it.
+  let market = null, moved = [];
+  try {
+    market = socialmarket.snapshot(sweepPosts, lex);
+    let prev = null;
+    try {
+      const lines = fs.readFileSync(path.join(DATA, 'social-market.jsonl'), 'utf8').trim().split('\n');
+      prev = JSON.parse(lines[lines.length - 1]);
+    } catch { /* first run has nothing to compare against, which is not an error */ }
+    moved = socialmarket.movers(prev, market);
+    append('social-market.jsonl', [market]);
+    log(`  social market: ${market.coins.length} coins named across ${market.totalPosts} posts`);
+    if (!prev) log('    (first snapshot — no comparison until the next scan)');
+    for (const m of moved.slice(0, 6)) {
+      log(`    ${m.event === 'new' ? 'NEW ' : 'up  '} ${(m.sym || m.key).slice(0, 14).padEnd(14)}` +
+          ` ${m.people} people (weighted ${m.weighted}${m.event === 'rising' ? `, was ${m.from}` : ''})`);
+    }
+  } catch (e) {
+    log(`  WARN: social market snapshot failed — ${e.message}`);
+  }
+
   // THE BULK TRACK. Every post paid for yields a row of facts, whatever the filter thought of it.
   // ! this is written BEFORE any filtering decision is applied downstream, so a change to the
   // filter can never retroactively shrink the record. 874 posts had previously been fetched,
@@ -374,6 +399,11 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     // `coordinationGroups` is how many sets of accounts posted the same distinctive wording inside
     // a tight window -- the campaign signal, which requires both the wording AND the timing.
     bulk: sectorExtra,
+    // The whole social market this scan saw, and what moved since the last one. ! this is a
+    // RECORD, not a recommendation — D-62: the sector view answers "what kind of market is this",
+    // never "what should I get into".
+    marketCoins: market ? market.coins.length : null,
+    movers: moved.slice(0, 15),
     important: ranked.important.slice(0, 12).map(strip),
     background: ranked.background.slice(0, 8).map(strip),
     // A sample of what was dropped, kept deliberately: it is how anyone catches this filter

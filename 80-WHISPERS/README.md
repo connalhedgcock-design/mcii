@@ -1,8 +1,8 @@
 ---
 id: whisper.idx
 t: whisper-index
-v: 1
-upd: 2026-08-31
+v: 2
+upd: 2026-09-01
 machine: connal
 ---
 # WHISPERS — half-formed thoughts, captured before they evaporate
@@ -38,6 +38,42 @@ provenance non-optional everywhere else in this vault.
 - whispers are NOT tasks. a whisper that turns out to be a task moves to the relevant area, and
   the whisper stays where it is with a link.
 
+## !! ROUTING — every whisper belongs to exactly ONE project folder
+Added 2026-09-01 on Connal's instruction ("make sure that you are able to identify what specific
+project each whisper is pertaining to and organize them in folders based on that").
+
+**The rule, in order. Stop at the first that fits:**
+1. Is it about how RAW DATA BECOMES A READ — discovery, attention, per-tweet extraction, scoring,
+   safety, what a number means? → `analysis-algorithm/`
+2. Is it about WHAT REACHES THEIR PHONES and what it says? → `alerts/`
+3. Is it about WATCHING NAMED WALLETS rather than a coin's own numbers? → `whale-tracking/`
+4. Is it about HOW THE TWO OF THEM WORK rather than what gets built? → `ways-of-working/`
+5. None of the above → leave it UNFILED in the map below with a one-line note saying why nothing
+   fits. ! do NOT invent a folder for a single whisper that has no project. An empty-ish folder
+   reads as a live workstream and there are already two thin ones here.
+
+**One whisper, one owning folder.** A thread that needs a whisper it does not own REFERENCES it
+under its own "owned by other threads" heading. ∵ the same thought in two homes means a reader who
+finds both trusts neither — the same rule `analysis-algorithm/README` opens with.
+
+**The inbox is never restructured.** Whispers stay where they were typed, in capture order,
+verbatim. Folders hold my gathering and expansion; the inbox holds his words. ! the only thing I
+ever add to an inbox line is the `w-NNN` id.
+
+### CURRENT MAP  — DERIVED from the folder READMEs, which are the authority
+| id | folder | one line |
+|---|---|---|
+| w-001 | `analysis-algorithm/` | "cant get out" is not a useful measure at their position sizes |
+| w-002 | `analysis-algorithm/` | make the ">=3 different people" discovery mechanism more effective |
+| w-003 | `alerts/` | a notification must carry the analysis, not just a number (locked, D-96) |
+| w-004 | `whale-tracking/` | wallet / whale tracking is wanted and not built |
+| w-005 | `analysis-algorithm/` | liquidity draining is the present tense; social going quiet is a guess |
+| w-006 | `ways-of-working/` | Austin owns presentation, Connal owns functionality, on every feature |
+| w-007 | `analysis-algorithm/` | direction and confidence are two stages; count the trials; pick one data surface |
+| *(pending)* | `analysis-algorithm/` | real-world events → market moves; and detecting/weighting posts by high-pull accounts and whales |
+! if this table and a folder README disagree, the README is right and this table is stale.
+Regenerate it rather than hand-fixing one row.
+
 ## FILES
 ```
 80-WHISPERS/
@@ -47,8 +83,16 @@ provenance non-optional everywhere else in this vault.
                         appending to the same file conflicts on exactly the file they both use most.
   SYNTHESIS.md       <- the connection map, across BOTH inboxes. MY file, rewritten each pass.
   w-NNN-slug.md      <- one file per PROMOTED whisper — only once it has earned expansion.
-  <topic>/           <- a THREAD: whispers that turn out to be about one subject, gathered w/ my
-                        expansion. created only when several whispers converge, never pre-emptively.
+  analysis-algorithm/  <- THREAD. how raw data becomes a read. the thick one.
+  alerts/              <- THREAD. what reaches their phones and what it says.
+  whale-tracking/      <- THREAD. watching named wallets. ! thin, n=1.
+  ways-of-working/     <- THREAD. how the two of them work. ! not a build project.
+! the old rule here said threads are created "only when several whispers converge, never
+pre-emptively". SUPERSEDED 2026-09-01 by Connal asking for a folder per project outright. I raised
+the cost — thin folders read as live workstreams — and the folders were still wanted, so each thin
+one now says `! THIN THREAD, n=1` in its own first lines instead. The receipt, per the vault's
+never-delete-a-rejected-idea rule: the concern was overconfidence in what is actually one sentence,
+and the mitigation is the warning label, not the absence of the folder.
 ```
 ! Ids are a SINGLE sequence across both inboxes (w-001, w-002 …), never per-person. ∵ the point of
 an id is to reference a thought in one place; two sequences would collide the first time both
