@@ -33,20 +33,45 @@ async function priceImpact(ca, decimals, wholeTokens) {
 // the whole app looks frozen) AND an early exit on repeated failures (if Jupiter is down right now
 // for this token, the 12th identical failure teaches nothing the 3rd didn't already). Either one
 // returns whatever was found so far -- a partial answer, never a block.
+// !! RETURNS null WHEN IT COULD NOT FIND OUT, NEVER ZERO.
+// Fixed 2026-09-01 after LaPeace recorded `exitUsd: 0` while its liquidity was unchanged at $28.8k
+// and the nine readings either side said $626–$867. Nothing had happened to the coin; Jupiter had
+// simply stopped answering. The old code caught those failures, gave up with `best` still 0, and
+// returned "you can sell $0" — a network problem wearing the costume of a honeypot.
+//
+// That is D-29 exactly ("a failed fetch NEVER writes a row — failure is not a zero") and it is the
+// most dangerous shape of it so far: a false $0 on a coin they HOLD reads as "you are trapped",
+// which is the single most alarming thing this app can say. It also poisons the stored record for
+// any later analysis, and would have fired a false rug alert if this number ever drove one.
+//
+// Three outcomes now, kept apart because they demand opposite responses:
+//   a size was found            -> that size
+//   probes worked, none passed  -> 0, and that is a REAL answer: even the smallest size moves the
+//                                  price too much. This is what a honeypot or a dead pool looks like.
+//   probes never worked         -> null. We do not know. Say so.
 async function maxExitable(ca, decimals, priceUsd, maxImpact = 0.05) {
   const BUDGET_MS = 12000;
   const started = Date.now();
   let lo = 0, hi = 200_000_000, best = 0, consecutiveFails = 0;
+  let goodProbes = 0, gaveUp = null;
   for (let i = 0; i < 17; i++) {
-    if (Date.now() - started > BUDGET_MS) break;
+    if (Date.now() - started > BUDGET_MS) { gaveUp = 'timed out'; break; }
     const mid = Math.floor((lo + hi) / 2);
     if (mid <= 0) break;
     let impact;
-    try { impact = await priceImpact(ca, decimals, mid); consecutiveFails = 0; }
-    catch { impact = 99; if (++consecutiveFails >= 3) break; }
+    try { impact = await priceImpact(ca, decimals, mid); consecutiveFails = 0; goodProbes++; }
+    catch { impact = 99; if (++consecutiveFails >= 3) { gaveUp = 'quote service kept failing'; break; } }
     if (impact <= maxImpact) { best = mid; lo = mid; } else { hi = mid; }
     await sleep(300); // stay well inside Jupiter's free-tier limits
   }
-  return { tokens: best, usd: best * priceUsd, maxImpact, fetchedAt: Date.now() };
+  // ! Not knowing is only reported as an answer when we never got a usable reading at all. If
+  // probes succeeded and simply showed too much slippage, zero is the truth and must be reported
+  // as such — that is a real honeypot signal and suppressing it would be the opposite mistake.
+  if (goodProbes === 0) {
+    return null;
+  }
+  return { tokens: best, usd: best * priceUsd, maxImpact, fetchedAt: Date.now(),
+           // Carried so a caller can tell a complete search from one cut short.
+           partial: gaveUp || null, probes: goodProbes };
 }
 module.exports = { fetchTokenMeta, maxExitable };
