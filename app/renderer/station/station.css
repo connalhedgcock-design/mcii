@@ -593,7 +593,18 @@
   left: -1200px;
   top: 40px;
   width: 2400px;
-  height: 1800px;
+  /* ⚠️ 1200, NOT 1800, AND NOT LESS THAN ~1000. This element is promoted
+     (3D transform), so its height is paid twice over in GPU backing store: at
+     dpr 2 the old 2400x1800 was a single 4800x3600 layer, 17.3 Mpx / ~66MB, for
+     a surface that rotateX(81deg) crushes into a sliver of actual screen.
+     The floor only has to reach the WALL. Tipped 81deg about its top edge, a
+     point d down this box lands at d*sin(81deg) ~= 0.988d of depth, and the
+     hull stands at RING + WALL_Z = 964px -- so the deck meets it at d ~= 976.
+     1800 ran ~800px PAST the wall, entirely hidden behind the hull, rastered
+     for nothing. 1200 clears the wall with room to spare and saves ~22MB.
+     Going below ~1000 is what would actually break: the deck would stop short
+     of the hull and open a seam of void along the base of the far wall. */
+  height: 1200px;
   transform-origin: 50% 0%;
   transform: rotateX(81deg);
   background:
@@ -897,7 +908,23 @@
 .st-portal-view > span {
   position: absolute;
   inset: 0;
-  transition: transform var(--st-turn) var(--st-ease);
+  /* ⚠️ NO TRANSITION ON THIS TRANSFORM, AND DO NOT PUT ONE BACK.
+     Measured 2026-09-01: gliding these five spans over the turn WAS the lag.
+     Thirty-five of them (five per doorway, seven doorways) interpolate at once
+     while `.st-beyond-world` is still mid-rotateY, and they sit inside a
+     perspective-projected subtree -- so every interpolated frame changes their
+     screen-space scale and forces each doorway to re-raster.
+     This is invisible to every main-thread tool: rAF reports a clean 60fps with
+     zero janky frames, because nothing blocks script. PRESENTED frames are what
+     collapse -- 27.6fps with 80 stalls over 50ms across twenty turns, measured
+     off the compositor rather than off rAF. Deleting this one line, keeping the
+     parallax offset itself, measured 68.3fps on the same run.
+     `will-change: transform` and translate3d() promotion were both tried here
+     and both made it WORSE (39fps / 37fps): more layers to re-raster at a
+     changing scale. This is not a layer-promotion problem, so do not "fix" it
+     with one. The offset still changes per door -- it snaps instead of gliding,
+     which does not read as a jump because the doorway is sweeping across the
+     screen while it happens. */
 }
 .st-pv-far {
   transform: translateX(calc(var(--st-off, 0) * 0.10px));
