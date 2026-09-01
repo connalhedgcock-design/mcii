@@ -31,6 +31,8 @@ let door = homeIndex()
 // deletes wall and vault panels out from under a rotation that is still showing
 // them. That is the flicker: sections of the room blinking out mid-turn. Hold
 // the union for the length of the turn, then prune once, when nothing moves.
+let skyPlate = null
+let skyUrl = ''
 let prevDoor = door
 let settling = false
 let settleTimer = null
@@ -56,42 +58,24 @@ function build(root) {
   // wallpaper, not windows". Instead the sky is sized to the WHOLE corridor and
   // each pane is offset to its own slice of it, so the view through the glass is
   // continuous across the panels the way a real run of glazing is.
-  // ⚠️ THE SKY IS 1700px, NOT THE WHOLE RING. Sized to the full 266° corridor it
-  // was continuous and correct and looked like nothing: each 118px pane showed
-  // 2.6% of it, so the planet lived in two panes somewhere off to the side and
-  // every other window was empty void. At 1700px a viewful (~10 panes) spans
-  // about 70% of the sky — you always have something in frame — while the repeat
-  // lands ~100° away, so you never catch two of the same planet at once.
-  // ⚠️ ONE SCALE FOR BOTH. The tile is a whole number of wall facets wide and the
-  // offsets step by the same px-per-degree, so every pane lands exactly on its own
-  // slice and the join between panes is continuous. Sizing the image at one scale
-  // and computing offsets at another is what left the planets not lining up.
-  const pxPerDeg = hullFacetWidth() / HULL_SEG_DEG
-  // Height matches a pane's own local height, so the slice paints 1:1 and a
-  // planet stays round instead of being squashed into an ellipse by the stretch.
-  const SKY_H = 190
-  const skyW = Math.ceil(2 * HULL_SPAN_DEG * pxPerDeg)   // the whole 266° corridor
-  const sky = buildSky(skyW, SKY_H)
-
-  // One slice per pane, cut at the pane's own width. Cropping from a single
-  // continuous sky is what makes neighbouring panes agree — there is no offset
-  // arithmetic left to get wrong.
-  const cut = document.createElement('canvas')
-  const cutCtx = cut.getContext('2d')
-  const sliceFor = (angle, halfDeg) => {
-    if (!sky) return ''
-    const w = Math.max(2, Math.round(2 * halfDeg * pxPerDeg))
-    const x0 = Math.round((angle - halfDeg + HULL_SPAN_DEG) * pxPerDeg)
-    cut.width = w; cut.height = SKY_H
-    cutCtx.clearRect(0, 0, w, SKY_H)
-    cutCtx.drawImage(sky, x0, 0, w, SKY_H, 0, 0, w, SKY_H)
-    return cut.toDataURL('image/png')
-  }
-  const skyAt = (angle, halfDeg) => `--sky-img:url(${sliceFor(angle, halfDeg)})`
+  // Wide enough that panning it with the heading never walks off either end, and
+  // tall enough that the openings only ever show a band of its middle.
+  const sky = buildSky(4200, 560)
+  // ⚠️ Module-scoped, not a local: the template is built in this function and the
+  // nodes are wired further down the same file but in ANOTHER function, and a
+  // local here throws ReferenceError at mount — which leaves the room standing
+  // with no boards, no globe and no measurements, looking like a layout bug.
+  skyUrl = sky ? sky.toDataURL('image/png') : ''
 
   root.innerHTML = `
     <div class="st-room st-room-bridge">
       <div class="st-bridge">
+
+        <!-- THE BACKDROP. Behind .st-beyond so the room occludes it, seen only
+             through the openings cut in the wall. Flat, because it is at
+             infinity; panned with the heading, because parallax at infinity is
+             a slide, never a rotation. -->
+        <div class="st-sky-plate"></div>
 
         <div class="st-beyond">
           <!-- ⚠️ The facet width comes from the geometry, never from a number typed into
@@ -108,18 +92,18 @@ function build(root) {
                  door the way the screen-fixed ceiling did. -->
             ${vaultSegments().map((v) => `
               <div class="st-vault st-vault-${v.kind}" data-a="${v.angle}"
-                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg); ${skyAt(v.angle, VAULT_SEG_DEG / 2)}"></div>`).join('')}
+                   style="transform:rotateY(${v.angle}deg) translateZ(-${RING + WALL_Z}px) rotateX(${VAULT_TILT_DEG}deg)"></div>`).join('')}
             <!-- THE WALL. Facets a doorway covers are simply absent — the jamb is
                  the wall there, and it carries the opening. -->
             ${hullSegments().map((h) => `
               <div class="st-hull-seg st-hull-${h.kind}" data-a="${h.angle}"
-                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(h.angle, HULL_SEG_DEG / 2)}"></div>`).join('')}
+                   style="transform:rotateY(${h.angle}deg) translateZ(-${RING + WALL_Z}px)"></div>`).join('')}
             <!-- THE JAMBS. A wall panel with the doorway cut out of it, sitting in
                  FRONT of the door ring, so the door is seen through a hole in the
                  wall with the wall's own thickness showing as a reveal. -->
             ${DOORS.map((d) => `
               <div class="st-hull-jamb" data-a="${d.angle}"
-                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px); ${skyAt(d.angle, DOOR_BAY_DEG / 2)}"></div>`).join('')}
+                   style="transform:rotateY(${d.angle}deg) translateZ(-${RING + WALL_Z}px)"></div>`).join('')}
             <div class="st-beyond-floor"></div>
             ${DOORS.map((d, i) => `
               <div class="st-portal${d.built ? '' : ' is-sealed'}" data-i="${i}"
@@ -190,6 +174,8 @@ function build(root) {
 
   stage = root
   world = root.querySelector('.st-beyond-world')
+  skyPlate = root.querySelector('.st-sky-plate')
+  if (skyUrl) skyPlate.style.backgroundImage = `url(${skyUrl})`
   stars = root.querySelector('.st-ceil-stars')
   hub = root.querySelector('.st-hub')
   globeHost = root.querySelector('.st-globe')
@@ -284,6 +270,9 @@ function render() {
   const yaw = yawFor(door)
   world.style.transform = `rotateY(${yaw}deg)`
   stars.style.backgroundPosition = `${starPan(door)}px 0`
+  // The backdrop slides; it never turns. Half the star layer's rate, because it
+  // is further away — the depth cue is the DIFFERENCE between the two rates.
+  if (skyPlate) skyPlate.style.backgroundPositionX = `${starPan(door) * 0.5}px`
 
   // The hull obeys the same camera-plane rule as the doors (§9.12): a facet more
   // than ~85 deg off your heading has passed the camera and re-projects huge.
@@ -649,18 +638,23 @@ function onKey(e) {
    One decode, then every pane is a blit. `img-src 'self' data:` in the app's CSP
    already allows this.
 
-   ⚠️ IT SPANS THE WHOLE CORRIDOR AND IS THEN CUT INTO ONE EXACT SLICE PER PANE.
-   Two earlier attempts failed differently and both are worth remembering:
-     · one shared image, offset per pane — the offsets were continuous but the
-       image was TILED, so the tile's own seam and its repeat both landed inside
-       a single view: half a planet on one panel and something unrelated on the
-       next.
-     · that same image scaled and repeated inside every pane also meant every
-       pane re-rasterised a large bitmap at a projected size on every frame of a
-       turn, which is the rest of the lag.
-   Cutting it once, per pane, at the pane's own pixel size, fixes both: the slices
-   are adjacent crops of ONE continuous sky so they cannot disagree, and each pane
-   then paints a small 1:1 bitmap with no scale, no tile and no repeat.
+   ⚠️ IT IS ONE FLAT BACKDROP BEHIND THE ROOM. It is NOT painted onto the panes,
+   and three earlier attempts to do that all failed for the same underlying reason.
+
+   THE REASON, which is a geometry argument and not a taste one: the wall is a
+   cylinder around the camera, so anything painted on it inherits the cylinder's
+   curvature and its per-facet breaks. Space is at infinity. A sky that curves
+   with the wall and steps at every mullion is, exactly as the operator put it,
+   a sticker — because that is the projection a sticker has. Something at infinity
+   must be FLAT and must barely move as you turn. So it is one plane, behind
+   everything, panned a little with the heading (`starPan`, the same parallax the
+   star field already used), seen through openings cut in the wall.
+
+   Everything else falls out of that. There is no per-pane alignment to get wrong
+   because there is one image. The panes carry no bitmap, so a turn re-rasterises
+   only cheap gradients — which is what "the colour goes away to the default blue
+   when I move" was: the pane's background IMAGE being dropped and repainted while
+   the base gradient underneath showed through.
    ═══════════════════════════════════════════════════════════════════════════ */
 function buildSky(tileW, h) {
   const c = document.createElement('canvas')
@@ -719,9 +713,13 @@ function buildSky(tileW, h) {
     blob(cx, cy, r * 1.18, [[0, 'rgba(120,196,226,0)'], [0.86, 'rgba(120,196,226,0.32)'], [1, 'rgba(120,196,226,0)']])
     blob(cx, cy, r, [[0, lit], [0.55, dark], [0.84, '#16304a'], [1, '#0c1c2c']])
   }
-  planet(0.13, 1.05, h * 0.52, '#3f7fa8', '#2b5c80')
-  planet(0.52, 1.08, h * 0.44, '#4a7f92', '#2c5566')
-  planet(0.87, 1.04, h * 0.50, '#43709c', '#284a70')
+  // ⚠️ Centres at ~0.95h with radii near 0.45h, so each body's UPPER HALF sits
+  // inside the frame. Pushed to 1.05h they were entirely below the canvas and
+  // the windows showed nothing but faint stars — the sky had features and none
+  // of them were in the band anyone could see.
+  planet(0.11, 0.95, h * 0.46, '#3f7fa8', '#2b5c80')
+  planet(0.48, 0.98, h * 0.40, '#4a7f92', '#2c5566')
+  planet(0.83, 0.94, h * 0.44, '#43709c', '#284a70')
   for (const [fx, fy, fr] of [[0.27, 0.34, 0.085], [0.40, 0.62, 0.035],
                               [0.64, 0.28, 0.062], [0.76, 0.58, 0.030], [0.97, 0.36, 0.055]])
     blob(tileW * fx, h * fy, h * fr, [[0, '#c7d1dc'], [0.62, '#8f9aa8'], [1, '#5a6672']])

@@ -309,6 +309,39 @@ just a blue grid". Tone differences between plates have to be readable BEFORE th
 raising plate CONTRAST is not the same as raising the deck's BRIGHTNESS; the deck stays the darkest
 surface in the room (orientation gradient, above) and the plates read anyway.
 
+## THE SKY IS A BACKDROP, NOT A SURFACE TREATMENT (operator, 09-01)
+!! The operator got to this before I did, and the argument is geometric, not aesthetic:
+> "if we are in a space station with curved walls, why should the sky outside also be curved and
+> have that same perspective. it should be a backdrop... and flat. this causes the sky to look like
+> stickers rather than actual space."
+
+Exactly right, and it explains three separate bugs that had each been "fixed" twice:
+- the wall is a CYLINDER around the camera, so anything painted on it inherits the cylinder's
+  curvature and its per-facet breaks. Space is at infinity. A sky that curves with the wall and
+  steps at every mullion has a sticker's projection, so it reads as a sticker.
+- ✓ **ONE FLAT PLANE BEHIND THE ROOM** (`.st-sky-plate`), occluded by the hull, seen through
+  openings CUT in the wall — the window band is transparent in the wall's own gradient, not a
+  picture of a window. Panned with the heading at HALF the star layer's rate; parallax at infinity
+  is a slide, never a rotation, and the depth cue is the DIFFERENCE between the two rates.
+- ✓ alignment stopped being a problem rather than being solved again: there is one image, so there
+  is nothing to align. Three prior attempts (per-pane gradients → shared image with per-pane offsets
+  → per-pane crops) were all increasingly correct arithmetic applied to a wrong structure.
+- ✓ **"the colour goes away to the default blue when I move" was the panes' background IMAGE being
+  dropped and repainted during the turn**, showing the structural gradient underneath. Panes carry
+  no bitmap now, so a turn re-rasterises only cheap gradients. A hole cannot flicker.
+- ! the plate is MASKED to the band it is seen through. The room is not uniformly opaque — the deck
+  deliberately fades out at the horizon — and unmasked, the starfield came through the FLOOR.
+- ! the image is scaled so its full height lands inside that masked band. Sized to the plate's whole
+  height, the band showed only the top fifth of the sky and every planet was outside it.
+
+## PANELS: SCALES OF DETAIL, NOT MORE SHAPES
+Operator: the panels are "blocky and toddler like", and want "more seams within them, a greater
+feeling of connectivity". The rule, from model-making practice and the reason greebles work at all:
+a surface reads as ENGINEERED when it carries a hierarchy of scales — large division, recessed
+frame, seam, fastener — and as a toy when it carries one big rectangle and stops. The bulkhead
+panels had two scales and now have four. ! symmetry is part of what reads as toy: the vertical seam
+is deliberately off-centre.
+
 ## NO DISCLAIMERS, NO SELF-EXPLANATION (operator, 08-31)
 `X` on-screen copy whose job is to explain the app to its user or reassure them about what it does
 — privacy/no-keys notes, "how this works" text, onboarding prose. The audience is TWO PEOPLE and

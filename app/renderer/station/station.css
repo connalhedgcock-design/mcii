@@ -165,6 +165,42 @@
   .st-room { transition: none !important; }
 }
 
+/* ── THE BACKDROP ─────────────────────────────────────────────────────────────
+   ⚠️ FLAT, AND BEHIND EVERYTHING. Space is at infinity; the wall is a cylinder
+   around the camera. Anything painted ON the wall inherits the cylinder's
+   curvature and its per-facet breaks, which is precisely why the sky read as
+   stickers rather than as distance — that is the projection a sticker has.
+   One plane, occluded by the room, seen through the openings cut in the wall.
+   It slides with the heading (station.js: starPan × 0.5) and never rotates:
+   parallax at infinity is a slide. The depth cue is that it moves at HALF the
+   rate of the star layer above it — depth is read from the difference in rates,
+   not from either rate alone. */
+.st-sky-plate {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat-x;
+  /* ⚠️ The image is scaled so its FULL HEIGHT lands inside the masked band below
+     — 22% of the room, starting at 7%. Sized to the plate's whole height instead,
+     the band showed only the top fifth of the sky: the planets and nebulae were
+     all outside the one strip the windows can see. */
+  background-size: auto 22%;
+  background-position: 0 7%;
+  background-color: oklch(0.085 0.016 254);
+  transition: background-position-x var(--st-turn) var(--st-ease);
+  /* ⚠️ MASKED TO THE BAND IT IS SEEN THROUGH. The backdrop sits behind the whole
+     room, and the room is not uniformly opaque — the deck deliberately fades out
+     at the horizon so it has no hard edge there. Unmasked, that fade let the
+     starfield through the FLOOR, which reads as the deck being made of glass.
+     The plate only ever has a job in the window band, so it only exists there.
+     Soft edges, because a hard one would draw a horizontal line across the room
+     exactly where the wall is trying not to have one. */
+  mask-image: linear-gradient(to bottom,
+    transparent 0%, #000 7%, #000 27%, transparent 34%);
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0%, #000 7%, #000 27%, transparent 34%);
+}
+
 .st-bridge {
   position: absolute;
   inset: 0;
@@ -269,10 +305,18 @@
       transparent 7px calc(100% - 7px),
       oklch(0.30 0.030 250) calc(100% - 7px) calc(100% - 3px),
       oklch(0.60 0.042 246) calc(100% - 3px) 100%),
-    /* the structural frame */
+    /* the structural frame — ⚠️ TRANSPARENT between 7.4% and 30.6%, which is the
+       window band. That gap IS the opening; the backdrop is behind it. The stile
+       gradient above still runs the full height, so the mullion between two
+       openings stays solid and the glazing reads as one long channel divided by
+       structure rather than as separate portholes. */
     linear-gradient(to bottom,
       oklch(0.255 0.026 250) 0%,
       oklch(0.300 0.030 249) 3%,
+      oklch(0.318 0.031 249) 7.2%,
+      transparent 7.4%,
+      transparent 30.6%,
+      oklch(0.318 0.031 249) 30.8%,
       oklch(0.330 0.032 249) 33%,
       oklch(0.520 0.042 246) 38%,
       oklch(0.455 0.038 247) 58%,
@@ -293,12 +337,12 @@
   left: 9px; right: 9px;
   top: 8%; height: 22%;
   border-radius: 3px;
-  /* This pane's OWN slice of one continuous sky, cut at its own pixel width by
-     sliceFor() in station.js. No offset arithmetic, no tiling and no scaling —
-     which is both why neighbouring panes agree and why a turn is cheap. */
-  background-image: var(--sky-img);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+  /* ⚠️ TRANSPARENT. This is an OPENING, not a picture of one — the backdrop
+     behind the room shows through it. Carrying a bitmap here is what made the
+     panes flicker to flat blue on a turn: the image was dropped and repainted
+     while the structural gradient underneath showed through. A hole cannot
+     flicker, and a hole cannot be misaligned with the hole next to it. */
+  background: transparent;
   box-shadow:
     inset 0 0 0 3px oklch(0.56 0.040 246),
     inset 0 3px 9px 1px oklch(0.02 0.010 250 / 0.85),
@@ -313,7 +357,32 @@
   top: 40%; height: 51%;
   border-radius: 2px;
   background:
-    /* a louvred return-air grille, low on the panel — station kit, not ornament */
+    /* ⚠️ SCALES OF DETAIL, not more shapes. A surface reads as engineered when it
+       carries a HIERARCHY — large division, recessed frame, seam, fastener — and
+       as blocky when it carries one big rectangle and stops. This panel now has
+       four, and every one of them is structural rather than ornamental.
+       (Model-making convention, and the same reason greebles work at all.) */
+    /* fasteners: four, inset from the panel's own corners */
+    radial-gradient(circle 1.4px at 7px 7px, oklch(0.40 0.026 248 / 0.75) 0 100%, transparent 100%),
+    radial-gradient(circle 1.4px at calc(100% - 7px) 7px, oklch(0.40 0.026 248 / 0.75) 0 100%, transparent 100%),
+    radial-gradient(circle 1.4px at 7px calc(100% - 7px), oklch(0.40 0.026 248 / 0.75) 0 100%, transparent 100%),
+    radial-gradient(circle 1.4px at calc(100% - 7px) calc(100% - 7px), oklch(0.40 0.026 248 / 0.75) 0 100%, transparent 100%),
+    /* sub-panel seams: the division that stops one plate reading as a slab */
+    linear-gradient(to bottom,
+      transparent 0 25.4%,
+      oklch(0.36 0.026 248 / 0.55) 25.4% 25.9%,
+      oklch(0.94 0.010 242 / 0.55) 25.9% 26.5%,
+      transparent 26.5% 71.4%,
+      oklch(0.36 0.026 248 / 0.55) 71.4% 71.9%,
+      oklch(0.94 0.010 242 / 0.55) 71.9% 72.5%,
+      transparent 72.5% 100%),
+    /* a vertical seam, off-centre — symmetry is what reads as toy */
+    linear-gradient(to right,
+      transparent 0 63%,
+      oklch(0.36 0.026 248 / 0.45) 63% 63.5%,
+      oklch(0.94 0.010 242 / 0.45) 63.5% 64%,
+      transparent 64% 100%),
+    /* a louvred return-air grille — station kit, not ornament */
     linear-gradient(to bottom,
       transparent 0 42%,
       oklch(0.44 0.030 248 / 0.9) 42% 43.5%,
@@ -417,9 +486,10 @@
 .st-vault-glazed {
   background:
     /* ⚠️ Glass, not a hole — the pane keeps a sheen of the room in it. */
-    var(--sky-img);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+    /* tinted glass with the room's own sheen in it — no bitmap, because a
+       bitmap on a rotating facet is the thing that flickers */
+    linear-gradient(to top,
+      oklch(0.215 0.030 248) 0%, oklch(0.140 0.024 250) 46%, oklch(0.098 0.018 252) 100%);
   box-shadow:
     inset 0 0 0 4px oklch(0.52 0.036 246),
     inset 0 3px 12px 0 oklch(0.62 0.040 244 / 0.30),
