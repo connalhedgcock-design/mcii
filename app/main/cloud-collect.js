@@ -351,7 +351,20 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
   // discarded one step before anyone saw it.
   let market = null, moved = [], read = null;
   try {
-    market = socialmarket.snapshot(sweepPosts, lex);
+    // Rival coins that share a ticker with one of theirs, loaded so their addresses are
+    // RECOGNISED rather than landing as unknown. Their activity is tracked as its own thing.
+    const namesakes = new Map();
+    for (const [ticker, c] of Object.entries(collisions || {})) {
+      for (const r of c.rivals || []) namesakes.set(r.ca, { ticker, ownSym: c.sym, ownCa: c.ca });
+    }
+    market = socialmarket.snapshot(sweepPosts, lex, { namesakes });
+    const nsRows = market.coins.filter((c) => c.namesakeOf && c.weighted >= 1);
+    if (nsRows.length) {
+      log(`  namesakes: ${nsRows.length} coin(s) sharing a ticker with yours are being discussed`);
+      for (const n of nsRows.slice(0, 4)) {
+        log(`    "${n.namesakeOf}" but NOT yours — ${n.people} people (weighted ${n.weighted})`);
+      }
+    }
     let prev = null;
     try {
       const lines = fs.readFileSync(path.join(DATA, 'social-market.jsonl'), 'utf8').trim().split('\n');
@@ -447,6 +460,7 @@ async function buildSectorRow(sweepPosts, perQuery, tokens) {
     // RECORD, not a recommendation — D-62: the sector view answers "what kind of market is this",
     // never "what should I get into".
     marketCoins: market ? market.coins.length : null,
+    namesakeActivity: market ? market.coins.filter((c) => c.namesakeOf).map((c) => ({ key: c.key, of: c.namesakeOf, people: c.people, weighted: c.weighted })) : [],
     read,
     movers: moved.slice(0, 15),
     important: ranked.important.slice(0, 12).map(strip),

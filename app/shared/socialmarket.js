@@ -35,13 +35,21 @@ const NOT_COINS = new Set([
 // Returns a row per coin with the counts that make CHANGE measurable next scan. ! the point is the
 // difference between consecutive snapshots, not any single one — a coin mentioned 9 times means
 // nothing until you know it was mentioned once thirty minutes ago.
-function snapshot(posts, lex, { ts = Date.now() } = {}) {
+// `namesakes` maps a rival coin's address -> { ticker, ownCa } from `data/ticker-collisions.json`.
+// ! Connal, 2026-09-01: "when the twitter tracker is picking up data a lot of what it is picking up
+// is actually duplicate coins of what we are actually trading... if duplicate coins are being
+// talked about that will also affect the real one."
+// He is right and the project had been treating this purely as contamination to be discounted
+// (D-73). It is also DATA. His CATE is rank 2 of 4 and the biggest namesake carries $73.7M of
+// liquidity against his $3.2M — so most "$CATE" talk is probably not about his coin, and whether
+// that spills over into his is a real question nobody here has measured.
+function snapshot(posts, lex, { ts = Date.now(), namesakes = new Map() } = {}) {
   const coins = new Map();
 
   const touch = (key, kind) => {
     if (!coins.has(key)) {
       coins.set(key, { key, kind, posts: 0, people: new Map(), views: 0, erSum: 0, erN: 0,
-                       promo: 0, failure: 0 });
+                       promo: 0, failure: 0, byConfidence: {} });
     }
     return coins.get(key);
   };
@@ -53,8 +61,17 @@ function snapshot(posts, lex, { ts = Date.now() } = {}) {
     try { hits = resolve.mentions(p.text, lex); } catch { continue; }
 
     for (const h of hits) {
-      // Addresses are exact identity and always count. Tickers must be a DELIBERATE reference
-      // (cashtag or better) and must not be an ordinary word — see D-71/D-72.
+      // Addresses are exact identity and always count.
+      //
+      // ! WEAKER MENTIONS ARE NOW KEPT, TAGGED — changed 2026-09-01 on Connal's point that we miss
+      // people talking about a coin without writing "$TICKER". `resolve.mentions()` already grades
+      // these: a bare ticker inside clearly trading-related wording is `probable`, a coin named in
+      // full is `possible`. Requiring `strong` threw both away.
+      // ∵ this is a RECORD, not a buy signal, so confidence can travel with the number instead of
+      // being used to delete it. `emerging` still demands `strong` — the high-value signal keeps
+      // its high bar, and D-72's "fone" problem stays solved there.
+      // ! a weak mention can only ever attach to a coin we already know; there is nothing to match
+      // an unknown coin's bare ticker against, and guessing would invent coins. That limit is real.
       let key = null, kind = null;
       if (h.ca) { key = h.ca; kind = 'address'; }
       else if (h.ticker && resolve.atLeast(h.confidence, 'strong')
@@ -70,6 +87,11 @@ function snapshot(posts, lex, { ts = Date.now() } = {}) {
       e.views += p.views || 0;
       if (p.engagementRate != null) { e.erSum += p.engagementRate; e.erN++; }
       if (h.sym) e.sym = h.sym;
+      // ! how sure we were, kept per coin. A coin whose mentions are all `possible` is a much
+      // weaker reading than one named by address, and collapsing them would hide that.
+      e.byConfidence[h.confidence] = (e.byConfidence[h.confidence] || 0) + 1;
+      const ns = namesakes.get(key);
+      if (ns) { e.namesakeOf = ns.ownSym || ns.ticker; e.namesakeTicker = ns.ticker; }
     }
   }
 
@@ -86,6 +108,12 @@ function snapshot(posts, lex, { ts = Date.now() } = {}) {
       quality: e.people.size ? +(weighted / e.people.size).toFixed(2) : 0,
       views: e.views,
       er: e.erN ? +(e.erSum / e.erN).toFixed(5) : null,
+      // ! how sure we were, per coin. A coin whose mentions are all `possible` is a far weaker
+      // reading than one named by address, and one number would hide that difference.
+      byConfidence: e.byConfidence,
+      // Set when this coin shares a ticker with one of theirs but IS NOT theirs. Attention on a
+      // namesake is not attention on their coin — and may still move it, which is the open question.
+      namesakeOf: e.namesakeOf || null,
     };
   });
 
