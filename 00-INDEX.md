@@ -32,6 +32,13 @@ conf=N% = my calibrated confidence. Every claim in this vault carries one or is 
 10. [[decisions]] — LOCKED calls. read before proposing anything. do not re-open a row.
 11. 50-LOG/* — trades, forecasts, calibration, dated. for "everything about subject X" instead,
     check `70-AREAS/<subject>/` first — see [[70-AREAS/AREAS|70-AREAS/AREAS.md]].
+12. **[[90-TASKS/BOARD|90-TASKS/BOARD.md]]** — what either of them should do next, worst first.
+    lanes from D-89. ! `BOARD.md` is DERIVED from `connal.md` + `austin.md`; on a merge conflict
+    regenerate it rather than hand-resolving. see [[90-TASKS/README|90-TASKS/README.md]].
+13. [[80-WHISPERS/README|80-WHISPERS/]] — his half-formed thoughts, captured raw, plus my
+    `SYNTHESIS.md` connecting them to each other and to live work. ! whispers are INPUTS, not
+    claims — the mandate's falsifier rule is suspended for a raw whisper and reattaches the moment
+    one is used to justify building something.
 
 ## STATE
 - !! phase line below was WRONG for weeks ("nothing built, no code") while a full Electron app,
