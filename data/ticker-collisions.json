@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1788158935960,
+  "checkedAt": 1788231030729,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -9,26 +9,21 @@
         {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764163
+          "liquidityUsd": 73764203
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477138
+          "liquidityUsd": 1477147
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
           "name": "CATE APE",
           "liquidityUsd": 1432737
-        },
-        {
-          "ca": "6YCYaiuXQubALutWr1eJB8HZ9i72hpTKgAvjR6qzpump",
-          "name": "Catecoin",
-          "liquidityUsd": 52502
         }
       ],
       "rank": 2,
-      "of": 5
+      "of": 4
     },
     "ANSEM": {
       "ticker": "ANSEM",
@@ -38,40 +33,16 @@
         {
           "ca": "GvmPaRxZRRZobbjU41tas3uLXbnB2d98fWEZ54Wa3JJp",
           "name": "The Black Bull",
-          "liquidityUsd": 317701535
+          "liquidityUsd": 317701544
         },
         {
           "ca": "57mvFBEuVT7nukF9fEesWdu9QndP4QTJDsPBYzFxZVY4",
           "name": "The Black Bull",
-          "liquidityUsd": 262454310
+          "liquidityUsd": 262454316
         }
       ],
       "rank": 3,
       "of": 3
-    },
-    "FONE": {
-      "ticker": "FONE",
-      "ca": "CTPoyCwkjMvoJwU4xvZZqoD8tiYk6yDchySiN5gGpump",
-      "sym": "fone",
-      "rivals": [
-        {
-          "ca": "23LgWXZ4jkCiRNvJQVeGGCKcbirex3WsYyc5Tij88GMd",
-          "name": "apeonfone",
-          "liquidityUsd": 28557076
-        },
-        {
-          "ca": "9EQYKPWX66vDnPSRqHTB1TGv3KNJfAkxfJtpjJV3zRHD",
-          "name": "apeonfone",
-          "liquidityUsd": 15841456
-        },
-        {
-          "ca": "BoDPX48abap8RpeouaFGibtDJA1Qmw4omTNP6TJw1or2",
-          "name": "apeonfonerewards",
-          "liquidityUsd": 115239
-        }
-      ],
-      "rank": 3,
-      "of": 4
     }
   }
 }
