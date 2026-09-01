@@ -133,3 +133,4 @@
 {"ts":1788279207207,"src":"cloud","universe":42,"survivors":11,"tookMs":31346,"rejects":{"liquidity only $X":20,"older than N days":10,"only Nh old":1}}
 {"ts":1788281010366,"src":"cloud","universe":45,"survivors":11,"tookMs":32668,"rejects":{"liquidity only $X":22,"only Nh old":2,"older than N days":10}}
 {"ts":1788282806102,"src":"cloud","universe":44,"survivors":11,"tookMs":32485,"rejects":{"liquidity only $X":20,"only Nh old":3,"older than N days":10}}
+{"ts":1788284609225,"src":"cloud","universe":47,"survivors":11,"tookMs":32784,"rejects":{"liquidity only $X":25,"older than N days":10,"only $X traded in Nh":1}}
