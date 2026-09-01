@@ -120,3 +120,4 @@
 {"ts":1788261203275,"src":"cloud","universe":47,"survivors":14,"tookMs":41149,"rejects":{"liquidity only $X":22,"older than N days":10,"one wallet holds N%":1}}
 {"ts":1788263011935,"src":"cloud","universe":49,"survivors":13,"tookMs":41987,"rejects":{"liquidity only $X":24,"older than N days":10,"Large Amount of LP Unlocked":1,"one wallet holds N%":1}}
 {"ts":1788264800814,"src":"cloud","universe":47,"survivors":13,"tookMs":39648,"rejects":{"liquidity only $X":23,"older than N days":10,"Large Amount of LP Unlocked":1}}
+{"ts":1788266614915,"src":"cloud","universe":48,"survivors":13,"tookMs":37576,"rejects":{"only Nh old":2,"liquidity only $X":23,"older than N days":10}}
