@@ -110,19 +110,61 @@ requested. Open questions, none answered yet:
 - automatic promotion, or surfaced for Connal/Austin to approve first?
 - does a tracked-this-way coin ever get dropped if the mentions were a one-off?
 
-## NOT YET BUILT — TWO SPECIFIC FEATURES, BOTH STALLED ON A REAL OPEN QUESTION
-- **Real-time liquidity-pull alert while both laptops are closed.** Connal wants an actual push
-  notification (chose Telegram — "if we could get it on our phones") when a held position's
-  liquidity crashes fast, not just a logged record found later. NOT built. Needs: (1) a Telegram
-  bot token from Connal (his own setup step, same shape as the twitterapi.io key), (2) a real
-  design decision on check frequency for just the held positions specifically (this needs to be
-  much faster than the 30-min general scan to matter), and (3) an honest look at whether GitHub
-  Actions' free-tier scheduler — already documented as best-effort even at hourly cadence, see
-  D-61 and `50-LOG/2026-08-29-scanner-hang.md` — can actually deliver on "real-time" at a much
-  tighter cadence, or whether this needs a different mechanism entirely (a long-running process
-  instead of scheduled cron firings). Do not build this assuming cron-every-few-minutes just works;
-  it hasn't been proven, and the project has already been burned once by assuming a GitHub
-  scheduled cadence would just work.
+## SHIPPED 2026-08-31 (SESSION 2) — TELEGRAM LIQUIDITY-PULL ALERTS
+`cloudflare/telegram-alerts/` (worker) + `app/main/alerts-push.js` (app side). That dir's README
+carries the ops detail; this is the decision record.
+
+**Mechanism: Cloudflare Workers Cron Triggers, NOT GitHub Actions.** Confirmed with Connal rather
+than assumed. GH Actions' scheduler is the thing D-61 / the 08-29 hang proved unreliable, so a
+faster GH cron doesn't fix that — it ticks the same unreliable clock faster. Cadence 5 min. (D-91)
+
+**A local background process was proposed by one of Connal's friends and correctly rejected — but
+the friend was right about the part they raised.** They pointed out, from real experience running
+Telegram bots off a local 8b model, that talking to Telegram needs nothing external: it is one
+HTTPS POST to `api.telegram.org`. That is true and this worker does exactly that. Cloudflare is not
+there for the *sending*, it is there for the *clock*. Their setup works because their box is always
+on; MCII's stated requirement is coverage while BOTH laptops are closed, and a local clock stops
+exactly then. Confirmed with them that there is no always-on machine. ! Do not re-litigate this as
+"why not just do it locally" — the answer is the closed-laptop requirement, nothing else.
+
+**! HOLDINGS COME FROM THE APP, NOT FROM THE CHAIN — because the worker is not allowed to read the
+chain.** Measured live from a Worker 2026-09-01, EVERY free keyless Solana RPC refuses
+`getTokenAccountsByOwner`: `api.mainnet-beta` → `403 "Your IP or provider is blocked"` (blocks
+datacenter IPs), `solana-rpc.publicnode.com` → `403 "Request blocked"` for that method while
+answering `getHealth` 200, drpc → paid-plan-only, ankr → key required. It is an expensive
+account-scan call and the free tiers all block it. ! Note the shape of that failure: mainnet-beta
+returns a well-formed JSON-RPC error body with HTTP 403, i.e. a refusal that can read as data —
+check `.error` separately from status. So the app pushes holdings to KV on every portfolio load and
+the worker only prices them (DexScreener does answer Cloudflare). Staleness barely applies: a coin
+can only be BOUGHT while a laptop is open. The uncovered gap is a trade made on a phone; the worker
+warns after 72h without a push rather than silently watching sold coins.
+- Chosen over a free Helius/QuickNode RPC key (rejected: another account) and over a hand-kept coin
+  list (rejected: goes stale silently, exactly when a new coin is most likely to rug).
+
+**! THE REPO IS PUBLIC** (`gh repo view` → PUBLIC). Nothing about holdings is committed; it lives in
+Cloudflare KV. This was not flagged anywhere in the vault before and applies to any future feature
+that needs to know what is held. (D-92)
+
+**Verified working end-to-end**: Telegram send confirmed to Connal's phone; wallet read confirmed
+accurate (CATE 296.07 on-chain matched `snapshot.json` exactly); worker priced 5 real positions
+(~$60 total) and wrote its baseline.
+
+**! KNOWN WEAKNESS — DexScreener rate-limits Cloudflare's shared egress IPs.** Observed repeated
+`429` from the Worker while the identical request returned `200` from the laptop, so this is shared
+IP-pool contention, not our call volume (one call per 5 min is nothing). Calls now retry with
+exponential backoff, but a lost tick is a delayed alert. ! This is the single thing most likely to
+make these alerts quietly unreliable — measure the real hit rate before trusting it, and consider
+GeckoTerminal as a fallback price source if it proves bad.
+
+**Not yet proven against a real liquidity crash.** The comparison logic is a port of `live.js`'s,
+which is proven in the app, but this worker has not caught a real rug yet.
+
+**Still open**: the app's `.env` is not actually auto-loaded (no `dotenv` dependency anywhere —
+`TWITTERAPI_KEY` reaches the collector via GitHub Actions secrets instead), so `CLOUDFLARE_KV_TOKEN`
+must be exported before launching the app until that is wired up. Austin's machine needs the token
+too, or his app simply skips the push.
+
+## NOT YET BUILT
 - **Chart history collection while offline.** Currently `fetchHistory` (GeckoTerminal candles) is
   ONLY called from the live desktop app (`main/index.js`) when a coin is actually open on screen —
   the hourly/twice-hourly cloud collector never fetches it, so no chart history accumulates while

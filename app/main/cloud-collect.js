@@ -31,7 +31,10 @@ const scanstore = require('./scanstore');
 const SWEEP_POSTS_PER_QUERY = 15;
 const SWEEP_RESERVE_USD = 3;      // kept back so the sweep itself never runs out mid-month
 const MIN_POSTS_PER_COIN = 8;     // below this the sweep clearly missed the coin; ask directly
-const MAX_LOOKUPS = 8;            // identifying a ticker is free but not unlimited; be a polite caller
+// Identifying a ticker is free but not unlimited; be a polite caller. Raised 8 -> 12 on 2026-09-01
+// alongside the discovery queries: a wider sweep surfaces more unknown tickers per run, and leaving
+// the cap at 8 would have quietly thrown away the extra reach the moment it started working.
+const MAX_LOOKUPS = 12;
 const COLLISION_EVERY_MS = 20 * 36e5;   // which coins share our tickers changes slowly; check daily
 
 const append = (file, rows) => {

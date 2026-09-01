@@ -180,11 +180,46 @@ module.exports = { configure, searchPosts, searchWindow, queriesFor, budget, loa
 //
 // ! the point is completeness on a narrow thing rather than a sample of a wide one. A sample of
 // rug reports tells you nothing; all of them is a base rate.
+// --- DISCOVERY QUERIES, added 2026-09-01 ------------------------------------------------------
+// ! this REOPENS D-81 by its own listed trigger ("operator asks for breadth again knowing the
+// price"). Connal asked, and the price is now known and small: the two queries above were the
+// entire social net, which meant the app only ever heard about coins DYING or coins already on the
+// watchlist. It never once looked for a coin gaining attention that nobody had listed yet. Reading
+// only the obituaries is not a discovery system.
+//
+// !! THESE DELIBERATELY DO NOT SEARCH FOR HYPE WORDS. "gem", "100x", "next", "dont miss" return
+// mostly paid shilling, and D-23 already classes promotional language as a MANIPULATION marker
+// rather than sentiment — searching for it would import exactly the noise this project filters out.
+// Instead these search for ORDINARY PEOPLE MENTIONING A SPECIFIC COIN, and the defence against
+// spam is `resolve.unknownTickers({ minPeople: 3 })`: one account repeating a ticker is invisible,
+// three different accounts is a signal. The filter does the work, not the query wording.
+//
+// ! `links` is the highest-value of these and the reason is mechanical, not linguistic: a post
+// sharing a dexscreener/pump.fun URL contains the contract address itself, so the coin is
+// identified exactly rather than guessed from a ticker that six coins share (D-73).
+//
+// Cost at these depths ≈ $7/mo against a $24 cap currently running ~$10/mo, leaving the $3 sweep
+// reserve intact. ! depth is a CEILING, not a spend — a query returning fewer posts costs less.
+// Re-measure `data/x-spend.json` after a full month before widening further (D-28: cadence is set
+// by budget, never by preference).
 const SECTOR_QUERIES = [
   { q: '("rug" OR "rugged" OR "rug pull" OR "pulled liquidity" OR "cant sell" OR "can\'t sell" OR "honeypot" OR "exit scam") (solana OR sol OR memecoin OR pumpfun OR "pump.fun") -is:retweet',
     kind: 'dying', depth: 50, everyHours: 1 },
   { q: '(solana OR memecoin) ("dried up" OR "no volume" OR "so quiet" OR "everyone left" OR "dead here" OR "liquidity gone" OR "no liquidity") -is:retweet',
     kind: 'mood', depth: 20, everyHours: 6 },
+
+  // People sharing a coin's own page. Carries the address in the URL -> exact identification.
+  { q: '("pump.fun/coin" OR "dexscreener.com/solana" OR "birdeye.so/token" OR "jup.ag/swap") -is:retweet',
+    kind: 'links', depth: 35, everyHours: 1 },
+  // Genuine curiosity. Real humans asking real questions; among the lowest advert rates available.
+  { q: '("what is this coin" OR "anyone know this coin" OR "whats the ca" OR "what\'s the ca" OR "someone explain this coin" OR "why is this pumping") (solana OR memecoin OR pumpfun OR "pump.fun") -is:retweet',
+    kind: 'asking', depth: 25, everyHours: 2 },
+  // Position talk. Somebody saying what they actually did, not what you should do.
+  { q: '("just bought" OR "just aped" OR "aped into" OR "loading up on" OR "added to my bag" OR "took a position in") (solana OR memecoin OR sol OR pumpfun) -is:retweet',
+    kind: 'buying', depth: 25, everyHours: 2 },
+  // Meta-chatter: the crowd noticing itself. Names a coin without being an advert for one.
+  { q: '("everyone is talking about" OR "everyone talking about" OR "why is everyone buying" OR "whats everyone aping" OR "what is everyone buying") (solana OR memecoin OR sol) -is:retweet',
+    kind: 'crowd', depth: 20, everyHours: 3 },
 ];
 function sectorQueries() { return SECTOR_QUERIES.map((q) => ({ ...q })); }
 
