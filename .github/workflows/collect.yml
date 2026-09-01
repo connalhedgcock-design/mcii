@@ -17,9 +17,13 @@ on:
   # scheduler is best-effort and set "proves reliable over two weeks" as the bar to trust it. It
   # did not clear that bar, so this is D-61's own reopen trigger firing as designed.
   #
-  # schedule:
-  #   - cron: '12,42 * * * *'
-  workflow_dispatch:        # manual backup — one pass, on demand
+  # ! NOT the old twice-hourly collection cron. This is a STANDBY: it wakes hourly, checks whether
+  # the server has collected recently, and exits in seconds if it has. It only collects when the
+  # server has actually stopped. So there is no double collection and no double twitterapi.io
+  # spend in the normal case -- the guard step below is what enforces that, not the schedule.
+  schedule:
+    - cron: '25 * * * *'    # off the hour on purpose: :07 once fired 0 times out of 27
+  workflow_dispatch:        # manual run, on demand — always collects, skipping the guard
 
 # Only one collection at a time -- two runs appending to the same files would interleave lines.
 # cancel-in-progress is TRUE on purpose: if a run ever hangs (a stuck network call, a wedged
@@ -46,12 +50,38 @@ jobs:
       contents: write       # needed to commit the collected data back
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # the guard needs commit history to date the last collection
+
+      # ! THE GUARD. This is what makes a standby safe to leave switched on. If the server has
+      # collected within the window, stop here -- seconds of runner time, zero API calls, zero
+      # spend. Only a genuinely stopped server gets past this step.
+      # A manual run (workflow_dispatch) always proceeds, because the human asking for it has a
+      # reason the guard cannot know.
+      - name: Skip if the server is still collecting
+        id: guard
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "manual run — collecting regardless"; echo "run=yes" >> $GITHUB_OUTPUT; exit 0
+          fi
+          last=$(git log -1 --format=%ct -- data/ || echo 0)
+          age=$(( ($(date -u +%s) - last) / 60 ))
+          echo "last collection was ${age} min ago"
+          # 95 min = two missed 30-minute cycles plus slack, matching the Cloudflare watchdog.
+          if [ "$age" -lt 95 ]; then
+            echo "server is alive — standing down"; echo "run=no" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::server has not collected in ${age} min — taking over this pass"
+            echo "run=yes" >> $GITHUB_OUTPUT
+          fi
 
       - uses: actions/setup-node@v4
+        if: steps.guard.outputs.run == 'yes'
         with:
           node-version: '22'
 
       - name: Collect
+        if: steps.guard.outputs.run == 'yes'
         working-directory: app
         env:
           TWITTERAPI_KEY: ${{ secrets.TWITTERAPI_KEY }}
@@ -59,6 +89,7 @@ jobs:
         run: node main/cloud-collect.js
 
       - name: Commit and push whatever was collected
+        if: steps.guard.outputs.run == 'yes'
         run: |
           git add data/
           git -c user.name=mcii-collector -c user.email=collector@users.noreply.github.com \

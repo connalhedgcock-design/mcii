@@ -31,7 +31,10 @@ const STALE_HOLDINGS_HOURS = 72; // warn once if the app has not pushed in this 
 
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(run(env));
+    // Two independent jobs. The collector watchdog runs even if the holdings check throws --
+    // ! the watchdog is the thing that reports everything else being broken, so it must never be
+    // downstream of anything that can break.
+    ctx.waitUntil(Promise.allSettled([run(env), watchCollector(env)]));
   },
 
   // Test hook for `wrangler dev` only. The deployed worker sets `workers_dev = false` and declares
@@ -41,14 +44,64 @@ export default {
   // added, this must be removed or authenticated first: it triggers real Telegram sends.
   async fetch(req, env) {
     try {
-      const summary = await run(env);
-      return new Response(JSON.stringify(summary ?? { ok: true }, null, 2),
+      const [holdings, watchdog] = await Promise.all([run(env), watchCollector(env)]);
+      return new Response(JSON.stringify({ holdings, watchdog }, null, 2),
         { headers: { 'content-type': 'application/json' } });
     } catch (e) {
       return new Response(`error: ${e.stack || e.message}`, { status: 500 });
     }
   },
 };
+
+// --- COLLECTOR WATCHDOG -----------------------------------------------------------------------
+// !! THE WATCHER MUST NOT BE ABLE TO DIE WITH THE THING IT WATCHES.
+// This runs on Cloudflare, not on the collection server, and asks GitHub a question the server has
+// no part in answering: "when did data last actually arrive?". So it still fires if the server is
+// off, wedged, out of disk, unpaid, or quietly pushing nothing. A checker living on the server
+// could never report the server being down, which is the failure that matters most.
+//
+// It watches the OUTPUT, not the machine. Every failure mode -- hung run, dead timer, revoked
+// deploy key, exhausted budget, Hetzner suspending the box -- ends in the same observable: commits
+// to `data/` stop. One check covers all of them, including the ones nobody has thought of yet.
+//
+// ! IT NEVER ALERTS BECAUSE IT COULD NOT CHECK. A failed lookup is unknown, not stale (D-29:
+// failure is never a zero). Crying wolf on GitHub rate-limiting would train them to ignore it,
+// which costs more than the missed alert it was trying to prevent.
+const COLLECT_STALE_MIN = 95;      // two missed 30-min cycles + slack. not a fixed number: see below
+const WATCHDOG_COOLDOWN_SEC = 3600;
+const REPO = 'connalhedgcock-design/mcii';
+
+async function watchCollector(env) {
+  let iso;
+  try {
+    const r = await fetchWithTimeout(
+      `https://api.github.com/repos/${REPO}/commits?path=data&per_page=1`,
+      { headers: { accept: 'application/vnd.github+json' } }, 15000, 2);
+    const j = await r.json();
+    iso = j?.[0]?.commit?.committer?.date;
+  } catch (e) {
+    // Unauthenticated GitHub API is 60/hr per IP and Cloudflare's egress is shared, so 403/429 is
+    // expected occasionally. Staying quiet is correct -- we learned nothing, not that it is broken.
+    console.error('watchdog: could not check —', e.message);
+    return { watchdog: 'check failed', error: e.message };
+  }
+  if (!iso) return { watchdog: 'no commits found' };
+
+  const ageMin = (Date.now() - Date.parse(iso)) / 60000;
+  if (ageMin <= COLLECT_STALE_MIN) {
+    await env.ALERTS_KV.delete('watchdog:firing').catch(() => {});
+    return { watchdog: 'ok', dataAgeMin: Math.round(ageMin) };
+  }
+
+  await maybeAlert(env, 'system', 'collector-stale',
+    `🔴 MCII: data collection has stopped`,
+    `Nothing new has been collected for ${Math.round(ageMin)} minutes (normally every 30). ` +
+    `The scanner is not running, or it is running and cannot save what it finds. ` +
+    `Check: ssh mcii-server 'systemctl list-timers mcii-collect.timer'`,
+    WATCHDOG_COOLDOWN_SEC);
+  await env.ALERTS_KV.put('watchdog:firing', String(Date.now())).catch(() => {});
+  return { watchdog: 'STALE', dataAgeMin: Math.round(ageMin) };
+}
 
 // All last-seen readings live in ONE KV key, not one key per coin. Cloudflare's free tier allows
 // 1,000 KV writes/day; at 5-minute cadence that is 288 ticks/day, so a write-per-coin design would
@@ -186,10 +239,10 @@ async function priceMints(mints, diag = []) {
   return out;
 }
 
-async function maybeAlert(env, ca, id, title, detail) {
+async function maybeAlert(env, ca, id, title, detail, cooldownSec = ALERT_COOLDOWN_SEC) {
   const cooldownKey = `cooldown:${ca}:${id}`;
   if (await env.ALERTS_KV.get(cooldownKey)) return;   // already alerted recently, stay quiet
-  await env.ALERTS_KV.put(cooldownKey, '1', { expirationTtl: ALERT_COOLDOWN_SEC });
+  await env.ALERTS_KV.put(cooldownKey, '1', { expirationTtl: cooldownSec });
   await sendTelegram(env, `${title}\n${detail}`);
 }
 
