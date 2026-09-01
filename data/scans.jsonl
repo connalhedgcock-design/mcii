@@ -112,3 +112,4 @@
 {"ts":1788247852365,"src":"cloud","universe":43,"survivors":12,"tookMs":33730,"rejects":{"liquidity only $X":18,"only Nh old":2,"older than N days":11}}
 {"ts":1788248605587,"src":"cloud","universe":42,"survivors":12,"tookMs":34474,"rejects":{"only Nh old":2,"liquidity only $X":17,"older than N days":11}}
 {"ts":1788250399835,"src":"cloud","universe":47,"survivors":13,"tookMs":37431,"rejects":{"only Nh old":2,"liquidity only $X":21,"older than N days":11}}
+{"ts":1788252212024,"src":"cloud","universe":48,"survivors":13,"tookMs":37250,"rejects":{"liquidity only $X":23,"only Nh old":1,"older than N days":11}}
