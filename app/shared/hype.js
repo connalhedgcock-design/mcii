@@ -202,6 +202,50 @@ function bucket(posts, { bucketMs, ts }) {
 //   thin      -> not enough people talking yet. Wait. Says nothing about the token.
 //   manipulated -> the conversation is manufactured. That IS information, and it is bad news.
 // Collapsing them into one "unreliable" verdict throws away the distinction that matters.
+// !! THESE WERE GUESSED. THEY ARE NOW MEASURED. Recalibrated 2026-09-01 after a test showed the
+// detector flagged 0 of 6 coins that had LITERALLY PAID for promotion, and 3 of its six markers
+// had never fired once in 386 readings.
+//
+// The old numbers sat outside the range the data ever occupies — "over 50% of accounts are bots"
+// when the worst reading ever seen was 17%, "over 50% sales language" when the worst was 27%. A
+// smoke alarm wired to trigger at 500 degrees. It was not detecting nothing because the market is
+// clean; it could not fire at all.
+//
+// HOW THESE WERE CHOSEN — two different sources, deliberately:
+//   SCALE comes from the 391-reading unlabelled history (roughly the 90th percentile of each
+//   marker), so "unusual" means unusual for this data rather than for my imagination.
+//   WHICH MARKERS TO TRUST comes from a labelled test against DexScreener's PAID BOOST feed
+//   (`app/tools/test-manipulation.js`) — coins that did not merely look promoted but paid for it.
+//
+// What that test found, over 7 paid coins vs 5 watchlist:
+//   shillRatio      2.86x higher on paid coins  <- the only strong discriminator
+//   burstiness      1.39x                        <- weak
+//   duplicateRatio  1.32x                        <- weak
+//   botRatio        BACKWARDS (watchlist scored worse)
+//   diversity       no separation at all
+//
+// ! THE WEAK MARKERS ARE KEPT ANYWAY, at reachable thresholds. A coin pushed by an actual botnet
+// would spike botRatio even though paid-promotion coins do not, and removing a marker because one
+// small sample did not need it would be fitting the test rather than the problem.
+//
+// Chosen setting: catches 29% of paid-promotion readings, flags 0% of the watchlist, and fires on
+// 8.2% of all history. ! that last number is the one that stops this becoming decoration in the
+// other direction — a detector firing on half of everything is alarm fatigue wearing a lab coat.
+//
+// ! LIMITS, AND THEY ARE REAL. n = 7 paid coins against 5 watchlist coins. The label is weak: a
+// coin can buy a boost and still have genuine followers, which is why 29% is a floor rather than a
+// failure. Do NOT tune these further on this sample — that is fitting noise, and
+// `60-KB/social-signal-research.md` documents exactly that failure. Accumulate more labelled
+// readings first (`data/manipulation-test.jsonl` grows every time the test runs) and refit at n≥30.
+const MANIP = {
+  shillRatio: 0.12,       // 90th pct ≈ 0.19; paid coins average 0.23, watchlist 0.08
+  duplicateRatio: 0.46,   // 90th pct
+  burstiness: 0.55,       // between 75th (0.46) and 90th (0.64)
+  diversity: 0.85,        // below 5th pct — few accounts producing most posts
+  botRatio: 0.125,        // 90th pct. kept live despite no power in THIS sample, see above.
+  engagementRate: 0.002,  // unchanged: reach with no reaction (D-25)
+};
+
 const MIN_SENTIMENT_POSTS = 3;   // below this a tone score is one person's wording, not a mood
 
 const MIN_AUTHORS = 12;      // below this, treat as thin rather than informative
@@ -222,12 +266,12 @@ function reliability(b) {
   if (b.uniqueAuthors < MIN_AUTHORS)
     thinReasons.push(`only ${b.uniqueAuthors} different ${b.uniqueAuthors === 1 ? 'person' : 'people'} posted`);
 
-  if (b.diversity < 0.40) manipReasons.push('a handful of accounts produced most of the posts');
-  if (b.botRatio > 0.50) manipReasons.push(`${Math.round(b.botRatio * 100)}% of accounts look automated`);
-  if (b.duplicateRatio > 0.30) manipReasons.push('many posts repeat the same wording');
-  if (b.burstiness > 0.60) manipReasons.push('posts arrived in tight bursts, suggesting scheduling');
-  if (b.shillRatio > 0.50) manipReasons.push(`${Math.round(b.shillRatio * 100)}% of posts use promotional sales language`);
-  if (b.medianEngagementRate != null && b.totalViews > 2000 && b.medianEngagementRate < 0.002)
+  if (b.diversity < MANIP.diversity) manipReasons.push('a handful of accounts produced most of the posts');
+  if (b.botRatio > MANIP.botRatio) manipReasons.push(`${Math.round(b.botRatio * 100)}% of accounts look automated`);
+  if (b.duplicateRatio > MANIP.duplicateRatio) manipReasons.push('many posts repeat the same wording');
+  if (b.burstiness > MANIP.burstiness) manipReasons.push('posts arrived in tight bursts, suggesting scheduling');
+  if (b.shillRatio > MANIP.shillRatio) manipReasons.push(`${Math.round(b.shillRatio * 100)}% of posts use promotional sales language`);
+  if (b.medianEngagementRate != null && b.totalViews > 2000 && b.medianEngagementRate < MANIP.engagementRate)
     manipReasons.push('posts are being seen but almost nobody is reacting to them');
 
   const thin = thinReasons.length > 0;
@@ -243,8 +287,12 @@ function reliability(b) {
               : thin ? 'low'
               : b.uniqueAuthors >= GOOD_AUTHORS ? 'good' : 'moderate',
     // Manufactured enthusiasm is a negative signal in its own right, not a missing one.
+    // ! WORDING SOFTENED 2026-09-01 to match what the evidence actually supports. The measured
+    // detector catches ~29% of coins known to be paying for promotion — real discrimination, but
+    // nowhere near proof about any single coin. "Looks manufactured" claimed more certainty than
+    // n=7 can carry, and overclaiming here is how a warning stops being believed.
     verdict: manipulated
-      ? 'This conversation looks manufactured. Treat the enthusiasm as a warning, not as interest.'
+      ? 'This conversation has the shape of a promoted one — repeated wording, sales language, or posts arriving in bursts. It may still be genuine, but treat the enthusiasm as unverified rather than as interest.'
       : thin
       ? 'Too few people are talking about this to read anything into it yet.'
       : null,
