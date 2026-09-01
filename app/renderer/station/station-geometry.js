@@ -89,7 +89,7 @@ export const TURN_MS = 300
  *  ⚠️ Barely longer than the motion, never comfortably longer. Shipped at
  *  2200ms against a 420ms turn elsewhere, a fix for occlusion read as the
  *  object being broken. */
-export const NAVIGATING_MS = 520
+export const NAVIGATING_MS = 400
 
 /** How long walking through a door takes. Must agree with `--st-travel`. */
 export const TRAVEL_MS = 320

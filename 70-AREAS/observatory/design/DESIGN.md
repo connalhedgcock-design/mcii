@@ -272,6 +272,43 @@ comment right above the offending rule claimed the opposite.
   you add. Two alternating radial wedges crossed with two alternating transverse bands give four
   tone levels, and the eye resolves those as panels before it ever sees a line.
 
+## THE TURN: WHAT WAS ACTUALLY WRONG (operator, 09-01)
+Three separate things were being reported as one word, "lag", and only one of them was paint cost.
+- !! **"THE UI DISAPPEARS FOR A SECOND" WAS `.st-hub.is-yielded { opacity: 0.24 }`.** Not lag at
+  all. The hub carries the globe AND the Orion prompt, and the pair dropped to a quarter opacity for
+  520ms on every arrow press. The yield exists so the globe does not hide the door you are facing —
+  a job now largely done by the architecture, since the door is a lit arch cut into a bright wall
+  rather than a faint outline in the dark. Softened to 0.58 / 400ms. ! a deliberate effect that gets
+  reported as a bug is a bug; check for one before optimising anything.
+- !! **`void fresh.offsetWidth` IN `afterTurn()` FORCED A SYNCHRONOUS LAYOUT OF THE WHOLE 3D SCENE**
+  — every facet, jamb, vault panel and portal — inside the keypress handler, on the critical path of
+  the turn it was decorating. The smear node is freshly cloned and does not carry its class yet, so
+  adding the class in a `requestAnimationFrame` restarts the animation just as reliably without
+  demanding layout mid-handler.
+- ✓ **EVERY PANE NOW PAINTS ITS OWN PRE-CUT SLICE, 1:1.** Measured: 18 panes carry sky, 0 of them
+  scale it. Before, each pane scaled and tiled one large bitmap at a projected size on every frame.
+- ✓ measured too: 44 hull elements exist, 20 are visible at any heading, and no `@keyframes` block
+  in the room animates anything but `transform`/`opacity`. Those are checks, not claims — walk the
+  stylesheet's keyframes and read the properties rather than trusting the comment above the rule.
+
+## ALIGNMENT: WHY THE PLANETS KEPT NOT LINING UP
+Three attempts, each failing differently, and the pattern is worth keeping:
+1. one gradient sky per pane → the same planet in all six windows at once.
+2. one shared image with per-pane offsets → continuous arithmetic, but the image was TILED, so the
+   tile's seam and its repeat both landed inside one view: half a planet on one panel, something
+   unrelated on the next.
+3. ✓ **one sky spanning the whole corridor, cut into one exact slice per pane.** Adjacent crops of a
+   single continuous image cannot disagree — there is no offset arithmetic left to get wrong. When a
+   continuity bug survives two rounds of better arithmetic, stop improving the arithmetic and remove
+   it from the problem.
+
+## THE FLOOR NEEDED CONTRAST, NOT MORE STRUCTURE
+`X` plates at 0.055 alpha. The structure was already right — alternating radial wedges crossed with
+alternating transverse bands — and it was invisible, so the operator's verdict was unchanged: "still
+just a blue grid". Tone differences between plates have to be readable BEFORE the joints are. !
+raising plate CONTRAST is not the same as raising the deck's BRIGHTNESS; the deck stays the darkest
+surface in the room (orientation gradient, above) and the plates read anyway.
+
 ## NO DISCLAIMERS, NO SELF-EXPLANATION (operator, 08-31)
 `X` on-screen copy whose job is to explain the app to its user or reassure them about what it does
 — privacy/no-keys notes, "how this works" text, onboarding prose. The audience is TWO PEOPLE and

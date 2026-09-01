@@ -293,13 +293,12 @@
   left: 9px; right: 9px;
   top: 8%; height: 22%;
   border-radius: 3px;
-  /* One prerendered sky, tiled, with this pane offset to its own slice —
-     see buildSky()/skyAt() in station.js. Continuous across the mullions
-     because the image scale and the offset scale are the same number. */
-  background-image: var(--st-sky-img);
-  background-size: var(--st-sky-w) 132%;
-  background-position: var(--sky-x) 34%;
-  background-repeat: repeat;
+  /* This pane's OWN slice of one continuous sky, cut at its own pixel width by
+     sliceFor() in station.js. No offset arithmetic, no tiling and no scaling —
+     which is both why neighbouring panes agree and why a turn is cheap. */
+  background-image: var(--sky-img);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   box-shadow:
     inset 0 0 0 3px oklch(0.56 0.040 246),
     inset 0 3px 9px 1px oklch(0.02 0.010 250 / 0.85),
@@ -418,10 +417,9 @@
 .st-vault-glazed {
   background:
     /* ⚠️ Glass, not a hole — the pane keeps a sheen of the room in it. */
-    var(--st-sky-img);
-  background-size: var(--st-sky-w) 132%;
-  background-position: var(--sky-x) 62%;
-  background-repeat: repeat;
+    var(--sky-img);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   box-shadow:
     inset 0 0 0 4px oklch(0.52 0.036 246),
     inset 0 3px 12px 0 oklch(0.62 0.040 244 / 0.30),
@@ -498,57 +496,59 @@
   transform-origin: 50% 0%;
   transform: rotateX(81deg);
   background:
-    /* ⚠️ PLATES, NOT A GRID. Line-work over a flat tone is a wireframe however
-       many lines you add — which is what "the floor is still just a blank grid"
-       was. A real deck reads as DISCRETE PANELS: two alternating radial wedges
-       crossed with two alternating transverse bands give four tone levels, and
-       the eye resolves those as individual plates before it ever sees a line. */
+    /* ⚠️ PLATES, AND THEY HAVE TO BE VISIBLE. The previous pass had exactly this
+       structure at 0.055 alpha, which is invisible, so the floor still read as
+       "just a blue grid" — the idea was right and the contrast was not. Tone
+       differences between plates must be strong enough to see BEFORE the joints
+       are; that is what separates a deck from a wireframe.
+       Two alternating radial wedges crossed with two alternating transverse
+       bands give four tone levels, and the eye resolves those as panels. */
     repeating-conic-gradient(from 200deg at 50% -40%,
-      oklch(0.62 0.030 246 / 0.055) 0deg 2.4deg,
+      oklch(0.72 0.030 246 / 0.15) 0deg 2.4deg,
       transparent 2.4deg 4.8deg),
     linear-gradient(to bottom,
-      oklch(0.62 0.030 246 / 0.05) 0 6%, transparent 6% 13%,
-      oklch(0.62 0.030 246 / 0.05) 13% 21%, transparent 21% 30%,
-      oklch(0.62 0.030 246 / 0.05) 30% 41%, transparent 41% 53%,
-      oklch(0.62 0.030 246 / 0.05) 53% 67%, transparent 67% 82%,
-      oklch(0.62 0.030 246 / 0.05) 82% 100%),
+      oklch(0.72 0.030 246 / 0.13) 0 6%, transparent 6% 13%,
+      oklch(0.72 0.030 246 / 0.13) 13% 21%, transparent 21% 30%,
+      oklch(0.72 0.030 246 / 0.13) 30% 41%, transparent 41% 53%,
+      oklch(0.72 0.030 246 / 0.13) 53% 67%, transparent 67% 82%,
+      oklch(0.72 0.030 246 / 0.13) 82% 100%),
     /* the inlaid guide strip down the corridor's axis, lit along both edges */
     linear-gradient(to right,
-      transparent 0 41%,
-      oklch(0.78 0.055 240 / 0.34) 41% 41.7%,
-      oklch(0.30 0.022 248 / 0.42) 41.7% 58.3%,
-      oklch(0.78 0.055 240 / 0.34) 58.3% 59%,
-      transparent 59% 100%),
-    /* plate joints — now the SECOND cue, not the only one */
+      transparent 0 40.6%,
+      oklch(0.92 0.060 238 / 0.55) 40.6% 41.5%,
+      oklch(0.40 0.026 248 / 0.50) 41.5% 58.5%,
+      oklch(0.92 0.060 238 / 0.55) 58.5% 59.4%,
+      transparent 59.4% 100%),
+    /* plate joints — the SECOND cue now, not the only one */
     repeating-conic-gradient(from 200deg at 50% -40%,
-      oklch(0.66 0.038 244 / 0.20) 0deg 0.16deg, transparent 0.16deg 2.4deg),
+      oklch(0.80 0.040 244 / 0.40) 0deg 0.18deg, transparent 0.18deg 2.4deg),
     linear-gradient(to bottom,
-      transparent 0 5.85%,  oklch(0.64 0.034 244 / 0.24) 5.85% 6.1%,
-      transparent 6.1% 12.9%, oklch(0.64 0.034 244 / 0.24) 12.9% 13.15%,
-      transparent 13.15% 20.85%, oklch(0.63 0.032 244 / 0.23) 20.85% 21.1%,
-      transparent 21.1% 29.9%, oklch(0.62 0.030 245 / 0.22) 29.9% 30.2%,
-      transparent 30.2% 40.85%, oklch(0.61 0.028 245 / 0.21) 40.85% 41.2%,
-      transparent 41.2% 52.85%, oklch(0.60 0.026 245 / 0.20) 52.85% 53.2%,
-      transparent 53.2% 66.85%, oklch(0.58 0.024 246 / 0.18) 66.85% 67.25%,
-      transparent 67.25% 81.85%, oklch(0.56 0.022 246 / 0.16) 81.85% 82.3%,
-      transparent 82.3% 100%),
-    /* the cove's specular return — most of what separates polished deck from
-       dark carpet */
+      transparent 0 5.8%,  oklch(0.80 0.038 244 / 0.42) 5.8% 6.15%,
+      transparent 6.15% 12.85%, oklch(0.80 0.038 244 / 0.42) 12.85% 13.2%,
+      transparent 13.2% 20.8%, oklch(0.78 0.036 244 / 0.40) 20.8% 21.15%,
+      transparent 21.15% 29.85%, oklch(0.76 0.034 245 / 0.38) 29.85% 30.25%,
+      transparent 30.25% 40.8%, oklch(0.74 0.032 245 / 0.36) 40.8% 41.25%,
+      transparent 41.25% 52.8%, oklch(0.72 0.030 245 / 0.34) 52.8% 53.25%,
+      transparent 53.25% 66.8%, oklch(0.70 0.028 246 / 0.30) 66.8% 67.3%,
+      transparent 67.3% 81.8%, oklch(0.68 0.026 246 / 0.26) 81.8% 82.35%,
+      transparent 82.35% 100%),
+    /* the cove's specular return down the polished deck */
     linear-gradient(to right,
-      transparent 0 28%,
-      oklch(0.62 0.045 242 / 0.11) 46%,
-      oklch(0.70 0.050 240 / 0.15) 50%,
-      oklch(0.62 0.045 242 / 0.11) 54%,
-      transparent 72% 100%),
-    /* ⚠️ THE DECK IS THE DARKEST SURFACE IN THE ROOM, deliberately. Overhead
-       brightest → wall mid → deck darkest is how NASA's ISS interior scheme gives
-       crews an up/down reference in a place that has none. Brightening the deck
-       past the wall inverts the cue and the room starts reading upside down. */
+      transparent 0 26%,
+      oklch(0.70 0.050 242 / 0.16) 44%,
+      oklch(0.80 0.055 240 / 0.22) 50%,
+      oklch(0.70 0.050 242 / 0.16) 56%,
+      transparent 74% 100%),
+    /* ⚠️ THE DECK IS STILL THE DARKEST SURFACE IN THE ROOM. Overhead brightest →
+       wall mid → deck darkest is NASA's own up/down cue (SSP 50008); brightening
+       the deck past the wall inverts it and the room reads upside down. Raising
+       the PLATE CONTRAST above is not the same as raising the deck's brightness,
+       and it is the part that was missing. */
     linear-gradient(to top,
-      oklch(0.300 0.026 249 / 0.97),
-      oklch(0.246 0.022 250 / 0.86) 44%,
-      oklch(0.190 0.017 250 / 0.52) 72%,
-      oklch(0.140 0.012 251 / 0.18) 90%,
+      oklch(0.335 0.028 249 / 0.97),
+      oklch(0.272 0.024 250 / 0.88) 44%,
+      oklch(0.205 0.018 250 / 0.55) 72%,
+      oklch(0.150 0.013 251 / 0.20) 90%,
       transparent 97%);
   /* Carried far enough forward that the lower third of the frame has structure.
      Masked short, it leaves a dark band — the "long stretches of plain colour"
@@ -1104,7 +1104,15 @@
   pointer-events: none;
   transition: opacity 220ms var(--st-ease);
 }
-.st-hub.is-yielded { opacity: 0.24; }
+/* ⚠️ 0.24 READ AS "THE UI DISAPPEARS FOR A SECOND" — operator, twice, while
+   reporting lag. It is not lag: the hub carries the globe AND the Orion prompt,
+   and dropping the pair to a quarter opacity for half a second on every arrow
+   press is the most conspicuous thing that happens during a turn. The yield
+   exists so the globe does not hide the door you are facing, and that job is now
+   mostly done by the architecture — the door is a lit arch cut into a bright
+   wall, not a faint outline in the dark. A dim is enough; a near-vanish is not
+   caution, it is the thing people report. */
+.st-hub.is-yielded { opacity: 0.58; }
 
 .st-globe {
   position: absolute;
