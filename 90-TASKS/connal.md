@@ -18,10 +18,6 @@ and a spot on the board next time we talk.
       fixture still uses $10,000→$5,000, both above the new cut-off, so the alert correctly does
       not fire and the test calls that a failure. ! a suite that always shows red trains you to
       ignore red, which is how a REAL break gets through · [[decisions]] D-114
-- [ ] T-019 P1 @connal · find out why coins keep disappearing from the shared watchlist · why: it
-      lost ANSEM this afternoon and LaPeace this evening, both times written by the app. D-66 says
-      saving should MERGE the two machines' lists, never delete. ! if it is deleting, a coin one of
-      you is watching can silently stop being collected — and nothing would say so · [[decisions]] D-66
 - [ ] T-017 P3 @connal · FIRST · work out what whale wallet tracking watches and what a move MEANS
       · why: everything below is blocked on it. "track whales" is not yet a spec — which wallets,
       and whether a whale selling is even bad news, are both unanswered. ! D-93: no free keyless
@@ -48,6 +44,13 @@ and a spot on the board next time we talk.
 - [ ] T-001 P1 @connal · check how often the alert check gets blocked and misses a turn
       · why: it can quietly stop watching your coins and look completely fine while doing it
       · [[decisions]] D-94
+
+## CLOSED TODAY
+- [x] T-019 · "coins keep disappearing from the watchlist" — NOT A BUG. Connal removed ANSEM and
+      LaPeace himself. ! keeping the row: I restored both, twice, and reported his own deliberate
+      action back to him as a suspected fault. The lesson is the cheap check I skipped — ASK before
+      reversing a change that looks like data loss. A removal and a bug look identical in a diff,
+      and only one of them has a person behind it. Both are now removed again.
 
 ## NEXT
 - [ ] T-005 P3 @connal · the thing that actually picks which coins to buy and when to sell
