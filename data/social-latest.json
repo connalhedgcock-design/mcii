@@ -16,5 +16,14 @@
     "confidence": "low",
     "manipulated": false,
     "manipReasons": []
+  },
+  "0x020bfC650A365f8BB26819deAAbF3E21291018b4": {
+    "sym": "CASHCAT",
+    "at": 1788354774570,
+    "people": 1,
+    "tone": null,
+    "confidence": "low",
+    "manipulated": false,
+    "manipReasons": []
   }
 }
