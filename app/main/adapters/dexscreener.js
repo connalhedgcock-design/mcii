@@ -56,7 +56,7 @@ async function fetchMarket(ca) {
     poolCount: mine.length,
     // Pool lists are unstable -- CATE went 3 -> 30 pools in 24h -- so never cache these.
     totalLiquidityUsd: mine.reduce((s, p) => s + (p.liquidity?.usd || 0), 0),
-    mainPool: { dex: main.dexId, liquidityUsd: main.liquidity?.usd || 0, url: main.url },
+    mainPool: { dex: main.dexId, liquidityUsd: main.liquidity?.usd || 0, url: main.url, address: main.pairAddress },
     priceChange: main.priceChange || {},
     volume: main.volume || {},
     txns: main.txns || {},

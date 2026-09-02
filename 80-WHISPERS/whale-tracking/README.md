@@ -113,16 +113,42 @@ This is the part the whisper flagged as unanswered and it has a clear answer:
   followed by outcomes no different from coins without them, the buy signal is decoration — delete
   it and keep only the sell side.
 
-### `?` ANSWERED — WHERE IT RUNS
-D-93 stands: no free keyless RPC serves `getTokenAccountsByOwner` from a datacenter, so the cloud
-worker cannot do this. But the constraint is narrower than it looks:
-- reading wallets from a LAPTOP works today (`adapters/wallet.js`, used by the portfolio).
-- ∴ ✓ **derivation runs on a laptop or the €4 host with a residential-style path, on a slow schedule
-  (daily is enough — a wallet's track record does not change hourly). The derived SET is small and
-  can be published to the repo like the watchlist.** The fast path (has this wallet just sold?) is
-  the only part needing frequent checks, and it applies to a handful of coins, not the market.
-- ! this is a genuine unknown: whether the host's datacenter IP is refused the same way. **Test it
-  before designing around it** — one call, five minutes, and it decides the architecture.
+### `?` ANSWERED — WHERE IT RUNS. ! MEASURED LIVE 2026-09-02, NOT ASSUMED.
+D-93's block is narrower than it first reads. Tested directly from the collection host (Hetzner,
+a real datacenter IP) against publicnode:
+- `getTokenAccountsByOwner` — REFUSED ("Request blocked"), exactly as D-93 found for Cloudflare's
+  worker. This answers "what does this ONE wallet hold" — the portfolio's question, not this one.
+- `api.mainnet-beta.solana.com` — worse than a refusal: TCP/TLS connects, the request sends, then
+  **nothing comes back**. A silent hang, the same failure shape as D-87's 3h46m freeze. Avoided.
+- `getSignaturesForAddress` and `getTransaction` — **both work, fast, real data**, from the same
+  host, on the same IP that got refused above. ! wallet tracking needs "who has been trading THIS
+  pool", not "what does one wallet hold" — a different RPC method, and it turns out not to be
+  blocked. D-93's constraint does not transfer to this file; it only looked like it might.
+- ∴ ✓ **the always-on host CAN do this. No laptop dependency, no new RPC key, no new account.**
+  `app/main/adapters/walletflow.js` — built and reads pool flow DEX-agnostically via
+  `preTokenBalances`/`postTokenBalances` (Solana computes these for every transaction regardless of
+  which AMM program ran), rather than parsing pump.fun/Raydium/PumpSwap swap instructions, which
+  differ per program and would be a silent-wrong-parsing risk this project keeps hitting elsewhere.
+
+### !! LIVE TEST RESULT, 2026-09-02 — THE MECHANISM IS SOUND, THE HIT RATE IS NOT YET TRUSTED
+Ran it against CATE's real pool (`pumpswap`, address `HMzvsE...`), not a mock. Two clean results
+came back — a wallet gaining ~325 CATE while the pool lost exactly ~325 (a buy), and the reverse
+for a sell, both perfectly symmetric. The mechanism is correct when it fires.
+- !! BUT on 20 of the pool's most recent signatures, only 2 produced a detected change. The other
+  18 either genuinely moved no CATE balance at that address (a plausible, correct "nothing to
+  report") or the extraction is missing something real — **I have not yet separated those two
+  cases with confidence**, and reported that honestly rather than claiming a working feature.
+- ! `est:` conf 55% that the low hit rate is mostly genuine (net-zero routing transactions, or
+  activity on a different token account than the one DexScreener reports as `pairAddress`) rather
+  than a bug in the extraction itself — the two hits that DID fire were clean and unambiguous.
+- ∴ NOT wired into anything a person sees. No alert, no admission scoring, nothing user-facing
+  reads this yet. ! per the same discipline as the wash-trading filter below: shipping an unreliable
+  read straight to a screen is worse than not having it, and the hit rate needs real validation
+  first — cross-checking recovered flow against DexScreener's own `buys24`/`sells24` totals over a
+  longer sample is the concrete next check, not yet done.
+- NEXT: validate hit rate against a longer sample and a second coin before building anything on top
+  of it (the funding-link filter, sell alerts, or the admission tiebreaker below all depend on this
+  being trustworthy first).
 
 ### ∴ BUILD ORDER
 1. test whether the collection host can read a wallet at all (5 minutes, decides everything below)
