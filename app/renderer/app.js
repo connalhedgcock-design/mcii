@@ -653,8 +653,8 @@ async function loadSector() {
   // 70-AREAS/j7-tracker/LOG.md for the full attempt. A plain link is the only thing that reliably
   // works -- a real browser passes their check fine.
   const j7 = `<div class="card">
-    <div class="chead"><b>J7 Tracker</b><span class="v">their site — not part of MCII</span></div>
-    <p class="note">Opens in your regular browser. Their site couldn't be shown inside MCII itself
+    <div class="chead"><b>J7 Tracker</b><span class="v">their site — not part of CII</span></div>
+    <p class="note">Opens in your regular browser. Their site couldn't be shown inside CII itself
       — their bot-check blocks embedded windows like this one.</p>
     <a class="btn accent" href="https://j7tracker.io" target="_blank"
       style="margin:0 20px 20px;display:inline-block;width:fit-content;text-decoration:none">Open j7tracker.io</a>

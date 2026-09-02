@@ -1,7 +1,9 @@
 {
   "name": "mcii",
+  "productName": "CII",
+  "_nameComment": "! DO NOT change \"name\": Electron derives ~/Library/Application Support/<name> from it. Renaming it points the app at an empty folder -- watchlist, positions, wallet addresses, window state, local identity and both venue logins all appear to vanish. \"productName\" is what macOS actually displays, which is why the visible rename to CII goes there instead. See 50-LOG/decisions.md D-118.",
   "version": "0.1.0",
-  "description": "MCII - memecoin safety and exit-liquidity dashboard",
+  "description": "CII (crypto information index) - memecoin safety and exit-liquidity dashboard",
   "main": "main/index.js",
   "scripts": {
     "start": "electron .",

@@ -14,6 +14,14 @@ Lane (D-89): scanner effectiveness · what the data MEANS · analysis + scoring 
 and a spot on the board next time we talk.
 
 ## NOW
+- [ ] T-018 P1 @connal · two alert tests have been failing since the $1,000 change · why: the
+      fixture still uses $10,000→$5,000, both above the new cut-off, so the alert correctly does
+      not fire and the test calls that a failure. ! a suite that always shows red trains you to
+      ignore red, which is how a REAL break gets through · [[decisions]] D-114
+- [ ] T-019 P1 @connal · find out why coins keep disappearing from the shared watchlist · why: it
+      lost ANSEM this afternoon and LaPeace this evening, both times written by the app. D-66 says
+      saving should MERGE the two machines' lists, never delete. ! if it is deleting, a coin one of
+      you is watching can silently stop being collected — and nothing would say so · [[decisions]] D-66
 - [ ] T-017 P3 @connal · FIRST · work out what whale wallet tracking watches and what a move MEANS
       · why: everything below is blocked on it. "track whales" is not yet a spec — which wallets,
       and whether a whale selling is even bad news, are both unanswered. ! D-93: no free keyless

@@ -105,7 +105,7 @@ function build(root) {
           <span class="st-sill-blurb"></span>
           <span class="st-sill-state"></span>
           <span class="st-sill-keys">← → turn · ↑ enter · esc leave</span>
-          <span class="st-sill-serial">MCII·OBS·R1</span>
+          <span class="st-sill-serial">CII·OBS·R1</span>
         </div>
 
       </div>
