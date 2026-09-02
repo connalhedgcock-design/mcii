@@ -200,16 +200,83 @@ async function series(positions, days = 1) {
 // Mark-to-market change over 24h on the CURRENT book: what the same coins are worth now versus
 // what they were worth a day ago. Not realised P&L, and not affected by cost basis -- if anything
 // was bought or sold inside the window this measures the price move, not the trade.
-async function pnl24(positions) {
+// ! WHY THIS USED TO TAKE 45 SECONDS, measured 2026-09-01.
+// It fetched a week of candles from GeckoTerminal for every held coin, ONE AT A TIME, and blocked
+// the portfolio screen on all of them. Timed: 0.6s to load the actual portfolio, 44.6s for this.
+// Worse, GeckoTerminal was rate-limiting us -- two of four calls failed outright after ~6s of
+// retries and one took 44.8s cycling through backoff. So the screen was mostly waiting on requests
+// that were being refused.
+//
+// Three changes, in order of how much they matter:
+//   1. ASK OUR OWN RECORDS FIRST. `data/market.jsonl` already holds a reading every half hour for
+//      every watchlist coin -- which is most of what they hold. A price from 24h ago is sitting in
+//      a local file; fetching it over a rate-limited API was work we had already done.
+//   2. SKIP POSITIONS TOO SMALL TO MATTER. A $1.30 holding cannot move a $60 book enough to be
+//      worth a network call, let alone a retry cycle.
+//   3. Whatever is left runs two at a time, not one -- and NOT all at once, because the thing
+//      throttling us is request rate and a burst would make it worse.
+//
+// ! the fallbacks and their reasoning are unchanged below; only how the price is OBTAINED changed.
+const PNL_MIN_USD = 5;      // below this a position cannot move the total meaningfully
+
+// A 24h-old price from our own collected history, or null. ! nearest reading at or before the
+// target, and only if it is within 3 hours of it -- a "price 24h ago" taken from 40h ago is a
+// different measurement, and quietly substituting it would misreport the day's move.
+function localPriceAt(rows, ca, targetTs, tolMs = 3 * 36e5) {
+  let best = null;
+  for (const r of rows) {
+    if (r.ca !== ca || !(r.price > 0) || r.ts > targetTs) continue;
+    if (!best || r.ts > best.ts) best = r;
+  }
+  return best && targetTs - best.ts <= tolMs ? best.price : null;
+}
+
+async function pnl24(positions, { history = [] } = {}) {
   const held = (positions || []).filter((p) => p.tokens > 0);
+  const target = Date.now() - 864e5;
   let then = 0, now = 0, covered = 0;
   const missing = [];
+
+  // Decide per position where its old price comes from, before making any network call.
+  const needFetch = [];
+  const resolved = new Map();
+  for (const p of held) {
+    const local = localPriceAt(history, p.ca, target);
+    if (local != null) resolved.set(p.ca, local);
+    else if (p.valueUsd >= PNL_MIN_USD) needFetch.push(p);
+  }
+
+  // Two at a time. ! deliberately not Promise.all over everything: the constraint here is a rate
+  // limit, so firing all of them at once turns a slow answer into a refused one.
+  for (let i = 0; i < needFetch.length; i += 2) {
+    const pair = needFetch.slice(i, i + 2);
+    await Promise.all(pair.map(async (p) => {
+      const h = await candlesFor(p.ca);
+      const rows = (h?.hours || []).filter((r) => r.c > 0);
+      if (!rows.length) return;
+      // ⚠️ IS THIS SERIES EVEN PRICING THE SAME THING? Compare its MOST RECENT close against the
+      // price we already hold for right now. Two measurements of the same moment must agree; if
+      // they do not, the series is quoted against a different asset and every value in it is on
+      // the wrong scale.
+      // Found 2026-09-01: USDC -- a dollar stablecoin -- came back as a flat $7.89 across the whole
+      // series, because the lookup landed on a pool where USDC is the QUOTE side. That one number
+      // invented a $165 loss on a $62 portfolio and reported it as -72%.
+      // ! this compares the SAME instant deliberately. A band on the 24h move cannot work here:
+      // 7.9x is absurd for a stablecoin and unremarkable for a memecoin, so no single threshold on
+      // "how much did it move" can tell a wrong pool from a real run. Comparing now against now can.
+      const latest = rows[rows.length - 1].c;
+      if (!(latest / p.priceUsd > 0.5 && latest / p.priceUsd < 2)) {
+        missing.push(p.sym);
+        return;   // wrong scale: unknown, never a guess
+      }
+      const px = lastAtOrBefore(rows, target);
+      if (px != null) resolved.set(p.ca, px);
+    }));
+  }
+
   for (const p of held) {
     now += p.valueUsd;
-    const h = await candlesFor(p.ca);
-    const rows = (h?.hours || []).filter((r) => r.c > 0);
-    const target = Date.now() - 864e5;
-    const px = rows.length ? lastAtOrBefore(rows, target) : null;
+    const px = resolved.get(p.ca);
     if (px != null) { then += p.tokens * px; covered++; continue; }
     // Fall back to the venue-reported 24h move, which the rest of the app already treats as a
     // weaker source because it comes from whichever single pool is deepest RIGHT NOW -- and that

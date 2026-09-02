@@ -505,7 +505,16 @@ ipcMain.handle('portfolio:load', async () => {
     if (p && p.costBasisUsd != null) costBasis[ca] = p.costBasisUsd;
   const out = await portfolio.load(wallets, { costBasis });
   lastFolio = out;
-  try { out.pnl24 = await portfolio.pnl24(out.combined?.positions || []); } catch { out.pnl24 = null; }
+  // ! Reads the half-hourly record we already collect, so most positions need no network call at
+  // all. Measured 2026-09-01: this step alone was 44.6s of a 45.2s load, almost all of it waiting
+  // on a rate-limited API for prices already sitting in this file.
+  let history = [];
+  try {
+    history = fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'market.jsonl'), 'utf8')
+      .trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  } catch { /* no shared record on this machine yet; pnl24 falls back to fetching */ }
+  try { out.pnl24 = await portfolio.pnl24(out.combined?.positions || [], { history }); }
+  catch { out.pnl24 = null; }
   // Tell the offline alerter what is actually held. Deliberately not awaited: it is a side effect,
   // and a Cloudflare outage must not slow down or break the portfolio screen. See alerts-push.js.
   alertsPush.pushHoldings(out.combined?.positions || []).catch(() => {});
