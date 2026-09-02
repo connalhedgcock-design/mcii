@@ -88,8 +88,13 @@ conflict most, which is precisely when three independent reads disagreeing matte
 
 **Three SENSORS, each independent, each emitting the same shape** (`direction, magnitude,
 confidence, horizon, why` — the Insight shape already adopted from QuantConnect's framework):
-1. **MARKET** — price, liquidity, holders, exitable value. ✓ built, real-time, free. The one
-   sensor with no open design question.
+1. **MARKET** — price, liquidity, holders, exitable value. ✓ built, real-time, free.
+   ! UPDATED 09-02: not "nothing to fix" any more — `buys24`/`sells24` and holder-concentration are
+   collected every 30 min and used by NOTHING once a coin is tracked (checked in code: only the
+   initial screener funnel reads them). Turning them into a trend read is cheap and evidenced —
+   see [[60-KB/market-signal-research]]. Distinct BUYER count (not transaction count) is genuinely
+   missing and should be built as part of wallet tracking (T-016/017), not separately — it needs
+   the same on-chain read.
 2. **SOCIAL** — credibility-weighted mentions, coordination detection, manufactured-vs-real.
    ✓ built for discovery. ! degraded for HELD coins as of yesterday's cost fix — see the open
    decision below, not yet resolved.
@@ -174,8 +179,13 @@ it... the algorithms can only be as good as the data they collect is." Answered 
    coverage for a fixed, sane budget, and it worked (D-108). The proposed combined held-coin
    search (chat, 09-02, awaiting his go-ahead) is the fix and is scoped ONLY to what he actually
    holds, not the whole watchlist, so it does not re-open the cost problem D-108 solved.
-4. **MARKET is the one sensor with nothing to fix.** Real-time, free, already feeding the fast exit
-   path. Worth saying plainly so effort isn't spent refining the one piece that already works.
+4. **MARKET collection is solid; market INTERPRETATION has a gap.** ! Connal, 09-02, asking for
+   more market data and for the analysis to actually learn to read it: checked first rather than
+   assumed missing — holders/top1/top10/buy-sell counts are ALREADY collected every 30 min and
+   simply never read past the initial screener pass. See [[60-KB/market-signal-research]] for the
+   full audit: two cheap trend-reads ready to build now, one genuinely new and expensive feature
+   (distinct buyer count) that should fold into wallet tracking rather than becoming a fourth
+   project of its own.
 
 ### BUILD ORDER, REVISED TO PUT THE IRREVERSIBLE ITEM FIRST
 1. start labelling triple-barrier outcomes now, on today's tracked coins, under today's rules
