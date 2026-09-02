@@ -23,6 +23,8 @@ const imp = require('../shared/importance');
 const resolve = require('../shared/resolve');
 const postfacts = require('../shared/postfacts');
 const socialmarket = require('../shared/socialmarket');
+const walletAdapter = require('./adapters/wallet');
+const alertsPush = require('./alerts-push');
 const { searchTokens } = require('./adapters/dexscreener');
 const screener = require('./screener');
 const onchain = require('./adapters/onchain');
@@ -220,6 +222,19 @@ async function collectSocial(tokens) {
       tickerShared: contestedSet.has(resolve.bare(t.sym)) || null });
     log(`  ${t.sym}: ${onTopic.length} posts / ${bucket.uniqueAuthors} people (${fromSweep} from the sweep), tone ${bucket.sentiment ?? '—'}, ${rel.confidence}`);
   }
+
+  // KEEP THE PHONE ALERTER'S IDEA OF "HELD" CURRENT, FROM HERE.
+  //
+  // ! this was originally the desktop app's job and that was the wrong home for it. The app only
+  // pushes when someone opens the portfolio tab, so the list froze on 2026-08-31 and by 09-02 the
+  // alerter was still watching 94,233 LaPeace and 23 ANSEM that had both been sold. Alerts about
+  // coins he no longer owns are worse than no alerts: they are noise that teaches him to ignore
+  // the one that matters.
+  //
+  // ! the reason this can live here at all: Solana's public RPC refuses `getTokenAccountsByOwner`
+  // from Cloudflare (D-93) but NOT from this server — verified 09-02. So the collector can read the
+  // wallets directly, every half hour, with nobody opening anything.
+  await pushHeldPositions();
 
   const sectorRows = await buildSectorRow(sweep, perQuery, tokens);
   try { fs.writeFileSync(path.join(DATA, 'x-spend.json'), JSON.stringify(tw.budget(), null, 2)); } catch {}
@@ -613,3 +628,33 @@ async function main() {
   log('done');
 }
 main().catch((e) => { log('fatal:', e.message); process.exit(1); });
+
+
+// Read both wallets, price what they hold, and tell the alerter. Silent-but-logged on failure:
+// a missed push leaves the previous list in place, which is stale but not wrong-shaped, and must
+// never take down a collection run.
+async function pushHeldPositions() {
+  const addrs = String(process.env.MCII_WALLETS || '').split(',').map((a) => a.trim()).filter(Boolean);
+  if (!addrs.length) return;
+  if (!process.env.CLOUDFLARE_KV_TOKEN) { log('  holdings push: no CLOUDFLARE_KV_TOKEN, skipping'); return; }
+  try {
+    const totals = new Map();
+    for (const a of addrs) {
+      const w = await walletAdapter.fetchHoldings(a);
+      for (const h of w.holdings) if (h.amount > 0) totals.set(h.mint, (totals.get(h.mint) || 0) + h.amount);
+    }
+    if (!totals.size) { log('  holdings push: wallets read as empty — NOT pushing (D-29: empty is not a reading)'); return; }
+    const prices = await fetchPrices([...totals.keys()]);
+    const positions = [];
+    for (const [ca, tok] of totals) {
+      const p = prices.get(ca);
+      if (!p) continue;
+      const valueUsd = tok * p.priceUsd;
+      positions.push({ ca, sym: p.symbol || '?', tokens: tok, valueUsd });
+    }
+    const r = await alertsPush.pushHoldings(positions);
+    log(`  holdings push: ${r.pushed != null ? r.pushed + ' positions' : r.skipped || r.error}`);
+  } catch (e) {
+    log(`  holdings push failed — ${e.message}`);
+  }
+}
