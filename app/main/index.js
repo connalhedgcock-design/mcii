@@ -1,6 +1,18 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// !! PIN THE DATA FOLDER. DO NOT REMOVE, AND DO NOT ASSUME IT IS REDUNDANT.
+// Electron's app.getName() prefers `productName` over `name` in package.json, and userData is
+// derived from app.getName(). So adding `productName: "CII"` for the on-screen rename (D-118)
+// silently moved everything to ~/Library/Application Support/CII: a fresh empty snapshot, and
+// both venue logins gone, because the session partitions live under the old folder.
+// Found 2026-09-01 by Connal noticing fomo and axiom were logged out. I had documented this exact
+// risk and then caused it, because I believed `name` was the field that mattered. It is not.
+// ! this line makes the display name and the storage location independent, so the app can be
+// renamed again without touching anyone's data. The literal 'mcii' is a STORAGE KEY now, not a
+// name — it should outlive any number of rebrands and must never be "tidied" to match the title.
+app.setPath('userData', path.join(app.getPath('appData'), 'mcii'));
 const { fetchMarket, searchTokens, discoverLatest } = require('./adapters/dexscreener');
 const { fetchSafety } = require('./adapters/rugcheck');
 const { fetchTokenMeta, maxExitable } = require('./adapters/jupiter');
