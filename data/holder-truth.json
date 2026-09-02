@@ -1,33 +1,33 @@
 {
-  "checkedAt": 1788320540711,
+  "checkedAt": 1788324140436,
   "tokens": {
     "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
       "sym": "CATE",
-      "holders": 117855,
-      "tokenAccounts": 271646,
-      "emptyAccounts": 153791,
+      "holders": 117890,
+      "tokenAccounts": 271754,
+      "emptyAccounts": 153864,
       "top1Pct": 2.82,
-      "top10Pct": 14.82,
-      "top100Pct": 38.87,
+      "top10Pct": 14.54,
+      "top100Pct": 38.51,
       "program": "token-2022",
       "source": "onchain",
-      "fetchedAt": 1788320543765,
-      "jupiter": 117704,
-      "driftPct": -0.12812354164015105
+      "fetchedAt": 1788324143504,
+      "jupiter": 117740,
+      "driftPct": -0.12723725506828398
     },
     "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm": {
       "sym": "DOGE-1",
-      "holders": 20225,
-      "tokenAccounts": 40101,
-      "emptyAccounts": 19876,
-      "top1Pct": 3.11,
-      "top10Pct": 12.53,
-      "top100Pct": 43.74,
+      "holders": 20243,
+      "tokenAccounts": 40132,
+      "emptyAccounts": 19889,
+      "top1Pct": 3.09,
+      "top10Pct": 12.52,
+      "top100Pct": 43.72,
       "program": "token",
       "source": "onchain",
-      "fetchedAt": 1788320544444,
-      "jupiter": 20211,
-      "driftPct": -0.069221260815822
+      "fetchedAt": 1788324144196,
+      "jupiter": 20229,
+      "driftPct": -0.06915970952921997
     }
   }
 }
