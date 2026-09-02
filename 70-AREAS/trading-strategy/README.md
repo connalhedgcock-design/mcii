@@ -1,8 +1,8 @@
 ---
 id: area.trading-strategy.readme
 t: area-readme
-v: 1
-upd: 2026-08-31
+v: 2
+upd: 2026-09-02
 machine: connal
 ---
 # TRADING STRATEGY — designing a tested, data-driven approach; not yet built
@@ -65,6 +65,125 @@ researched on Connal's instruction. Two of the open questions below now have cit
 It also flags an unfixed hazard: the live app state and `data/*.jsonl` can disagree by up to the
 cron interval, so a rule designed against one and scored against the other measures nothing. Pick
 one surface first.
+
+## !! THE ARCHITECTURE — designed 2026-09-02, per Connal's direct instruction
+Connal, verbatim, after wallet tracking + social + market data were all live topics the same week:
+"you need to figure out a way to combine all of the data points into really a couple different
+algorithms that work together, ie one algorithm for wallet tracking and one algorithm for social
+media data but a combined algorithm that syncs them together and evaluates with help from numbers
+data whether it is a good buy/sell and when to buy/sell as well as we need a financial plan we need
+set stop/loss profit/loss limiters we need a lot more strategy... the algorithms can only be as
+good as the data they collect is."
+This section is the answer. It draws on everything researched this week rather than starting cold:
+[[60-KB/signal-architecture-research]] (pipeline shape, meta-labeling, triple-barrier, trials
+counting), [[60-KB/watchlist-admission-research]] (competitive admission, expiry), and
+[[80-WHISPERS/whale-tracking/README]] (wash-trading base rate, sell/buy asymmetry).
+
+### THE SHAPE: THREE SENSORS, ONE GATE-THEN-VOTE SYNTHESIS, ONE SEPARATE CONFIDENCE STAGE
+Not three algorithms merged into one — three that stay separate and disagree openly, feeding a
+fourth that reconciles them. This is the direct application of D-50 (never average disagreeing
+sources) to three inputs instead of two, and it is why Dempster-Shafer stays rejected here too —
+see [[signal-architecture-research]] for why that specific method fails exactly when sources
+conflict most, which is precisely when three independent reads disagreeing matters most.
+
+**Three SENSORS, each independent, each emitting the same shape** (`direction, magnitude,
+confidence, horizon, why` — the Insight shape already adopted from QuantConnect's framework):
+1. **MARKET** — price, liquidity, holders, exitable value. ✓ built, real-time, free. The one
+   sensor with no open design question.
+2. **SOCIAL** — credibility-weighted mentions, coordination detection, manufactured-vs-real.
+   ✓ built for discovery. ! degraded for HELD coins as of yesterday's cost fix — see the open
+   decision below, not yet resolved.
+3. **WALLET** — funding-linked wash-trade filtering, then whale sell (high confidence, alert-path)
+   and whale buy (low confidence, admission-tiebreaker only). NOT BUILT. The premise itself
+   (persistent "smart money") is UNPROVEN — [[whale-tracking/README]] rates it below a coin flip
+   and says so plainly, twice, so it does not get quietly assumed true by a later session.
+
+**SYNTHESIS, in two stages, never one:**
+- Stage 1, GATES — non-compensatory, run first, can each alone stop everything: structural safety
+  FAIL, a whale sell on a held coin (D-70: bad news outranks everything), data too stale for the
+  horizon in question, n too small on the sensor being relied on. A gate failing means STOP, full
+  stop — nothing downstream can outvote it. This is deliberately the same fast-and-frugal-tree
+  shape the rug gate already uses, extended to all three sensors, because the research says that
+  shape generalises BETTER than a weighted score at this data volume, not worse.
+- Stage 2, VOTE — only sensors that cleared their own gate and are not thin/stale get a vote, EQUAL
+  weight, never fitted (the 1/N finding: estimated optimal weights are unstable and converge to
+  equal weight anyway as uncertainty rises, which describes this project's sample size exactly).
+- Stage 3, CONFIDENCE — a SEPARATE stage from direction, per meta-labeling. Until n>=50 labelled
+  outcomes exist it is a written rubric (how many sensors agreed, how thin the thinnest one was,
+  whether any disagreed outright). After n>=50 it becomes a real secondary classifier trained on
+  realised results. ! this is what stops "confidence determined by Claude" from being false
+  precision — it earns a track record instead of asserting one.
+
+### "WHEN" — timing splits cleanly by direction, and one half already exists
+- **exit timing (protecting money already in) is FAST and ALREADY BUILT** — 15s live monitor
+  in-app, 5-min liquidity alert on the phone (D-91). This is the strongest piece of the whole
+  system already and nothing here should slow it down chasing a fuller analysis first.
+- **entry timing is bound by how often the sensors are actually refreshed** — roughly half-hourly
+  for wallet/social, closer to continuous for market. ∴ a synthesis call is only ever as fresh as
+  its stalest input, and the block that reports it must say the age of each input it used.
+- **profit-taking timing** (not danger, just "this has run, take some") is a THIRD case, not
+  covered by either speed above, and is what the financial plan below actually decides.
+
+### THE FINANCIAL PLAN — the framework I recommend; the NUMBERS are his call, not mine
+! `[[mandate]]`: I do not size positions or tell them what to buy. What follows is the STRUCTURE a
+plan needs and reasoned DEFAULTS, not a decision — every number below is proposed, none is locked.
+
+- **EXITS: the triple-barrier method** (López de Prado) — a position closes on whichever of three
+  barriers is hit first: a profit target, a stop-loss, or a time limit. ✓ already matches the
+  "target/stop/time-limit, illiquidity override" shape sketched earlier in this file; adopting it
+  by name makes it standard and comparable to published work rather than a bespoke rule nobody can
+  benchmark. !! all three barriers must be set on EXITABLE VALUE (`20-SPEC/scoring.md` §B), never
+  quoted price — a stop-loss measured on a price that can't actually be sold at is fiction.
+- **STOP/TARGET WIDTH SHOULD SCALE TO EACH COIN'S OWN NORMAL SWINGS, NOT ONE FLAT %.** fact
+  @ATR-based stop-loss literature: sizing the stop to an asset's own recent volatility, rather than
+  a flat percentage, avoids two failure modes at once — a quiet coin's stop triggering on normal
+  noise, and a wild coin's stop never triggering until real damage is done. Cheap to compute: it is
+  the same price history already being collected, no new data needed.
+- **POSITION SIZE: fixed, not Kelly, until a real track record exists.** fact @Kelly-criterion
+  literature: even professionals run it at a quarter to a half of the formula's answer because full
+  Kelly overbets under fat tails, AND the formula needs an accurate win-rate and payoff estimate to
+  begin with — which this project does not have (D-05: n>=50 before any performance claim is
+  trusted). Using Kelly on a guessed win rate is worse than not using it. ∴ recommend flat sizing
+  (same $ per position) until the labelled record below exists, THEN revisit with real numbers —
+  same discipline as D-05, applied to sizing instead of to the model.
+- **PORTFOLIO HEAT — the 30-coin question needs this, and it is not obvious.** fact
+  @correlation-in-drawdowns research (and already `[[base-rates]]`: "holding N memecoins ≈ holding
+  1 leveraged bet on retail risk-on"): these coins move together hard in a downturn — a 15% BTC
+  drop dragged SOL down ~31% in the same window in the cited data — so 30 held coins is NOT 30
+  independent bets, and sizing each one as if it were is the actual danger, not any single coin
+  rugging. Professional practice caps TOTAL simultaneous risk (often ~1% of capital per trade
+  specifically because of this correlation) rather than only limiting position count. ∴ the plan
+  needs a cap on how much can be at risk ACROSS all open positions at once, not just a per-position
+  rule — proposed for his decision, not decided here.
+
+### THE DATA AUDIT HE ASKED FOR — what's good enough now, what isn't, ranked worst first
+Connal: "if you dont think some of what we have is useful right now we need to find ways to refine
+it... the algorithms can only be as good as the data they collect is." Answered plainly, in order:
+1. **!! THE LABELLED OUTCOME RECORD DOES NOT EXIST AT ALL. n=0.** Not degraded, not thin — absent.
+   Every piece above the gates (Stage 3 confidence, the ATR stop widths, ever revisiting fixed
+   sizing) needs real triple-barrier-labelled outcomes to tune against, and none are being
+   collected today. ! THIS IS THE ONE ITEM ON THIS LIST WHERE DELAY IS IRREVERSIBLE — the same
+   lesson as the per-post evidence finding from 09-01 (`[[70-AREAS/social-collection/LOG]]`), one
+   level up: a day without labelling is a day of outcomes that can never be recovered. ∴ start
+   recording triple-barrier labels for whatever gets tracked TODAY, under today's rules, before any
+   of the rest of this is built — the record is the prerequisite, not a later step.
+2. **WALLET is not a data quality problem, it is a missing sensor.** Nothing to refine; it has to
+   be built, and [[whale-tracking/README]] already has the answered design questions and a build
+   order. First step there is a 5-minute test that decides the whole shape.
+3. **SOCIAL on held coins is thin by design, not by accident** — yesterday's fix traded per-coin
+   coverage for a fixed, sane budget, and it worked (D-108). The proposed combined held-coin
+   search (chat, 09-02, awaiting his go-ahead) is the fix and is scoped ONLY to what he actually
+   holds, not the whole watchlist, so it does not re-open the cost problem D-108 solved.
+4. **MARKET is the one sensor with nothing to fix.** Real-time, free, already feeding the fast exit
+   path. Worth saying plainly so effort isn't spent refining the one piece that already works.
+
+### BUILD ORDER, REVISED TO PUT THE IRREVERSIBLE ITEM FIRST
+1. start labelling triple-barrier outcomes now, on today's tracked coins, under today's rules
+2. the combined held-coin social search (proposed, needs his go-ahead — separate from this doc)
+3. test wallet RPC access from the host (5 min), then the wash-trade filter, then sell-only alerts
+4. wire the three-sensor gate-then-vote synthesis and put it behind D-96's alert analysis block
+5. only once n>=50 labelled outcomes exist: the real Stage 3 classifier, and revisit fixed sizing
+   with actual numbers instead of a placeholder
 
 ## WHAT'S GENUINELY OPEN — DO NOT GUESS THESE, ASK
 - **Entry rule itself** — "we don't know yet" was the honest answer to almost everything here.
