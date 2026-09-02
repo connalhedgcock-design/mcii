@@ -173,3 +173,43 @@ changed once. `est:` conf 85% — an improvement nobody can see is indistinguish
 was never made, which is this project's most repeated defect wearing new clothes (D-60, D-63, D-85).
 ∴ any future change to the social layer should name, in its own commit message, which screen or
 notification changes as a result — or say explicitly that none does.
+
+## 2026-09-02 — 4. OVERNIGHT CHECK: NOTHING LOST, THE COST FIX WORKED, AND THE PREDICTED SIDE EFFECT ARRIVED
+- machine: connal
+- Connal asked whether the new server lost anything overnight. Checked commit timestamps (the check
+  `70-AREAS/collection-host/README` says is the honest one), then row growth per file, then spend.
+
+### ✓ NO DATA LOST
+- fact: **39 collection runs in 18h (09-01 19:15 → 09-02 12:42 UTC), no gap over 35 minutes**
+  against a 30-minute timer. Every file still writing: market 147 rows, scans 39, holders 48,
+  candidates 485, all with `last` at 12:42.
+- ∴ the Hetzner host cleared its first full night. ! not yet proof it beats GitHub Actions — D-61's
+  bar was two weeks, and one night is one night. Do not close D-98's question early.
+
+### ✓ THE CADENCE FIX (D-107-era, 09-01) IS WORKING, MEASURED
+- fact: sector rows now show the sweep firing `dying/links/asking/buying` at `:12` only, with the
+  `:42` run doing nothing unless something is genuinely due (09-02 09:42 ran `mood` alone).
+  Before the fix all four fired on both runs.
+- fact: spend pace **$1.68/day → $0.66/day**, projecting **~$20/mo against the $24 cap. ON TRACK.**
+  Was ~$50/mo and forecast to exhaust the cap around day 13.
+
+### !! THE PREDICTED SIDE EFFECT IS BIGGER THAN "SPARSE" — SAY IT PLAINLY
+- fact: every social row since the change reads `topUp=0`, `fromSweep=1-2`, i.e.
+  **posts=1-2, people=1-2 per reading**, and only 22 rows in 18h across the watchlist.
+- ! context: `20-SPEC/scoring.md` §D sets the reliability bar at 25 different people. Yesterday's
+  median was 13 (already 99% below it, entry 1 Finding A). It is now **1-2**.
+- ∴ **social coverage of their own coins has effectively stopped.** This is NOT a fault and NOT
+  data loss — it is the direct, predicted consequence of D-108 (Connal: "i dont want to be
+  searching for individual coins at all"), and the code comment says so in advance. But "sparse"
+  understates it and I will not let it stand as the description.
+- ∴ ! knock-on for D-96: alerts will now mostly say "no recent reading, market-data-only call",
+  because there is usually no social reading for the coin that moved. The analysis block works;
+  there is simply nothing to put in half of it.
+- the sweep itself is healthy and doing its real job — 165-190 posts and 110-136 distinct authors
+  per run. It finds coins nobody has listed. It does not, and structurally cannot, cover a named
+  coin, because none of its six queries looks for one.
+- ✓ headroom now exists that did not before: ~$4/mo of the cap is unspent at the current pace.
+  ! that is a genuine choice for Connal, not a recommendation I should make for him: leave social
+  coverage of held coins switched off, or spend the headroom reinstating some depth on them.
+  ! `est:` conf 70% that at ~$4/mo the reinstated depth would still land under the 25-person bar,
+  i.e. buy readings that remain officially unreliable. That is the number that should decide it.
