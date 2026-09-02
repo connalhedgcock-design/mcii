@@ -157,3 +157,4 @@
 {"ts":1788316945159,"src":"cloud","universe":51,"survivors":10,"tookMs":41773,"rejects":{"liquidity only $X":24,"only Nh old":3,"older than N days":8,"only $X traded in Nh":1,"Creator history of rugged tokens":1,"one wallet holds N%":4}}
 {"ts":1788318765738,"src":"cloud","universe":49,"survivors":10,"tookMs":38006,"rejects":{"liquidity only $X":26,"only Nh old":2,"older than N days":7,"only $X traded in Nh":1,"Creator history of rugged tokens":1,"one wallet holds N%":2}}
 {"ts":1788320544515,"src":"cloud","universe":52,"survivors":10,"tookMs":40012,"rejects":{"liquidity only $X":26,"only Nh old":3,"only $X traded in Nh":2,"older than N days":7,"Creator history of rugged tokens":1,"one wallet holds N%":3}}
+{"ts":1788322372523,"src":"cloud","universe":53,"survivors":11,"tookMs":44706,"rejects":{"liquidity only $X":27,"only Nh old":1,"older than N days":8,"only $X traded in Nh":1,"Creator history of rugged tokens":1,"one wallet holds N%":4}}
