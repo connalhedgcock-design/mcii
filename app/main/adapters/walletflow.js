@@ -52,11 +52,27 @@ async function rpc(method, params, opts = {}) {
 }
 
 // Recent transaction signatures touching this pool address, newest first.
-async function poolSignatures(poolAddress, { limit = 40 } = {}) {
-  const r = await rpc('getSignaturesForAddress', [poolAddress, { limit }]);
+async function poolSignatures(poolAddress, { limit = 40, before = null } = {}) {
+  const params = before ? { limit, before } : { limit };
+  const r = await rpc('getSignaturesForAddress', [poolAddress, params]);
   // A failed transaction moved no real tokens -- reading its balances would be misleading, not
   // merely uninteresting, so these are dropped before anything downstream sees them.
   return (r || []).filter((s) => !s.err).map((s) => s.signature);
+}
+
+// Pages backward through a pool's history via the `before` cursor, oldest page requested last.
+// Used for validating flow-extraction coverage over a real window, not (yet) for anything live.
+async function poolSignaturesPaged(poolAddress, { pages = 5, pageSize = 100 } = {}) {
+  let before = null;
+  const all = [];
+  for (let p = 0; p < pages; p++) {
+    const sigs = await poolSignatures(poolAddress, { limit: pageSize, before: before || undefined });
+    if (!sigs.length) break;
+    all.push(...sigs);
+    before = sigs[sigs.length - 1];
+    if (sigs.length < pageSize) break; // reached the start of the pool's history
+  }
+  return all;
 }
 
 // One transaction -> every account whose balance of `mint` changed.
@@ -95,17 +111,29 @@ async function flowForTransaction(signature, mint) {
   return out;
 }
 
-// Every wallet's net flow of `mint` across a pool's recent transactions.
-// ! the pool account's OWN balance swings on every single trade by construction -- it is not a
-// "wallet" in the sense this feature means, and including it would make the pool look like the
-// single biggest trader of its own coin on every run. Excluded by address match, not a heuristic.
-async function poolFlow(poolAddress, mint, { limit = 40 } = {}) {
-  const sigs = await poolSignatures(poolAddress, { limit });
+// Every wallet's net flow of `mint` across recent transactions touching `watchAddress`.
+//
+// !! MEASURED 2026-09-02: PASS THE MINT ITSELF, NOT ONE SPECIFIC POOL'S ADDRESS. First built
+// against DexScreener's `mainPool.address` (one AMM pool) and validated at only ~10-28% of that
+// pool's own recent signatures showing a real balance change -- most referenced it without moving
+// this mint's balance there specifically (a coin usually trades through more than one pool/route,
+// and a token account is not always the account DexScreener reports as the "pair"). Querying the
+// MINT ACCOUNT directly instead -- which every transfer of the token references, regardless of
+// which pool or route carried it -- measured 72% on CATE and 40% on DOGE-1, both a large
+// improvement, confirmed on two different coins before changing the default. `watchAddress`
+// therefore defaults to the mint; a specific pool address still works if ever needed, it is just
+// no longer the recommended target.
+// ! the pool account's OWN balance still swings on every trade by construction -- it is not a
+// "wallet" in the sense this feature means. Excluded by address match against `watchAddress` only
+// when a pool address is what was actually passed; when watching the mint there is no single pool
+// address to exclude, and the AMM's own vault accounts will legitimately appear as counterparties.
+async function poolFlow(watchAddress, mint, { limit = 40 } = {}) {
+  const sigs = await poolSignatures(watchAddress, { limit });
   const rows = [];
   for (const sig of sigs) {
     try {
       const flow = await flowForTransaction(sig, mint);
-      for (const f of flow) if (f.owner !== poolAddress) rows.push(f);
+      for (const f of flow) if (f.owner !== watchAddress) rows.push(f);
     } catch (e) {
       // A failed read of ONE transaction never invents a zero for it (D-29's rule, applied to a
       // single transaction rather than a whole collection pass) -- it is skipped, not recorded.
@@ -114,4 +142,4 @@ async function poolFlow(poolAddress, mint, { limit = 40 } = {}) {
   return rows;
 }
 
-module.exports = { poolSignatures, flowForTransaction, poolFlow };
+module.exports = { poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow };

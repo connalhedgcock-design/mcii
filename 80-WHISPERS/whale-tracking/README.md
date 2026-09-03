@@ -146,9 +146,15 @@ for a sell, both perfectly symmetric. The mechanism is correct when it fires.
   read straight to a screen is worse than not having it, and the hit rate needs real validation
   first — cross-checking recovered flow against DexScreener's own `buys24`/`sells24` totals over a
   longer sample is the concrete next check, not yet done.
-- NEXT: validate hit rate against a longer sample and a second coin before building anything on top
-  of it (the funding-link filter, sell alerts, or the admission tiebreaker below all depend on this
-  being trustworthy first).
+- ✓ VALIDATED AND FIXED, 2026-09-02: ran a bigger sample (80 signatures) against the same pool
+  address — hit rate held steady at ~28%, confirming the low rate was real and consistent, not a
+  fluke of the first 20. Root cause found by testing a second hypothesis: querying signatures
+  against the coin's MINT account directly, instead of one specific pool's address, jumped the hit
+  rate to 72% on CATE and 40% on DOGE-1 (confirmed on two different coins before trusting it). A
+  coin trades through more than one pool/route, and the pool address DexScreener reports is only
+  one of them; the mint is referenced by every transfer regardless of route. `walletflow.js` now
+  defaults to watching the mint. Still not wired to anything user-facing — next real step is the
+  funding-link filter, which this finding was a precondition for trusting enough to start.
 
 ### ∴ BUILD ORDER
 1. test whether the collection host can read a wallet at all (5 minutes, decides everything below)
