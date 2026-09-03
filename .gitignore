@@ -17,3 +17,4 @@ app/sidecar/
 # look "dirty" at random moments that had nothing to do with an actual edit.
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
+app/tools/.backtest-history-cache.json

@@ -66,6 +66,15 @@ It also flags an unfixed hazard: the live app state and `data/*.jsonl` can disag
 cron interval, so a rule designed against one and scored against the other measures nothing. Pick
 one surface first.
 
+## !! FIRST BACKTEST RUN, 2026-09-02 → [[backtest-findings]]
+Connal asked for real backtesting on prior coin history, without look-ahead, to see how the
+mechanism actually does. Real result, not softened: **the one market-only proxy rule tested lost
+money on this sample — 11% hit rate over 11 signals, avg return −9.7%.** n is far too small to
+mean anything on its own (D-05: n>=50), and the sample is 4 hand-picked coins, not an unbiased
+launch cohort — full caveats in the findings file. What IS proven: the walk-forward tool itself has
+no lookahead, which is the reusable part. Re-run `node app/tools/backtest-walkforward.js` once more
+history exists; do not re-tune this rule against the same 11 trades that produced this number.
+
 ## !! THE ARCHITECTURE — designed 2026-09-02, per Connal's direct instruction
 Connal, verbatim, after wallet tracking + social + market data were all live topics the same week:
 "you need to figure out a way to combine all of the data points into really a couple different
