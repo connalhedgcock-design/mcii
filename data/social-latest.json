@@ -1,11 +1,11 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1788559985085,
-    "people": 3,
-    "tone": 0.358,
-    "confidence": "none",
-    "manipulated": true,
+    "at": 1788563575967,
+    "people": 1,
+    "tone": null,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   },
   "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump": {
