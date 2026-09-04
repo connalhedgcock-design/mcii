@@ -142,4 +142,56 @@ async function poolFlow(watchAddress, mint, { limit = 40 } = {}) {
   return rows;
 }
 
-module.exports = { poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow };
+// --- FOLLOWED WALLETS: the inverse direction -- given a WALLET, what did IT do, in anything ----
+// Everything above answers "who traded THIS COIN" (query by mint). This answers "what did THIS
+// WALLET do", across every coin it touched, not only the ones already on a watchlist -- which
+// means a followed wallet buying something brand new surfaces that coin on its own, feeding
+// straight into discovery rather than only ever confirming coins found some other way.
+//
+// ! WHO GETS FOLLOWED IS NEVER THIS FILE'S DECISION. Connal, 2026-09-04: rather than the algorithm
+// inventing a "known good trader" list (no free, honest source exists -- see
+// 80-WHISPERS/whale-tracking/README's finding that every such claim online is unverifiable vendor
+// marketing), HE curates which wallets are worth following -- the same D-16 pattern already used
+// for coins, applied to wallets instead of tickers. This file only watches whichever addresses
+// `data/wallets.json` names; it has no opinion on who belongs there.
+
+// One transaction -> every balance change belonging to `walletAddress`, across ANY mint it holds
+// (not filtered to one coin). `delta > 0` = the wallet gained that mint. `delta < 0` = it sold.
+async function walletActivity(signature, walletAddress) {
+  const tx = await rpc('getTransaction',
+    [signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]);
+  if (!tx || !tx.meta) return [];
+
+  const pre = new Map();
+  for (const b of tx.meta.preTokenBalances || []) {
+    if (b.owner === walletAddress) pre.set(b.accountIndex, Number(b.uiTokenAmount?.uiAmount || 0));
+  }
+  const out = [];
+  for (const b of tx.meta.postTokenBalances || []) {
+    if (b.owner !== walletAddress) continue;
+    const before = pre.has(b.accountIndex) ? pre.get(b.accountIndex) : 0;
+    const after = Number(b.uiTokenAmount?.uiAmount || 0);
+    pre.delete(b.accountIndex);
+    const delta = after - before;
+    if (delta !== 0) out.push({ owner: walletAddress, mint: b.mint, delta, ts: tx.blockTime || null, signature });
+  }
+  // Same full-exit case as flowForTransaction: an account this wallet held pre-transaction with no
+  // post entry at all was closed entirely, and that is a complete sell, not silence.
+  for (const [, before] of pre) {
+    if (before > 0) out.push({ owner: walletAddress, mint: null, delta: -before, ts: tx.blockTime || null, signature });
+  }
+  return out;
+}
+
+// Recent activity for a followed wallet, across everything it has touched.
+async function walletHistory(walletAddress, { limit = 40 } = {}) {
+  const sigs = await poolSignatures(walletAddress, { limit });
+  const rows = [];
+  for (const sig of sigs) {
+    try { rows.push(...await walletActivity(sig, walletAddress)); }
+    catch (e) { /* D-29: a failed read of ONE transaction is skipped, never recorded as a zero */ }
+  }
+  return rows;
+}
+
+module.exports = { poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow, walletActivity, walletHistory };
