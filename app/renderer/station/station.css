@@ -590,83 +590,108 @@
    mid-frame — a bug that looks like a shader failure and is not. §9.4 */
 .st-beyond-floor {
   position: absolute;
-  left: -1200px;
-  top: 40px;
-  width: 2400px;
-  /* ⚠️ 1200, NOT 1800, AND NOT LESS THAN ~1000. This element is promoted
-     (3D transform), so its height is paid twice over in GPU backing store: at
-     dpr 2 the old 2400x1800 was a single 4800x3600 layer, 17.3 Mpx / ~66MB, for
-     a surface that rotateX(81deg) crushes into a sliver of actual screen.
-     The floor only has to reach the WALL. Tipped 81deg about its top edge, a
-     point d down this box lands at d*sin(81deg) ~= 0.988d of depth, and the
-     hull stands at RING + WALL_Z = 964px -- so the deck meets it at d ~= 976.
-     1800 ran ~800px PAST the wall, entirely hidden behind the hull, rastered
-     for nothing. 1200 clears the wall with room to spare and saves ~22MB.
-     Going below ~1000 is what would actually break: the deck would stop short
-     of the hull and open a seam of void along the base of the far wall. */
-  height: 1200px;
-  transform-origin: 50% 0%;
-  transform: rotateX(81deg);
+  /* ⚠️ THE DECK IS CENTRED ON THE CAMERA, AND IT IS FLAT. Both halves of that
+     are load-bearing, and both were wrong before.
+
+     It used to be a 2400x1200 rectangle pivoted at its top edge with the camera
+     standing on that edge, so the deck only ever ran FORWARD along one bearing.
+     That is fine in a corridor and wrong in a hub: you turn 168 degrees in here,
+     and past about 56 degrees off the home bearing you simply walked off the end
+     of the rectangle and the floor vanished into void. Anything painted at a
+     fixed bearing on it -- the old axial guide strip -- swung off centre for the
+     same reason. A room you rotate inside needs a deck that is radially
+     symmetric about you, so 2200x2200 centred on the camera: 1100px of deck in
+     every direction, against a hull that stands at RING + WALL_Z = 964.
+
+     ⚠️ rotateX(90deg), NOT 81. The old 81 was a cheat -- a 9-degree ramp sloping
+     away from you, which lifts the deck into the lower frame and reads fine when
+     the deck only exists in front. Centre the deck and that same 9 degrees tips
+     the half BEHIND you upward instead, and it rises over your shoulder as a
+     lit slab floating across the room at globe height. There is no wall back
+     there to hide it: the hull spans +/-133 degrees, so behind you is open void.
+     A real horizontal plane has no such half. The eye then sits 191px above it
+     (top + height/2), which is what puts the wall base at 900*191/964 ~= 178px
+     below the vanishing point and the bottom of the frame at r ~= 398. */
+  left: -1100px;
+  top: -909px;
+  width: 2200px;
+  height: 2200px;
+  transform-origin: 50% 50%;
+  transform: rotateX(90deg);
   background:
-    /* ⚠️ PLATES, AND THEY HAVE TO BE VISIBLE. The previous pass had exactly this
-       structure at 0.055 alpha, which is invisible, so the floor still read as
-       "just a blue grid" — the idea was right and the contrast was not. Tone
-       differences between plates must be strong enough to see BEFORE the joints
-       are; that is what separates a deck from a wireframe.
-       Two alternating radial wedges crossed with two alternating transverse
-       bands give four tone levels, and the eye resolves those as panels. */
-    repeating-conic-gradient(from 200deg at 50% -40%,
-      oklch(0.72 0.030 246 / 0.15) 0deg 2.4deg,
-      transparent 2.4deg 4.8deg),
-    linear-gradient(to bottom,
-      oklch(0.72 0.030 246 / 0.13) 0 6%, transparent 6% 13%,
-      oklch(0.72 0.030 246 / 0.13) 13% 21%, transparent 21% 30%,
-      oklch(0.72 0.030 246 / 0.13) 30% 41%, transparent 41% 53%,
-      oklch(0.72 0.030 246 / 0.13) 53% 67%, transparent 67% 82%,
-      oklch(0.72 0.030 246 / 0.13) 82% 100%),
-    /* the inlaid guide strip down the corridor's axis, lit along both edges */
-    linear-gradient(to right,
-      transparent 0 40.6%,
-      oklch(0.92 0.060 238 / 0.55) 40.6% 41.5%,
-      oklch(0.40 0.026 248 / 0.50) 41.5% 58.5%,
-      oklch(0.92 0.060 238 / 0.55) 58.5% 59.4%,
-      transparent 59.4% 100%),
-    /* plate joints — the SECOND cue now, not the only one */
-    repeating-conic-gradient(from 200deg at 50% -40%,
-      oklch(0.80 0.040 244 / 0.40) 0deg 0.18deg, transparent 0.18deg 2.4deg),
-    linear-gradient(to bottom,
-      transparent 0 5.8%,  oklch(0.80 0.038 244 / 0.42) 5.8% 6.15%,
-      transparent 6.15% 12.85%, oklch(0.80 0.038 244 / 0.42) 12.85% 13.2%,
-      transparent 13.2% 20.8%, oklch(0.78 0.036 244 / 0.40) 20.8% 21.15%,
-      transparent 21.15% 29.85%, oklch(0.76 0.034 245 / 0.38) 29.85% 30.25%,
-      transparent 30.25% 40.8%, oklch(0.74 0.032 245 / 0.36) 40.8% 41.25%,
-      transparent 41.25% 52.8%, oklch(0.72 0.030 245 / 0.34) 52.8% 53.25%,
-      transparent 53.25% 66.8%, oklch(0.70 0.028 246 / 0.30) 66.8% 67.3%,
-      transparent 67.3% 81.8%, oklch(0.68 0.026 246 / 0.26) 81.8% 82.35%,
-      transparent 82.35% 100%),
-    /* the cove's specular return down the polished deck */
-    linear-gradient(to right,
-      transparent 0 26%,
-      oklch(0.70 0.050 242 / 0.16) 44%,
-      oklch(0.80 0.055 240 / 0.22) 50%,
-      oklch(0.70 0.050 242 / 0.16) 56%,
-      transparent 74% 100%),
-    /* ⚠️ THE DECK IS STILL THE DARKEST SURFACE IN THE ROOM. Overhead brightest →
-       wall mid → deck darkest is NASA's own up/down cue (SSP 50008); brightening
-       the deck past the wall inverts it and the room reads upside down. Raising
-       the PLATE CONTRAST above is not the same as raising the deck's brightness,
-       and it is the part that was missing. */
-    linear-gradient(to top,
-      oklch(0.335 0.028 249 / 0.97),
-      oklch(0.272 0.024 250 / 0.88) 44%,
-      oklch(0.205 0.018 250 / 0.55) 72%,
-      oklch(0.150 0.013 251 / 0.20) 90%,
-      transparent 97%);
-  /* Carried far enough forward that the lower third of the frame has structure.
-     Masked short, it leaves a dark band — the "long stretches of plain colour"
-     the anti-emptiness rule refuses. */
-  mask-image: linear-gradient(to top, #000 0%, #000 62%, transparent 94%);
-  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 62%, transparent 94%);
+    /* ⚠️ CONCENTRIC, SO IT CANNOT OFF-CENTRE. The deck rotates with the room, so
+       any marking at a fixed bearing points somewhere specific and swings away
+       as you turn -- which is exactly what the old axial strip did. A circle
+       about the camera looks the same from every heading. */
+    radial-gradient(circle at 50% 50%,
+      transparent 0 610px,
+      oklch(0.88 0.055 238 / 0.34) 610px 614px,
+      transparent 614px 646px,
+      oklch(0.88 0.055 238 / 0.20) 646px 649px,
+      transparent 649px),
+
+    /* Traffic wear. Two soft off-axis patches are what stop a perfectly regular
+       grid of plates from reading as tiled wallpaper. */
+    radial-gradient(ellipse 15% 15% at 41% 43%, oklch(0.74 0.020 248 / 0.055), transparent 72%),
+    radial-gradient(ellipse 12% 12% at 59% 58%, oklch(0.74 0.020 248 / 0.045), transparent 72%),
+
+    /* The cove's return. The cove is AT THE WALL, so the sheen belongs out at
+       the rim, not pooled around your feet. */
+    radial-gradient(circle at 50% 50%,
+      transparent 0 600px,
+      oklch(0.80 0.055 240 / 0.10) 900px,
+      oklch(0.70 0.050 242 / 0.06) 980px,
+      transparent 1030px),
+
+    /* ⚠️ UNIFORM SPACING, IN DECK SPACE. DO NOT "ADD PERSPECTIVE" TO THESE.
+       This element is a real plane in a real 3D scene, so the browser already
+       projects it. The deck before this drew its plates as repeating-conic
+       wedges radiating from a made-up vanishing point at 50% -40%, crossed with
+       bands at 6% 13% 21% 30% 41% 53% 67% 82% -- spacings hand-widened to fake
+       recession. Perspective was therefore applied three times over: once for
+       real and twice by hand. That is why the deck read as a blue wireframe grid
+       instead of a floor; the plates were wedges and their convergence fought
+       the room's actual geometry. Evenly spaced lines are the correct texture,
+       and the projection converges them consistently with hull, vault and doors. */
+    repeating-linear-gradient(to bottom,
+      transparent 0 51px,
+      oklch(0.09 0.010 250 / 0.55) 51px 54px,
+      oklch(0.88 0.045 240 / 0.30) 54px 55px),
+    repeating-linear-gradient(to right,
+      transparent 0 156px,
+      oklch(0.09 0.010 250 / 0.45) 156px 159px,
+      oklch(0.88 0.045 240 / 0.24) 159px 160px),
+
+    /* ⚠️ PLATES, AND THEY HAVE TO BE VISIBLE. Tone differences between plates
+       must be strong enough to see BEFORE the joints are; that is what separates
+       a deck from a wireframe. Two crossed alternations at twice the joint pitch
+       give four tone levels and the eye resolves those as panels. */
+    repeating-linear-gradient(to bottom,
+      oklch(0.74 0.030 246 / 0.10) 0 55px, transparent 55px 110px),
+    repeating-linear-gradient(to right,
+      oklch(0.74 0.030 246 / 0.075) 0 160px, transparent 160px 320px),
+
+    /* ⚠️ THE DECK IS THE DARKEST SURFACE IN THE ROOM. Overhead brightest → wall
+       mid → deck darkest is NASA's own up/down cue (SSP 50008); brightening the
+       deck past the wall inverts it and the room reads upside down. Raising the
+       PLATE CONTRAST above is not the same as raising the deck's brightness.
+       Ramped over the band that is actually on screen: r ~= 398 at the bottom of
+       the frame out to r = 964 at the wall. */
+    radial-gradient(circle at 50% 50%,
+      oklch(0.105 0.008 251 / 0.98) 0 330px,
+      oklch(0.185 0.016 250 / 0.96) 470px,
+      oklch(0.235 0.021 250 / 0.94) 650px,
+      oklch(0.270 0.024 250 / 0.93) 830px,
+      oklch(0.295 0.026 249 / 0.92) 975px,
+      transparent 1055px);
+
+  /* Radial, like everything else here, so the fade cannot swing with the
+     heading. Fades out just past the hull and again right around your feet,
+     where the texture would otherwise stretch. */
+  mask-image: radial-gradient(circle at 50% 50%,
+    transparent 0 100px, #000 230px, #000 985px, transparent 1058px);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%,
+    transparent 0 100px, #000 230px, #000 985px, transparent 1058px);
 }
 
 /* ── the ceiling: FIXED IN SCREEN SPACE, and this is not laziness ──────────
@@ -993,6 +1018,10 @@
    The source strings in station-geometry.js stay Title Case for readability in the code; this
    transform is what actually renders them. */
 .st-portal-plate {
+  /* ⚠️ RETIRED, NOT DELETED. The console's FACING screen carries this now, so the
+     name is read off the thing in front of you instead of off the far wall. The
+     element stays because the door still wants its label in the DOM for anything
+     reading the room, and because `measure()` used to lean on these boxes. */
   position: absolute;
   left: 50%; bottom: -40px;
   /* ⚠️ translateZ IS LOAD-BEARING. The wall now sits in FRONT of the door ring
@@ -1001,7 +1030,11 @@
      was. 30px brings it out through the opening onto the wall's face, where a
      real door placard is riveted anyway. */
   transform: translateX(-50%) translateZ(30px);
-  display: flex; align-items: center; gap: 5px;
+  /* ⚠️ `none`, and it has to be set HERE. The rule declares its own `display`
+     further down its own body, so a `display: none` added at the top of the block
+     is simply overwritten by it — the placards stayed on screen and looked like the
+     stylesheet had been ignored. */
+  display: none; align-items: center; gap: 5px;
   padding: 6px 18px;
   border-radius: 3px;
   white-space: nowrap;
@@ -1276,67 +1309,63 @@
    readout rather than as a window. This is the ONE sanctioned use of
    translucency in the app and it is earned: a projection has to be see-through
    to be a projection. Not precedent for blurring a sidebar. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE COMMAND TABLE — only the box it lives in. The model is a real mesh drawn
+   into a canvas by holo-table.js; there is nothing to style here, and that is
+   the point. Two earlier passes built this out of stacked ellipses and then out
+   of CSS 3D transforms, and both read as flat, because CSS can only transform
+   RECTANGLES and a lathe's shading varies continuously round its circumference.
+   The CSS version also put ~35 composited layers over a moving room and cost
+   ~17fps on the turn; this is one canvas, drawn once.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.st-console3 {
+  position: absolute;
+  left: 50%; bottom: 16px;
+  width: min(720px, 60vw); height: 400px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ⚠️ FULL-STAGE AND INVISIBLE, LIKE `.st-hub`. This used to be a narrow box
+   positioned at `--proj-y`, sized to `--proj-w`, that the pane sat inside of --
+   which is the ANCESTOR-TRANSFORM problem this file already warns about once
+   (see the old note on preserve-3d and hit-testing) showing up again one layer
+   up: the row's OWN corner-pin transform needs to place it in STAGE coordinates,
+   and a positioned, transformed ancestor between it and the stage would compose
+   with that and throw the placement off. `.st-prompt-row` and `.st-reply`
+   position themselves directly. */
 .st-projector {
   position: absolute;
-  left: 50%; top: var(--proj-y, 62%);
-  transform: translateX(-50%);
-  pointer-events: auto;          /* the layer above is inert; this is not */
-  width: min(520px, 46vw);
-  /* ⚠️ NO `transform-style: preserve-3d` here. With it, Chromium hit-tests the
-     3D-rotated pane against this ancestor instead of the pane itself, so every
-     click on the input and the sign-in button landed on .st-projector and did
-     nothing — the button looked alive, highlighted its own label, and could not
-     be pressed. Verified with elementFromPoint, which is the only thing that
-     shows it: a swallowed click is invisible in the inspector.
-     It buys nothing regardless — the pane is the only 3D child and has no 3D
-     children of its own, so flattening it is exactly what we want. */
-  perspective: 700px;
-  transition: opacity 220ms var(--st-ease), transform 220ms var(--st-ease);
-}
-.st-projector-beam {
-  position: absolute;
-  left: 22%; right: 22%; bottom: 100%; height: 120px;
+  inset: 0;
   pointer-events: none;
-  background: linear-gradient(to top,
-    oklch(0.72 0.145 235 / 0.16) 0%, oklch(0.72 0.145 235 / 0.04) 55%, transparent 92%);
-  clip-path: polygon(30% 100%, 70% 100%, 100% 0, 0 0);
-  filter: blur(6px);                   /* static. Never animated. */
 }
-.st-projector-pane {
-  transform: rotateX(34deg);
-  transform-origin: 50% 100%;
-  padding: 14px 16px;
-  border-radius: 4px;
-  /* ⚠️ MEASURED, not the flat 170px this pane used to leave `.st-reply` free to grow past. Once a
-     real answer arrived the pane could run ~230px+ tall, and the anchor above only ever reserved
-     enough room for a short one — so the overflow ran past the sill and out the bottom of the
-     WINDOW ITSELF, which read as the Dock cutting the text off. --proj-cap is the actual space
-     between the anchor and the sill, computed in measure(); the reply flexes to fit inside it. */
-  display: flex; flex-direction: column;
-  max-height: var(--proj-cap, 320px);
-  border: 1px solid oklch(0.62 0.08 238 / 0.34);
-  /* ⚠️ Opaque enough to read against the FLOOR. The pane used to sit over the lit
-     doorway, which lent it a bright backdrop; now that it clears the door plates
-     it hangs over dark deck instead, and the old 0.30 alpha left the prompt and
-     the sign-in button barely legible. A projection still, just one you can read. */
-  background:
-    repeating-linear-gradient(to bottom,
-      oklch(0.72 0.145 235 / 0.06) 0 1px, transparent 1px 4px),
-    linear-gradient(to bottom, oklch(0.26 0.032 245 / 0.86), oklch(0.15 0.016 250 / 0.92));
-  box-shadow: 0 0 44px -10px oklch(0.72 0.145 235 / 0.5),
-              0 10px 30px -18px oklch(0.02 0.004 250);
-  /* Edges that FALL OFF rather than terminate in a rectangle — the difference
-     between projected light and a floating card. */
-  mask-image: radial-gradient(ellipse 106% 150% at 50% 55%, #000 72%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 106% 150% at 50% 55%, #000 72%, transparent 100%);
+/* the pane lies flat on the console's ORION facet, which faces the camera */
+.st-prompt-row {
+  /* ⚠️ POSITIONED AND SIZED BY placePrompt() IN station.js, NOT HERE. Width,
+     height and the transform matrix all come from the facet's own projected
+     corners, every time the room resizes or the door turns -- these are only
+     what the very first frame needs before that measurement has landed once. */
+  position: absolute;
+  left: 0; top: 0;
+  transform-origin: 0 0;
+  box-sizing: border-box;
+  pointer-events: auto;          /* the layer above is inert; this is not */
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 8px;
+  overflow: hidden;              /* a long placeholder ellipsizes, never spills the facet */
 }
-/* flex:none -- the input row must never be the thing that shrinks when --proj-cap is tight;
-   `.st-reply` gives up its own room first, down to its own min-height, before this would. */
-.st-prompt-row { display: flex; align-items: center; gap: 9px; flex: none; }
+
 .st-mode {
   font-family: var(--st-mono);
-  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-  padding: 4px 9px; border-radius: 2px; flex: none;
+  /* ⚠️ FITS BY CONSTRUCTION NOW, NOT BY A NUMBER PICKED TO FIT ONE MEASUREMENT.
+     `.st-prompt-row`'s own box is set to the ORION facet's actual projected size
+     before this ever lays out (see placePrompt() in station.js), so whatever
+     doesn't fit at this size ellipsizes in the input rather than running off the
+     facet. Kept small because the facet itself is a small flat inset, not because
+     a specific pixel count was measured against it. */
+  font-size: 7px; letter-spacing: 0.13em; text-transform: uppercase;
+  padding: 2px 4px; border-radius: 2px; flex: none;
   border: 1px solid oklch(0.50 0.030 245 / 0.6);
   background: oklch(0.14 0.010 250 / 0.7);
   color: var(--st-fg-mute);
@@ -1347,10 +1376,11 @@
    typing. */
 .st-mode.is-on { color: var(--st-holo-hot); border-color: oklch(0.70 0.09 236 / 0.85); }
 .st-prompt {
+  text-overflow: ellipsis;
   flex: 1; min-width: 0;
   background: transparent; border: 0; outline: 0;
   color: var(--st-fg);
-  font-family: inherit; font-size: 13.5px;
+  font-family: inherit; font-size: 11px;
 }
 .st-prompt::placeholder { color: var(--st-fg-faint); }
 .st-signin {
@@ -1368,33 +1398,89 @@
 .st-signin[hidden] { display: none; }
 
 /* Orion answers in prose, and prose is longer than a readout. It SCROLLS inside
-   the pane rather than growing it: a transcript expanding in the middle of a
-   cockpit destroys the room. */
+   the panel rather than growing without bound: a transcript expanding to fill the
+   room destroys the room. And it has to be POSSIBLE TO PUT IT AWAY -- an answer
+   that sits over the console until the app restarts is a worse failure than a
+   panel that never appeared, so `.st-reply-close` and Escape (see onKey in
+   station.js) both dismiss it; asking again brings it straight back. */
+.st-reply[hidden] { display: none; }
+
+/* ⚠️ THE ANSWER IS A PROJECTION ABOVE THE TABLE, NOT A PANEL ON IT. It used to sit
+   inside `.st-projector-pane`, which is only as wide as the console's glass — so a
+   real reply wrapped to roughly one word a line. It is anchored by its BOTTOM, just
+   clear of the ORION facet's own top edge (`--reply-bottom`, set in measure()), and
+   grows UPWARD into the room; anchored by the top it would push down through the
+   console the moment an answer ran long. */
 .st-reply {
-  margin-top: 9px; padding-top: 9px;
-  border-top: 1px solid oklch(0.50 0.030 245 / 0.22);
-  font-size: 12.5px; line-height: 1.55; color: var(--st-fg-2);
-  /* flex, not a flat max-height: this is what lets it fill whatever room --proj-cap actually
-     leaves after the prompt row, on a short screen as well as a tall one, and still never exceed
-     it. min-height:0 is required or a flex child refuses to shrink below its content size. */
-  flex: 1 1 auto; min-height: 0;
+  position: absolute;
+  left: 50%;
+  bottom: var(--reply-bottom, 42%);
+  transform: translateX(-50%);
+  /* ⚠️ `.st-projector` (the containing block) is `pointer-events: none`, and this
+     is not a plain rectangle child like `.st-prompt-row` that sets its own auto —
+     pointer-events INHERITS, so without this the close button below is drawn but
+     un-clickable: the click falls straight through to whatever is behind the
+     panel. Same failure this file already warns about once for hit-testing under
+     a transformed ancestor; this is the plain CSS-inheritance version of it. */
+  pointer-events: auto;
+  /* ⚠️ SIZED TO THE ANSWER, NOT FIXED. At a flat 620px this was a slab across half
+     the room whether it held two words or twenty lines. It is about twice the
+     console's glass — enough to read comfortably — and it grows only as far as the
+     text actually needs, up to a cap. */
+  width: min(430px, 34vw);
+  max-height: min(300px, 38vh);
+  border-radius: 4px;
+  border: 1px solid oklch(0.62 0.08 238 / 0.30);
+  background:
+    repeating-linear-gradient(to bottom,
+      oklch(0.72 0.145 235 / 0.06) 0 1px, transparent 1px 4px),
+    linear-gradient(to bottom, oklch(0.26 0.032 245 / 0.88), oklch(0.14 0.016 250 / 0.94));
+  box-shadow: 0 0 52px -12px oklch(0.72 0.145 235 / 0.55),
+              0 14px 34px -20px oklch(0.02 0.004 250);
+  /* Edges that fall off rather than terminate in a rectangle — the difference
+     between projected light and a floating card. Clipped to the rounded corners
+     so the close button's own hit area cannot sit outside the panel's own edge. */
+  mask-image: radial-gradient(ellipse 108% 150% at 50% 55%, #000 74%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 108% 150% at 50% 55%, #000 74%, transparent 100%);
+}
+/* ⚠️ THE DISMISS CONTROL, NOT THE TEXT, SETS `.st-reply`'s CLASSES. `.st-reply-body`
+   is what `say()`/`typeOut()` write textContent into, so the close button below is
+   never at risk of being wiped out by `reply.textContent = ...` the way it would be
+   if it lived as a sibling text node inside the same element. */
+.st-reply-body {
+  padding: 11px 34px 11px 13px;    /* room on the right for the close button */
+  max-height: min(300px, 38vh);
   overflow-y: auto; overscroll-behavior: contain;
+  font-size: 12px; line-height: 1.58; color: var(--st-fg-2);
   white-space: pre-wrap; word-break: break-word;
   scrollbar-width: thin;
   scrollbar-color: oklch(0.52 0.06 240 / 0.55) transparent;
 }
-.st-reply::-webkit-scrollbar { width: 7px; }
-.st-reply::-webkit-scrollbar-track { background: transparent; }
-.st-reply::-webkit-scrollbar-thumb { background: oklch(0.52 0.06 240 / 0.5); border-radius: 4px; }
-.st-reply::-webkit-scrollbar-thumb:hover { background: oklch(0.64 0.08 238 / 0.75); }
+.st-reply-body::-webkit-scrollbar { width: 7px; }
+.st-reply-body::-webkit-scrollbar-track { background: transparent; }
+.st-reply-body::-webkit-scrollbar-thumb { background: oklch(0.52 0.06 240 / 0.5); border-radius: 4px; }
+.st-reply-body::-webkit-scrollbar-thumb:hover { background: oklch(0.64 0.08 238 / 0.75); }
+.st-reply-close {
+  position: absolute;
+  top: 5px; right: 6px;
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px solid oklch(0.60 0.030 245 / 0.4);
+  background: oklch(0.16 0.012 250 / 0.7);
+  color: var(--st-fg-mute);
+  font-size: 13px; line-height: 1; cursor: pointer;
+  transition: color 140ms var(--st-ease), border-color 140ms var(--st-ease), background 140ms var(--st-ease);
+}
+.st-reply-close:hover { color: var(--st-fg); border-color: oklch(0.62 0.08 238 / 0.7); background: oklch(0.20 0.016 250 / 0.85); }
 /* The wait reads as the machine working, not as an answer. Dimmer, italic, and
    with a cursor that keeps moving so a long pause never looks like a hang. */
-.st-reply.is-think {
+.st-reply.is-think .st-reply-body {
   color: var(--st-fg-mute);
   font-style: italic;
   letter-spacing: 0.02em;
 }
-.st-reply.is-think::after {
+.st-reply.is-think .st-reply-body::after {
   content: '';
   display: inline-block;
   width: 6px; height: 6px;
@@ -1409,10 +1495,9 @@
   50%      { opacity: 1;    transform: translateY(-2px) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .st-reply.is-think::after { animation: none; opacity: 0.8; }
+  .st-reply.is-think .st-reply-body::after { animation: none; opacity: 0.8; }
 }
-.st-reply.is-err { color: var(--st-down); }
-.st-reply:empty { display: none; }
+.st-reply.is-err .st-reply-body { color: var(--st-down); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    THE INSTRUMENT VOCABULARY — six silhouettes.

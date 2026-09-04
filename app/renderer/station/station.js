@@ -17,13 +17,15 @@ import {
   WALL_Z, VAULT_TILT_DEG,
 } from './station-geometry.js'
 import { mountGlobe } from './holo-globe.js'
+import { mountTable } from './holo-table.js'
 import { snapshot, renderBoard } from './instruments.js'
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
-let stage, world, stars, hub, globeHost, smearHost, sill, colL, colR, notice
+let stage, world, stars, hub, globeHost, tableHost, promptRow, smearHost, sill, colL, colR, notice
 let globe = null
+let table = null
 let door = homeIndex()
 // ⚠️ THE ROOM KEEPS EVERYTHING THE OLD HEADING COULD SEE UNTIL THE TURN HAS
 // FINISHED. render() runs the instant the heading changes, while the CSS
@@ -39,6 +41,7 @@ let settleTimer = null
 let navTimer = 0
 let winId = '24h'
 let selectedCa = null   // which coin the caution panel has selected, if any
+let clearReplyFn = null // set once by wirePrompt(); lets onKey() dismiss an answer
 let snap = null
 let active = false
 let inFlight = false
@@ -140,18 +143,40 @@ function build(root) {
         <div class="st-col st-col-l"></div>
         <div class="st-col st-col-r"></div>
 
+        <!-- THE COMMAND TABLE. Just a host: the model itself is a real mesh drawn
+             into a canvas by holo-table.js, the same way the globe is. See that
+             file for why it is not CSS. -->
+        <div class="st-console3" aria-hidden="true"></div>
+
         <div class="st-hub">
           <div class="st-globe"><span class="st-globe-fallback"></span></div>
           <div class="st-projector">
-            <span class="st-projector-beam"></span>
-            <div class="st-projector-pane">
-              <div class="st-prompt-row">
-                <span class="st-mode is-on">orion</span>
-                <input class="st-prompt" type="text" autocomplete="off"
-                       placeholder="ask orion anything — your coins, your notes, or whatever else…">
-                <button class="st-signin" hidden>log in to anthropic</button>
-              </div>
-              <div class="st-reply"></div>
+            <!-- ⚠️ THE ANSWER IS NOT ON THE CONSOLE. The glass is a console screen —
+                 measured, a real reply does not fit on it and wrapped to about a
+                 word a line. The prompt stays down on the table where you type it;
+                 the answer comes back as a projected readout ABOVE the table, sized
+                 to what it actually holds rather than a fixed slab, and with an
+                 explicit close control -- once it has answered, "how do I get this
+                 off my screen" needs an actual answer, not a restart. -->
+            <div class="st-reply" hidden>
+              <button class="st-reply-close" type="button" title="clear (esc)">×</button>
+              <div class="st-reply-body"></div>
+            </div>
+            <!-- ⚠️ THE PROMPT IS CORNER-PINNED ONTO THE ORION FACET, not laid out at
+                 a guessed size and hoped onto the glass. holo-table.js mills ORION
+                 as the one FLAT facet on the whole model -- a live control needs a
+                 plane to sit on, not a curve -- and hands back that facet's own
+                 projected corners every time the room resizes or the door turns.
+                 placePrompt() below sets this row's width/height to the facet's own
+                 on-screen size (so the chip and the placeholder lay out against the
+                 real available space, not a constant) and then an affine transform
+                 tilts the whole row onto it. Fit is a consequence of the geometry,
+                 not a font size chosen by eye. -->
+            <div class="st-prompt-row">
+              <span class="st-mode is-on">orion</span>
+              <input class="st-prompt" type="text" autocomplete="off"
+                     placeholder="ask orion anything…">
+              <button class="st-signin" hidden>log in to anthropic</button>
             </div>
           </div>
         </div>
@@ -179,6 +204,8 @@ function build(root) {
   stars = root.querySelector('.st-ceil-stars')
   hub = root.querySelector('.st-hub')
   globeHost = root.querySelector('.st-globe')
+  tableHost = root.querySelector('.st-console3')
+  promptRow = root.querySelector('.st-prompt-row')
   smearHost = root.querySelector('.st-beyond')
   sill = root.querySelector('.st-sill')
   colL = root.querySelector('.st-col-l')
@@ -192,6 +219,7 @@ function build(root) {
       else setDoor(i)
     })
   })
+  table = mountTable(tableHost)
   wirePrompt(root)
 }
 
@@ -199,6 +227,33 @@ function build(root) {
    The room measures ITSELF. It is a pane inside an app, not the window, so its
    height is not knowable in advance — and assuming 900 buries the bottom board
    at every other size. */
+/** Corner-pin `el` onto a FLAT quad [topLeft, topRight, bottomRight, bottomLeft],
+ *  given in the coordinate space `el`'s positioned ancestor lives in (here,
+ *  `.st-hub`, which is `inset: 0` on the stage -- so these are stage-relative px).
+ *
+ *  ⚠️ SIZE FIRST, THEN TILT. The row's width and height are set to the facet's own
+ *  projected size before anything inside it lays out, so the chip and the
+ *  placeholder resolve against the real available space -- fit is a consequence of
+ *  the geometry, not a font size picked by eye and hoped onto the glass.
+ *
+ *  ⚠️ AN AFFINE MATRIX, NOT A FULL PERSPECTIVE ONE. Three of the four corners fix
+ *  an origin and two basis vectors; that is the same construction curvedText() in
+ *  holo-table.js already uses to write directly onto the model. It is exact for a
+ *  true parallelogram and close enough for this facet's modest tilt that the
+ *  fourth corner never visibly strays from where the other three put it -- and it
+ *  avoids a full projective (matrix3d) solve for what is, on screen, a small and
+ *  gently tilted rectangle. */
+function placePrompt(el, quad) {
+  const [p0, p1, , p3] = quad
+  const w = Math.max(1, Math.round(Math.hypot(p1.x - p0.x, p1.y - p0.y)))
+  const h = Math.max(1, Math.round(Math.hypot(p3.x - p0.x, p3.y - p0.y)))
+  el.style.width = `${w}px`
+  el.style.height = `${h}px`
+  const ux = (p1.x - p0.x) / w, uy = (p1.y - p0.y) / w
+  const vx = (p3.x - p0.x) / h, vy = (p3.y - p0.y) / h
+  el.style.transform = `matrix(${ux}, ${uy}, ${vx}, ${vy}, ${p0.x}, ${p0.y})`
+}
+
 function measure() {
   if (!stage) return
   // The stage sits under whatever app chrome is actually showing. Measured, not
@@ -234,29 +289,27 @@ function measure() {
     // where each door goes. Take whichever constraint is lower. Measured, again,
     // because the plates are 3D-projected and their screen position moves with
     // the room's height and the heading.
-    let projY = cy + gd / 2 + 20
-    const plates = [...stage.querySelectorAll('.st-portal:not(.is-offscreen) .st-portal-plate')]
-    for (const pl of plates) {
-      const r = pl.getBoundingClientRect()
-      if (!r.height) continue
-      projY = Math.max(projY, r.bottom - box.top + 14)
+    // ⚠️ THE PROMPT IS CORNER-PINNED ONTO THE MODEL'S OWN GLASS, and the model
+    // tells us where that is. holo-table.js mills ORION as the one FLAT facet on
+    // the drum and hands back its four projected corners every time the room
+    // resizes or the door turns; placePrompt() below sets this row's own box to
+    // that facet's on-screen size and tilts it to match. Table.screen() returns
+    // coordinates relative to the CANVAS HOST, not the stage, so they need the
+    // host's own offset added before they mean anything here.
+    table?.resize()
+    const raw = table?.screen()
+    if (raw && tableHost) {
+      const hr = tableHost.getBoundingClientRect()
+      const dx = hr.left - box.left, dy = hr.top - box.top
+      const quad = raw.map((p) => ({ x: p.x + dx, y: p.y + dy }))
+      placePrompt(promptRow, quad)
+      // ⚠️ THE READOUT GROWS UPWARD FROM THIS FACET'S OWN TOP EDGE, so its own
+      // (dynamic, content-dependent) height never has to be known in advance —
+      // anchored from the top instead, it would push down through the console
+      // the moment an answer ran long.
+      const topY = Math.min(quad[0].y, quad[1].y)
+      hub.style.setProperty('--reply-bottom', `${Math.round(box.height - topY + 14)}px`)
     }
-    // Never so low that it collides with the sill. Measured, not guessed: reading the sill's own
-    // rendered top is what lets this stay correct at any window height, the way the globe's own
-    // position is measured from the doorway rather than assumed.
-    const sillTop = sill.getBoundingClientRect().top - box.top
-    const maxY = sillTop - 40
-    const y = Math.round(Math.min(projY, maxY))
-    hub.style.setProperty('--proj-y', `${y}px`)
-
-    // ⚠️ THE PANE'S OWN HEIGHT WAS NEVER BOUNDED BY THIS. `.st-reply` had a flat 170px max-height
-    // regardless of how much room actually existed below the anchor — fine for a short answer, but
-    // a full reply plus the prompt row can run past 230px, and every pixel past the sill is a pixel
-    // past the BOTTOM OF THE WINDOW ITSELF (the sill sits flush at the room's own floor). The
-    // result was Orion's answer appearing to be cut off by the Dock: it was not covered, it was
-    // rendered outside the window. `--proj-cap` is the real, measured ceiling for the whole pane;
-    // `.st-reply` flexes to fill whatever is left of it and scrolls internally for the rest.
-    hub.style.setProperty('--proj-cap', `${Math.max(90, Math.round(sillTop - y - 12))}px`)
   }
 
   globe?.resize()
@@ -299,6 +352,8 @@ function render() {
   const f = DOORS[door]
   sill.querySelector('.st-sill-door').textContent = f.label
   sill.querySelector('.st-sill-blurb').textContent = f.blurb
+  // The console's FACING screen is what replaced the placards under the doors.
+  table?.setFacing(f.label)
   const state = sill.querySelector('.st-sill-state')
   // ⚠️ Keep the hook class. Assigning className wholesale here stripped
   // `st-sill-state` off the element, so the NEXT render could not find it and
@@ -443,6 +498,8 @@ function fitArcs() {
 function wirePrompt(root) {
   const input = root.querySelector('.st-prompt')
   const reply = root.querySelector('.st-reply')
+  const body = root.querySelector('.st-reply-body')     // text lives here, not on .st-reply
+  const closeBtn = root.querySelector('.st-reply-close')
   const signin = root.querySelector('.st-signin')
 
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -453,11 +510,25 @@ function wirePrompt(root) {
     clearInterval(thinkTimer); thinkTimer = 0
   }
 
+  /* The readout only exists while there is something to read. Empty and hidden is
+     the resting state — a blank projected slab over the table is worse than none. */
+  const showReply = (text) => { reply.hidden = !text }
+
+  /* ⚠️ THE ONLY WAY OFF THE SCREEN WAS RESTARTING THE APP, and that is a real bug,
+     not a missing nicety: nothing dismissed an answer once it had landed. Both the
+     close button and Escape (see onKey below) call this. Stopping any in-flight
+     animation first matters — otherwise a still-running typeOut() or the thinking
+     dots would repaint over a reply the operator just closed. */
+  const clearReply = () => { stopAnimations(); reply.hidden = true; body.textContent = '' }
+  closeBtn.addEventListener('click', clearReply)
+  clearReplyFn = clearReply
+
   const say = (text, err) => {
     stopAnimations()
     reply.className = `st-reply${err ? ' is-err' : ''}`
-    reply.textContent = text
-    reply.scrollTop = 0
+    body.textContent = text
+    body.scrollTop = 0
+    showReply(text)
   }
 
   /* ── the wait ─────────────────────────────────────────────────────────────
@@ -473,8 +544,9 @@ function wirePrompt(root) {
   function startThinking() {
     stopAnimations()
     reply.className = 'st-reply is-think'
+    reply.hidden = false
     let i = 0
-    const paint = () => { reply.textContent = WAITING[i % WAITING.length] }
+    const paint = () => { body.textContent = WAITING[i % WAITING.length]; showReply(WAITING[i % WAITING.length]) }
     paint()
     if (reduced) return
     thinkTimer = setInterval(() => { i++; paint() }, 2600)
@@ -489,17 +561,17 @@ function wirePrompt(root) {
   function typeOut(text) {
     stopAnimations()
     reply.className = 'st-reply'
-    if (reduced || text.length < 3) { reply.textContent = text; return }
+    if (reduced || text.length < 3) { body.textContent = text; showReply(text); return }
     const t0 = performance.now()
     const step = (now) => {
       const p = Math.min(1, (now - t0) / TYPE_MS)
       // Ease out: fast at the start, settling at the end. A linear crawl reads
       // as a machine printing; this reads as something answering.
       const n = Math.round(text.length * (1 - Math.pow(1 - p, 2)))
-      reply.textContent = text.slice(0, n)
-      reply.scrollTop = reply.scrollHeight
+      body.textContent = text.slice(0, n)
+      body.scrollTop = body.scrollHeight
       if (p < 1) typeRaf = requestAnimationFrame(step)
-      else { typeRaf = 0; reply.scrollTop = 0 }
+      else { typeRaf = 0; body.scrollTop = 0 }
     }
     typeRaf = requestAnimationFrame(step)
   }
@@ -527,7 +599,7 @@ function wirePrompt(root) {
         : 'Orion is installed but this machine is not signed in. Click "log in to anthropic" — '
           + 'it opens a terminal and your browser. The app never sees your account.')
     } else {
-      input.placeholder = 'ask orion anything — your coins, your notes, or whatever else…'
+      input.placeholder = 'ask orion anything…'
       setNotice('')
     }
     return { installed, ready }
@@ -612,11 +684,16 @@ function onKey(e) {
     if (e.key === 'Escape') leave()      // esc always walks you back to the room
     return
   }
+  const replyOpen = () => stage.querySelector('.st-reply') && !stage.querySelector('.st-reply').hidden
   const t = e.target
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) {
-    if (e.key === 'Escape') t.blur()
+    // ⚠️ ESCAPE CLEARS THE ANSWER BEFORE IT BLURS THE FIELD. Restarting the app was
+    // the only way to get a long answer off the console before this — the field
+    // stays focused, so asking the next question is one keystroke away either way.
+    if (e.key === 'Escape') { if (replyOpen()) clearReplyFn?.(); else t.blur() }
     return
   }
+  if (e.key === 'Escape' && replyOpen()) { e.preventDefault(); clearReplyFn?.(); return }
   if (e.key === 'ArrowRight')     { e.preventDefault(); turn(+1) }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); turn(-1) }
   else if (e.key === 'ArrowUp')   { e.preventDefault(); enter() }
@@ -773,7 +850,7 @@ export function initObservatory(root) {
       return `${b.dataset.board}:${over > 1 ? 'CUT by ' + over + 'px' : 'ok'}`
     }).join('  '))
 
-    console.warn('[hit] ' + ['.st-signin', '.st-prompt', '.st-projector-pane']
+    console.warn('[hit] ' + ['.st-signin', '.st-prompt', '.st-prompt-row']
       .map(hit).join('  |  '))
 
     // Drive the caution panel from inside the page. Clicking a lamp is the whole
