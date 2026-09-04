@@ -274,3 +274,4 @@
 {"ts":1788523970895,"src":"cloud","universe":37,"survivors":7,"tookMs":30719,"rejects":{"liquidity only $X":15,"only Nh old":3,"older than N days":8,"one wallet holds N%":4}}
 {"ts":1788525745161,"src":"cloud","universe":36,"survivors":7,"tookMs":28369,"rejects":{"only Nh old":1,"liquidity only $X":17,"older than N days":8,"one wallet holds N%":3}}
 {"ts":1788527563848,"src":"cloud","universe":38,"survivors":9,"tookMs":33118,"rejects":{"liquidity only $X":15,"only Nh old":3,"older than N days":8,"one wallet holds N%":3}}
+{"ts":1788529346943,"src":"cloud","universe":41,"survivors":9,"tookMs":31703,"rejects":{"liquidity only $X":20,"only Nh old":2,"older than N days":8,"one wallet holds N%":2}}
