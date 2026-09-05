@@ -12,8 +12,7 @@
   {
     "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
     "sym": "DOGE-1",
-    "nick": null,
-    "newsQuery": "\"DOGE-1\" OR \"Geometric Energy Corporation\""
+    "nick": null
   },
   {
     "ca": "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18",
@@ -23,6 +22,21 @@
   {
     "ca": "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725",
     "sym": "microduck",
+    "nick": null
+  },
+  {
+    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
+    "sym": "OTC",
+    "nick": null
+  },
+  {
+    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
+    "sym": "HeeHaw",
+    "nick": null
+  },
+  {
+    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
+    "sym": "GPRO",
     "nick": null
   }
 ]
