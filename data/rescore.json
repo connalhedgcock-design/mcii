@@ -1,0 +1,146 @@
+{
+ "computedAt": 1788616353764,
+ "note": "FOMO sensor not available in cloud collection",
+ "coins": [
+  {
+   "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
+   "sym": "CATE",
+   "tier": "yellow",
+   "entryWorthy": false,
+   "admit": false,
+   "growth": {
+    "verdict": "crowd-leaving-whale-staying",
+    "why": "price -52%, holders -53%, biggest holder's share up 0.2 points -- people exiting while the biggest wallet's share grows"
+   },
+   "evidence": {
+    "market": {
+     "liq": 2869368,
+     "buys24": 15983,
+     "sells24": 11556,
+     "ratio": 1.38
+    },
+    "fomo": null,
+    "social": null,
+    "news": null
+   },
+   "reasons": [
+    "more buying than selling on-chain (15983 vs 11556)",
+    "only 1 of 1 available vote(s) -- needs at least 2, including one non-market",
+    "growth shape says otherwise: price -52%, holders -53%, biggest holder's share up 0.2 points -- people exiting while the biggest wallet's share grows"
+   ],
+   "scoredAt": 1788616353764
+  },
+  {
+   "ca": "0x020bfC650A365f8BB26819deAAbF3E21291018b4",
+   "sym": "CASHCAT",
+   "tier": "yellow",
+   "entryWorthy": false,
+   "admit": false,
+   "growth": {
+    "verdict": "unknown",
+    "why": "no holder history for this coin (holder counts are Solana-only)"
+   },
+   "evidence": {
+    "market": {
+     "liq": 13036893,
+     "buys24": 3416,
+     "sells24": 2826,
+     "ratio": 1.21
+    },
+    "fomo": null,
+    "social": null,
+    "news": null
+   },
+   "reasons": [
+    "no safety check exists for this chain -- unverified structurally",
+    "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
+   ],
+   "scoredAt": 1788616353764
+  },
+  {
+   "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
+   "sym": "DOGE-1",
+   "tier": "green",
+   "entryWorthy": true,
+   "admit": true,
+   "growth": {
+    "verdict": "real-looking-growth",
+    "why": "price +121%, holders +18%, biggest holder's share down 1.6 points -- more people arriving and the biggest wallet's grip loosening"
+   },
+   "evidence": {
+    "market": {
+     "liq": 224359,
+     "buys24": 1204,
+     "sells24": 855,
+     "ratio": 1.41
+    },
+    "fomo": null,
+    "social": null,
+    "news": {
+     "source": "Cryptonews",
+     "title": "Dogecoin Targets $0.10 Ahead of DOGE-1 Lunar Launch as Capital Rotates to Maxi Doge Presale - Cryptonews"
+    }
+   },
+   "reasons": [
+    "more buying than selling on-chain (1204 vs 855)",
+    "confirmed real-world news hit: Dogecoin Targets $0.10 Ahead of DOGE-1 Lunar Launch as Capital Rotates to Maxi Doge Presale - Cryptonews",
+    "growth shape supports it: price +121%, holders +18%, biggest holder's share down 1.6 points -- more people arriving and the biggest wallet's grip loosening"
+   ],
+   "scoredAt": 1788616353764
+  },
+  {
+   "ca": "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18",
+   "sym": "BONER",
+   "tier": "yellow",
+   "entryWorthy": false,
+   "admit": false,
+   "growth": {
+    "verdict": "unknown",
+    "why": "no holder history for this coin (holder counts are Solana-only)"
+   },
+   "evidence": {
+    "market": {
+     "liq": 4433979,
+     "buys24": 2520,
+     "sells24": 2991,
+     "ratio": 0.84
+    },
+    "fomo": null,
+    "social": null,
+    "news": null
+   },
+   "reasons": [
+    "no safety check exists for this chain -- unverified structurally",
+    "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
+   ],
+   "scoredAt": 1788616353764
+  },
+  {
+   "ca": "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725",
+   "sym": "microduck",
+   "tier": "yellow",
+   "entryWorthy": false,
+   "admit": false,
+   "growth": {
+    "verdict": "unknown",
+    "why": "no holder history for this coin (holder counts are Solana-only)"
+   },
+   "evidence": {
+    "market": {
+     "liq": 1774039,
+     "buys24": 2305,
+     "sells24": 2185,
+     "ratio": 1.05
+    },
+    "fomo": null,
+    "social": null,
+    "news": null
+   },
+   "reasons": [
+    "no safety check exists for this chain -- unverified structurally",
+    "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
+   ],
+   "scoredAt": 1788616353764
+  }
+ ]
+}

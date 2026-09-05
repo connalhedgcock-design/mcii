@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const pricesanity = require('./pricesanity');
 const DATA = path.join(__dirname, '..', '..', 'data');
 
 function readJsonl(name) {
@@ -32,8 +33,10 @@ function readJsonl(name) {
 function snapshotSeries(ca) {
   const rows = [...readJsonl('market.jsonl'), ...readJsonl('candidates.jsonl')]
     .filter((r) => r.ca === ca && r.price != null);
+  // T-037: an impossible price would draw a spike on the chart that never happened.
+  const clean = pricesanity.cleanPrices(rows);
   const byTs = new Map();
-  for (const r of rows) byTs.set(r.ts, r); // later source wins on an exact-timestamp collision, harmless either way
+  for (const r of clean) byTs.set(r.ts, r); // later source wins on an exact-timestamp collision, harmless either way
   return [...byTs.values()]
     .sort((a, b) => a.ts - b.ts)
     .map((r) => ({ ts: r.ts, o: r.price, h: r.price, l: r.price, c: r.price, v: r.vol24 ?? r.v24 ?? 0, synthetic: true }));

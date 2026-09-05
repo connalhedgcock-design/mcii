@@ -27,6 +27,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const pricesanity = require('../shared/pricesanity');
 const MIN_READINGS = 4; // below this, "a trend" is one or two data points -- noise, not a pattern
 const MIN_SPAN_HOURS = 6; // two readings 30 min apart cannot show a "trend", only a single move
 
@@ -67,9 +68,9 @@ function analyze() {
   }
 
   const results = [];
-  for (const [ca, group] of byCa) {
+  for (let [ca, group] of byCa) {
     if (tracked.has(ca)) continue; // already a real position -- not a discovery target
-    group.sort((a, b) => a.ts - b.ts);
+    group = pricesanity.cleanPrices(group); // T-037: a bad quote would top the ranking
     if (group.length < MIN_READINGS) continue;
     const spanHours = (group[group.length - 1].ts - group[0].ts) / 36e5;
     if (spanHours < MIN_SPAN_HOURS) continue;

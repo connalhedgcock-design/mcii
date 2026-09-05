@@ -478,3 +478,40 @@ times across an 8.5-day span**, measured live, not assumed. The trend record was
     absent input is reported as absent, never guessed (D-29).
 - ∴ per the mandate's "surface disconfirming evidence FIRST when they are already in a position",
   the CATE read was told to him directly rather than left sitting in a file.
+
+## 2026-09-05 — 11. THE PRICE-SANITY FIX, THE CONTINUOUS RESCORE, AND THE ENTRY RULE
+- machine: connal
+- Connal: build all three and check they work. Done, in dependency order — the data fix first,
+  since everything else reads that data.
+- **T-037 fixed → `app/shared/pricesanity.js`.** The rule is evidence-based, not a guessed
+  threshold: measured across every large consecutive price move in the whole history, real moves
+  and bad quotes separate on ONE thing — whether LIQUIDITY MOVED WITH THE PRICE.
+  real: biketyson 4.3x price / 3.6x liq · fone 6.4/3.8 · CTO 3.7/4.3 · SOLCAT 3.7/2.9 · Sue 3.1/1.8
+  bad:  STONK 11,688x / 1.4x · STONK 14,495x / 1.4x · **CASHCAT 2.7e27x / 165x** (a second corrupt
+  coin nobody knew about, found by the same pass).
+  - Verified: **3 rows flagged out of 4,577 (0.07%), and 0 of 597 readings across the six real
+    movers.** Catches exactly the known-bad, no false positives.
+  - ! only UPWARD spikes are ever flagged — a price collapsing while liquidity holds is what a rug
+    looks like, and suppressing that would break the most valuable alert this project has (D-70).
+  - Wired into the label resolver FIRST (a bad quote would have written a permanent false "target
+    hit" into the calibration record), then growth quality, the chart fallback, and the trend list.
+- **The continuous rescore + the entry rule → `app/shared/rescore.js`.** Runs every tracked coin
+  through every available sensor each cycle (`cloud-collect.js: writeRescore` → `data/rescore.json`).
+  THE ENTRY RULE, stated: **admission's own GREEN bar AND the coin is not in a known-manufactured
+  shape.** That second clause is the new part and the whole point — the sensors are LOUDEST during
+  a manufactured pump, because manufacturing loudness is the technique. 82.8% of >100% gainers are
+  artificial (arXiv 2507.01963); 1 of 17 of our own coins showed real growth.
+  - ! `unknown` growth (a brand-new coin with no history) blocks nothing — absent data is not
+    evidence against (D-29). Only a KNOWN-bad shape vetoes.
+  - Verified on four real cases: CATE (every sensor positive, vetoed to yellow because holders are
+    leaving) · DOGE-1 (green, entry-worthy, growth supports it) · a new coin with no history (not
+    penalised) · a safety-gate failure (stays red regardless). Gates still outrank everything.
+- **Two real bugs found by checking rather than assuming it worked**, both in my own wiring:
+  1. the news vote never fired. `admission.js` demands an explicit `confirmed === true`; rows
+     written before that field existed have it MISSING, so they failed a check they were never
+     meant to fail. Fixed by NORMALISING at the read boundary rather than loosening admission's
+     check — that strictness is what stops an unreviewed self-name candidate from voting.
+  2. rescore read `news.jsonl` BEFORE the news step appended that cycle's rows, so it was always
+     one cycle stale. News now runs before scoring.
+  - ∴ DOGE-1 now scores **green and entry-worthy** on real data — market + a confirmed real-world
+    news hit, with the growth shape supporting it. The first coin to clear the new bar honestly.

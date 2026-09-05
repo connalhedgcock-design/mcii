@@ -33,6 +33,8 @@ const newsfeed = require('./adapters/newsfeed');
 const journal = require('./journal');
 const labels = require('../shared/labels');
 const marketmanip = require('../shared/marketmanip');
+const pricesanity = require('../shared/pricesanity');
+const rescore = require('../shared/rescore');
 journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
@@ -637,6 +639,11 @@ function resolveLabels() {
     if (!r.ca || r.price == null) continue;
     (byCa[r.ca] ||= []).push(r);
   }
+  // ! T-037: strip impossible prices BEFORE they can resolve a forecast. A bad quote (STONK's
+  // $269 inside a $0.02 series) would otherwise register as a target hit and write a permanent
+  // false win into the calibration record — the one record in this project that has to be
+  // trustworthy (`journal.js`'s own header). Suspect rows are excluded here, never deleted.
+  for (const ca of Object.keys(byCa)) byCa[ca] = pricesanity.cleanPrices(byCa[ca]);
   const open = journal.readForecasts().filter((f) => f.entryPrice != null && !f.resolved);
   let resolvedCount = 0;
   for (const f of open) {
@@ -663,6 +670,7 @@ function writeGrowthQuality(tokens) {
   const history = readJsonl('market.jsonl');
   const byCa = {};
   for (const r of history) if (r.ca) (byCa[r.ca] ||= []).push(r);
+  for (const ca of Object.keys(byCa)) byCa[ca] = pricesanity.cleanPrices(byCa[ca]); // T-037
 
   const out = [];
   for (const t of tokens) {
@@ -675,12 +683,57 @@ function writeGrowthQuality(tokens) {
   return out;
 }
 
+// The continuous rescore -- every tracked coin, every sensor available on this machine, every
+// cycle. Connal's own description: any sensor firing should re-run all the others for that coin,
+// and the highest-scoring coins are what gets watched. ! FOMO signals are deliberately absent
+// here: they only exist on Connal's own Mac (`fomonotifications.js`), so the cloud rescore uses
+// market + news + growth and says so, rather than silently scoring as if a sensor were negative
+// when it is really just unavailable (D-29). The app-side rescore can add FOMO.
+function writeRescore(tokens, marketRows) {
+  const history = readJsonl('market.jsonl');
+  const byCa = {};
+  for (const r of history) if (r.ca) (byCa[r.ca] ||= []).push(r);
+  for (const ca of Object.keys(byCa)) byCa[ca] = pricesanity.cleanPrices(byCa[ca]);
+  // ! `confirmed !== false`, not `confirmed` truthy: the write side defaults to true
+  // (`n.confirmed ?? true`), so rows written before that field existed have it MISSING, not false.
+  // Filtering on truthiness silently dropped every legacy catalyst row -- found 09-05 by checking
+  // why DOGE-1's real news hit never cast its vote.
+  // ! NORMALISE, don't loosen the check downstream. `admission.js` deliberately demands an
+  // explicit `confirmed === true` before news can vote -- that strictness is what stops an
+  // unreviewed self-name candidate (Cate Blanchett, the robot) from ever casting a vote, and it
+  // should stay strict. The problem is only that rows written before the field existed have it
+  // MISSING, so they failed a check they were never meant to fail. Filled in here, at the read
+  // boundary, matching the write-side default (`n.confirmed ?? true`) exactly.
+  const confirmedNews = readJsonl('news.jsonl')
+    .map((r) => ({ ...r, confirmed: r.confirmed !== false }))
+    .filter((r) => r.confirmed);
+  const latestByCa = {};
+  for (const r of marketRows) latestByCa[r.ca] = r;
+
+  const scored = tokens.map((t) => {
+    const m = latestByCa[t.ca];
+    return rescore.rescore({
+      ca: t.ca, sym: t.sym,
+      market: m ? { verdict: m.verdict, flags: m.flags, liq: m.liq, buys24: m.buys24, sells24: m.sells24 } : null,
+      fomo: [],                                   // not visible from here, by design -- see above
+      social: null,
+      news: confirmedNews.find((n) => n.ca === t.ca) || null,
+      history: byCa[t.ca] || [],
+    });
+  });
+
+  fs.writeFileSync(path.join(DATA, 'rescore.json'),
+    JSON.stringify({ computedAt: Date.now(), note: 'FOMO sensor not available in cloud collection', coins: scored }, null, 1) + '\n');
+  return scored;
+}
+
 async function main() {
   const tokens = watchlist();
   log(`cloud collection — ${tokens.map((t) => t.sym).join(', ')}`);
 
   log('market:');
-  append('market.jsonl', await collectMarket(tokens));
+  const marketRows = await collectMarket(tokens);
+  append('market.jsonl', marketRows);
 
   log('labels:');
   try {
@@ -688,12 +741,25 @@ async function main() {
     log(`  ${checked} open forecast(s) checked, ${resolved} resolved this run`);
   } catch (e) { log(`  label resolution failed — ${e.message}`); }
 
+  log('news:');
+  try {
+    const newsEvents = await collectNewsEvents(tokens);
+    append('news.jsonl', newsEvents.map((n) => ({ ts: Date.now(), publishedTs: n.ts, kind: n.kind, confirmed: n.confirmed ?? true, ca: n.ca, sym: n.sym, query: n.query, source: n.source, title: n.title, link: n.link })));
+    log(`  ${newsEvents.length} new headline(s)`);
+  } catch (e) { log(`  news failed — ${e.message}`); }
+
   log('growth quality:');
   try {
     const rows = writeGrowthQuality(tokens);
     for (const r of rows) log(`  ${r.sym}: ${r.verdict}`);
     if (!rows.length) log('  no coin has enough holder history yet');
   } catch (e) { log(`  growth quality failed — ${e.message}`); }
+
+  log('rescore:');
+  try {
+    const scored = writeRescore(tokens, marketRows);
+    for (const s of scored) log(`  ${s.sym}: ${s.tier}${s.entryWorthy ? ' (entry-worthy)' : ''} — ${s.reasons[0] || ''}`);
+  } catch (e) { log(`  rescore failed — ${e.message}`); }
 
   log('chatter sweep:');
   const chatter = await collectSocial(tokens);
@@ -721,13 +787,6 @@ async function main() {
       top1: c.safety?.top1Pct != null ? +c.safety.top1Pct.toFixed(2) : null, verdict: c.gate?.verdict,
     })));
   } catch (e) { log(`  scan failed — ${e.message}`); }
-
-  log('news:');
-  try {
-    const newsEvents = await collectNewsEvents(tokens);
-    append('news.jsonl', newsEvents.map((n) => ({ ts: Date.now(), publishedTs: n.ts, kind: n.kind, confirmed: n.confirmed ?? true, ca: n.ca, sym: n.sym, query: n.query, source: n.source, title: n.title, link: n.link })));
-    log(`  ${newsEvents.length} new headline(s)`);
-  } catch (e) { log(`  news failed — ${e.message}`); }
 
   log('done');
 }
