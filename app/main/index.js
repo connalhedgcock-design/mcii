@@ -29,6 +29,8 @@ const portfolio = require('./portfolio');
 const alertsPush = require('./alerts-push');
 const walletAdapter = require('./adapters/wallet');
 const venues = require('./venues');
+const fomoNotifications = require('./adapters/fomonotifications');
+const admission = require('../shared/admission');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
@@ -62,6 +64,7 @@ history.init(app.getPath('userData'), path.join(__dirname, '..', '..'));
 // `store`, which is already loaded above.)
 syncWatchlist();
 scanstore.init(app.getPath('userData'));
+fomoNotifications.init(app.getPath('userData'));
 journal.init(path.join(__dirname, '..', '..'));
 
 let win;
@@ -406,6 +409,80 @@ ipcMain.handle('sector:latest', () => {
     collectedAt: social ? social.ts : null,
   };
 });
+
+// !! AUTOMATIC DISCOVERY -- Connal, 2026-09-04: "we need a system where you can pick coins
+// yourself and analyze them on the market based on the top trader tracking and the social media
+// data ... and then you send notifications to my phone and present info in the app based on that
+// data/analysis." This is that wiring. `shared/admission.js` does the actual scoring (gates then
+// an equal vote, never one sensor confirming itself); everything below just gathers the three
+// readings for a candidate and calls it.
+//
+// ! candidates come from FOMO signals ONLY right now -- a coin a followed trader just bought that
+// is not already tracked. Social-only discovery (unknownTickers()/identify(), already computed
+// into `sector.jsonl: identified` and displayed but never wired to tracking -- flagged 2026-08-31,
+// still true) is a real second source and deliberately NOT added here yet: wiring one path,
+// proving it against real data, then adding the next is the same discipline as everything else
+// built this week, not an oversight.
+//
+// ! ADMISSION HAPPENS HERE, ON THIS MAC, BECAUSE FOMO SIGNALS ONLY EXIST HERE. The cloud collector
+// (Hetzner) cannot see this Mac's notifications (`adapters/fomonotifications.js`'s own header).
+// Once a coin is admitted it is written to the SAME `data/watchlist.json` a human editing it would
+// write to, via the SAME syncWatchlist() below -- so the twice-hourly cloud collector picks it up
+// on its own very next run and gives it full continuous coverage from then on, laptop open or not.
+function runDiscovery() {
+  let signals;
+  try { signals = fomoNotifications.pollNewSignals(); }
+  catch (e) { console.error(`discovery: ${e.message}`); return; } // FDA off/revoked degrades quietly (D-56)
+  if (!signals.length) return;
+
+  const byCoin = new Map();
+  for (const s of signals) {
+    if (!s.coinAddress) continue;
+    if (!byCoin.has(s.coinAddress)) byCoin.set(s.coinAddress, { sym: s.coinTitle, fomo: [] });
+    byCoin.get(s.coinAddress).fomo.push(s);
+  }
+
+  const social = readJsonl('sector.jsonl').filter((r) => r.kind === 'sector').pop() || null;
+  const tickers = social ? (social.tickers || []) : [];
+
+  for (const [ca, { sym, fomo }] of byCoin) {
+    if (store.watchlist.some((w) => w.ca === ca)) continue; // already tracked -- nothing to decide
+
+    (async () => {
+      let market = null;
+      try {
+        const m = await fetchMarket(ca);
+        market = { verdict: null, flags: null, liq: m.totalLiquidityUsd,
+                   buys24: m.txns?.h24?.buys ?? null, sells24: m.txns?.h24?.sells ?? null };
+      } catch (e) { /* no market read yet -- evaluateCandidate() rejects cleanly on null */ }
+
+      const bareSym = String(sym || '').split(' ')[0]; // "SLINK at $30m MC" -> "SLINK"
+      const socialMatch = tickers.find((t) => t.ticker?.toUpperCase() === bareSym.toUpperCase());
+      const socialEvidence = socialMatch ? { weighted: socialMatch.people, mentions: socialMatch.mentions } : null;
+
+      const result = admission.evaluateCandidate({ ca, sym: bareSym, market, fomo, social: socialEvidence });
+      console.log(`discovery: ${bareSym} (${ca.slice(0, 8)}...) -> ${result.admit ? 'ADMIT' : 'reject'} -- ${result.reasons[0] || ''}`);
+      if (!result.admit) return;
+
+      store.watchlist.push({ ca, sym: bareSym });
+      save();
+      syncWatchlist();
+      if (live) live.watch(store.watchlist);
+      try {
+        new Notification({
+          title: `Now tracking ${bareSym}`,
+          body: result.reasons.join(' · '),
+        }).show();
+      } catch {}
+    })();
+  }
+}
+
+// Every 10 minutes, not on every single FOMO notification -- a coin needs a few signals to
+// accumulate before there is anything real to score, and this piggybacks on the same interval as
+// nothing else, so it costs no extra polling of anything that has a rate limit.
+setInterval(runDiscovery, 10 * 60 * 1000);
+setTimeout(runDiscovery, 15000); // once shortly after launch, not only ten minutes in
 
 ipcMain.handle('discover:latest', () => discoverLatest());
 // The last reading of every token, straight from the snapshot -- no network at all.
