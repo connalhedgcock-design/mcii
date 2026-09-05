@@ -49,7 +49,7 @@ export default {
     // Two independent jobs. The collector watchdog runs even if the holdings check throws --
     // ! the watchdog is the thing that reports everything else being broken, so it must never be
     // downstream of anything that can break.
-    ctx.waitUntil(Promise.allSettled([run(env), watchCollector(env)]));
+    ctx.waitUntil(Promise.allSettled([run(env), watchCollector(env), sendDiscoveryEvents(env)]));
   },
 
   // Test hook for `wrangler dev` only. The deployed worker sets `workers_dev = false` and declares
@@ -67,6 +67,34 @@ export default {
     }
   },
 };
+
+// --- DISCOVERY EVENTS -------------------------------------------------------------------------
+// Sends a phone alert the moment the app admits a new coin, rather than waiting for that coin's
+// first price move. The app pushes to KV (alerts-push.js: pushDiscoveryEvent) because this worker
+// has no way to see a coin get admitted on its own -- the admission decision runs on Connal's Mac,
+// reading FOMO notifications that only exist there.
+// ! DRAINS the key on every run -- reads it, sends what is there, deletes it. The key holds only
+// UNSENT events by construction, so there is nothing to dedupe: if it exists, it has not been
+// sent yet. A failed send below aborts before the delete, so a Telegram outage re-tries next run
+// rather than losing the event silently.
+async function sendDiscoveryEvents(env) {
+  const raw = await env.ALERTS_KV.get('discovery-events');
+  if (!raw) return { sent: 0 };
+  const events = safeParse(raw, []);
+  if (!Array.isArray(events) || !events.length) { await env.ALERTS_KV.delete('discovery-events'); return { sent: 0 }; }
+
+  const unsent = [];
+  let sent = 0;
+  for (const e of events) {
+    const reasons = (e.reasons || []).join('\n');
+    const ok = await sendTelegram(env,
+      `🔎 Now tracking ${e.sym || '?'}\n\n${reasons}\n\nNot advice, and not a suggestion to do anything.`);
+    if (ok) sent++; else unsent.push(e); // a failed send stays in the key, tried again next run
+  }
+  if (unsent.length) await env.ALERTS_KV.put('discovery-events', JSON.stringify(unsent));
+  else await env.ALERTS_KV.delete('discovery-events');
+  return { sent, retrying: unsent.length };
+}
 
 // --- COLLECTOR WATCHDOG -----------------------------------------------------------------------
 // !! THE WATCHER MUST NOT BE ABLE TO DIE WITH THE THING IT WATCHES.
@@ -395,6 +423,9 @@ async function maybeAlert(env, ca, id, title, detail, cooldownSec = ALERT_COOLDO
   await sendTelegram(env, `${title}\n${detail}`);
 }
 
+// ! RETURNS whether the send actually worked. It used to swallow every error and return nothing,
+// which is fine for a fire-and-forget alert but was silently wrong for sendDiscoveryEvents() below
+// -- that function needs to know a send failed so it does not delete an event nobody received.
 async function sendTelegram(env, text) {
   const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
   try {
@@ -403,9 +434,11 @@ async function sendTelegram(env, text) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text }),
     });
-    if (!res.ok) console.error('telegram send failed:', res.status);
+    if (!res.ok) { console.error('telegram send failed:', res.status); return false; }
+    return true;
   } catch (e) {
     console.error('telegram send threw:', e.message);
+    return false;
   }
 }
 

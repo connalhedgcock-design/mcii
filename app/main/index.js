@@ -2,6 +2,26 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// !! LOADS app/.env INTO process.env, WITHOUT A DOTENV DEPENDENCY. Found 2026-09-04: this project
+// has never had anything that reads a .env file (the collection host's own README already flagged
+// this for the server side), so `CLOUDFLARE_KV_TOKEN` -- needed by alerts-push.js -- has sat unread
+// in `app/.env` this whole time. `pushHoldings()` was silently returning `{skipped: 'no
+// CLOUDFLARE_KV_TOKEN set'}` on every single call, which means the Telegram position alerts (D-91)
+// have likely never actually had real holdings to check against. A silent skip that looks exactly
+// like a normal no-op is this project's most repeated failure shape (D-55, D-60, D-85) -- found
+// here by checking the actual environment, not by reading the code and assuming it worked.
+// ! zero new dependency, matching this project's own stance -- a few lines beat an npm package for
+// something this small. Never overwrites a var already set some other way (shell profile, launchd).
+(function loadDotEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  let text;
+  try { text = fs.readFileSync(envPath, 'utf8'); } catch { return; }
+  for (const line of text.split('\n')) {
+    const m = /^([A-Z_][A-Z0-9_]*)=(.*)$/.exec(line.trim());
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2];
+  }
+})();
+
 // !! PIN THE DATA FOLDER. DO NOT REMOVE, AND DO NOT ASSUME IT IS REDUNDANT.
 // Electron's app.getName() prefers `productName` over `name` in package.json, and userData is
 // derived from app.getName(). So adding `productName: "CII"` for the on-screen rename (D-118)
@@ -474,6 +494,11 @@ function runDiscovery() {
           body: result.reasons.join(' · '),
         }).show();
       } catch {}
+      // Phone notification, same trick as holdings (D-93): the worker cannot see this admission
+      // happen on its own, so the app hands it over. Failure here is logged, never thrown -- a
+      // Cloudflare hiccup must not undo the admission that already happened above.
+      alertsPush.pushDiscoveryEvent({ ca, sym: bareSym, reasons: result.reasons, evidence: result.evidence })
+        .catch((e) => console.error('discovery: phone push failed:', e.message));
     })();
   }
 }

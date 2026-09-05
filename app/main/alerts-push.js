@@ -61,3 +61,46 @@ async function pushHoldings(positions) {
 }
 
 module.exports = { pushHoldings };
+
+// Push a just-admitted coin so the Telegram worker can tell the phone immediately, rather than
+// waiting for that coin's first price move to trigger the existing D-96 alert. Same trick as
+// pushHoldings() above, same reason: the worker cannot see this on its own -- FOMO's notifications
+// only exist on this Mac (fomonotifications.js's own header), so the app has to hand it over.
+//
+// ! a SEPARATE KV key from holdings, and a LIST that only ever grows until the worker consumes it.
+// The worker deletes what it has sent (see cloudflare/telegram-alerts/src/index.js), so this key
+// holds only events nobody has been notified about yet -- never a full history, never something
+// this file needs to dedupe against, since "already sent" lives on the worker's side of the line.
+async function pushDiscoveryEvent({ ca, sym, reasons, evidence }) {
+  const token = process.env.CLOUDFLARE_KV_TOKEN;
+  if (!token) return { skipped: 'no CLOUDFLARE_KV_TOKEN set' };
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/storage/kv/namespaces/${NAMESPACE_ID}/values/discovery-events`;
+  try {
+    // Read-modify-write: append to whatever the worker has not yet drained. A lost event here
+    // (two admissions landing at the exact same moment) is not appended twice, only the last write
+    // wins on a true race -- acceptable for an alert, not acceptable for money, which is why this
+    // is the discovery feed and never the holdings one.
+    let existing = [];
+    try {
+      const got = await getJSON(url, {
+        timeoutMs: 10000, retries: 1, headers: { Authorization: `Bearer ${token}` },
+      });
+      if (Array.isArray(got)) existing = got;
+    } catch (e) { /* key not created yet on first-ever push -- start from empty, not an error */ }
+
+    existing.push({ ca, sym, reasons, evidence, at: Date.now() });
+    await getJSON(url, {
+      method: 'PUT', timeoutMs: 15000, retries: 1,
+      headers: { Authorization: `Bearer ${token}`, 'content-type': 'text/plain' },
+      body: JSON.stringify(existing),
+    });
+    return { pushed: true };
+  } catch (e) {
+    console.error('[alerts-push] could not push discovery event:', e.message);
+    return { error: e.message };
+  }
+}
+
+module.exports.pushDiscoveryEvent = pushDiscoveryEvent;
+
