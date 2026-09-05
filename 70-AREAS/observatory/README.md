@@ -1,8 +1,8 @@
 ---
 id: area.observatory.readme
 t: area-readme
-v: 1
-upd: 2026-08-29
+v: 3
+upd: 2026-09-05
 machine: austin
 ---
 # THE OBSERVATORY — the spatial control-room UI
@@ -10,10 +10,13 @@ machine: austin
 ## WHAT IT IS
 A 3D "room" (`renderer/station/`) that Austin lands in when the app opens. A holographic Earth
 (WebGL2, `holo-globe.js`) stands in the centre; six instrument boards hang from the ceiling around
-it, reading the live watchlist; six doors stand on a ring behind everything, each opening onto one
-of the app's existing flat tabs (Your coins, Market, What's happening, Journal — two more doors are
-sealed, not yet built: the wallets, prediction markets). `←`/`→` turns the room to face a door,
-`↑` walks through it. Orion (the assistant) lives under the globe as a text prompt.
+it, reading the live watchlist; six doors stand on a ring behind everything. As of 09-04, five of
+those doors open onto a REAL room of their own rather than a flat tab — Your Coins, The Market,
+What's Happening, The Journal and The Portfolio each got a spatial backdrop + a wall of real
+instruments, reading the exact same live data the flat screens do (see LOG.md #19). FOMO and Axiom
+stay flat — their content is a native, pixel-positioned Electron view that cannot take a spatial
+transform. `←`/`→` turns the room to face a door, `↑` walks through it. Orion (the assistant) lives
+under the globe as a text prompt.
 
 Built from a design document Austin's friend Peter wrote (`MCII-Spatial-UI-Handoff.md`, not in this
 repo — it was a pasted file), based on the spatial UI Peter built for his own project ("Daedalus").
@@ -37,12 +40,32 @@ renderer/station/
   holo-globe.js           <- the hologram. raw WebGL2. zero dependencies. includes the Earth land grid.
   instruments.js          <- the six board renderers + the live data snapshot they read from.
   boot.js                 <- the ONE seam into app.js (clicks the app's own tab buttons; never
-                             reaches into app.js's internals — app.js is a file Connal also edits)
+                             reaches into app.js's internals — app.js is a file Connal also edits).
+                             also now decides, per view, whether a real room or the flat main shows.
+  rooms.js / rooms.css     <- shared scaffold + styles for the five doors below. reuses .st-board /
+                             .st-lamp / .st-placard verbatim rather than reinventing the instrument.
+  room-watch.js            <- Your Coins: a dock of berths behind the tracked-coins board.
+  room-market.js           <- The Market: a sensor sweep behind the scanner's sorted contacts.
+  room-sector.js           <- What's Happening: the signal layer's own room (violet).
+  room-journal.js          <- The Journal: a calibration dial behind two never-blended logbooks.
+  room-folio.js            <- The Portfolio: cargo sized by weight behind the real position table.
+  room-warroom.js          <- The War Room: the ARITHMETIC behind a reading, not the reading. No
+                             door on the ring (it is full -- LOG #21); reached from the tab bar and
+                             from "How was this read?" in Your Coins / The Market.
+  synthesis.js             <- pure fusion: votes, weights, coverage, conflict, confidence. The one
+                             place that decides what the data MEANS. Tested by test/synthesis.test.js.
+  readouts.js              <- the shared readouts the rooms draw with: price/volume chart, sparkline,
+                             confidence needle, verdict panel.
+                             (each of the five reads window.mcii directly — a second, independent
+                             read of the same live data, never a share of app.js's own state.)
 app/main/orion.js          <- the assistant's main-process half (Claude CLI subprocess, auth)
 app/test/station.test.js  <- geometry invariants: arrow direction, door framing, no-overlap, etc.
 ```
 
 ## READ NEXT
+- [[design/ROOM-BRIEF|design/ROOM-BRIEF.md]] — ! the operator's own answers to the 34-question room
+  worksheet (2026-09-05), verbatim, plus what they decide, what is buildable today and what is
+  blocked on data that does not exist yet. This is the current brief for every room. Read it first.
 - [[design/DESIGN|design/DESIGN.md]] — the design language (colour law, typography, motion, the six
   instrument silhouettes, the anti-AI-slop bans). Written to be REUSABLE if another spatial room
   gets built later — the principles aren't Observatory-specific.

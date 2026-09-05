@@ -1,8 +1,8 @@
 ---
 id: area.observatory.log
 t: area-log
-v: 1
-upd: 2026-08-29
+v: 5
+upd: 2026-09-05
 machine: austin
 ---
 # THE OBSERVATORY — build + bug log (append-only)
@@ -279,3 +279,251 @@ dated files; this is all of it, in one place, in order.
   from station-geometry.js as authored ("Your Coins" / "What you are holding and tracking").
 - verified on screen: doors read THE PORTFOLIO / YOUR COINS / THE MARKET; the sill directly below
   reads "Your Coins" / "What you are holding and tracking" in the same pass.
+
+## 2026-09-04 — 19. FIVE OF THE SIX DOORS GOT REAL ROOMS, NOT JUST FLAT TABS
+- operator: "the observatory room is great... but the rest of the app does not fit with the theme
+  of the observatory, find unique and creative ways to represent each of the different sections."
+  Asked for renders first, gave feedback across three passes ("it looks kinda messed up now like
+  everything is misplaced" → fixed a layout bug; "make the indicators easier to read... i dont
+  want to feel like any efficiency/information from the current screens is lost"; "i dont want you
+  to add like the names like 'docking bay' to the rooms i dont wanna remember like code words for
+  each room just keep it as 'your coins' and stuff"), then: "make all of them like how the renders
+  are but obviously more intergrated with the app."
+- what was built: Your Coins, The Market, What's Happening, The Journal and The Portfolio each got
+  a real spatial room (`station/room-watch.js`, `room-market.js`, `room-sector.js`,
+  `room-journal.js`, `room-folio.js`, shared scaffold in `rooms.js` + `rooms.css`) — a per-room
+  animated backdrop (a dock of berths, a sensor sweep, a comms dish + waveform, a calibration dial,
+  cargo sized by weight) behind a wall of real `.st-board` instruments, the same component the
+  Observatory's own boards and the Portfolio's flat view already use. Rooms are named exactly what
+  the door already calls them (Your Coins, The Market, ...) — no invented names, per the operator's
+  instruction above.
+- ! architecture decision, and the reason nothing about the existing flat screens changed: each
+  room mounts into a NEW sibling element next to the flat `<main>` it replaces, never into the main
+  itself. `app.js`'s own load functions keep populating that hidden main exactly as before — a bug
+  in a room can only ever affect that room, never the flat screen underneath it, and nothing in
+  `app.js` was touched to make this work. `boot.js` (the one sanctioned seam file) now also decides,
+  per view, which of the two — room or flat main — is actually shown; the flat main is set `hidden`
+  (not merely `visibility:hidden`) or it sits invisible in normal flow and shoves the room's content
+  down behind a wall of blank space — caught and fixed before shipping, not a live bug.
+- FOMO and Axiom deliberately did NOT get a parallel spatial room: their content is a native,
+  pixel-positioned Electron view (`venueRect()` in `app.js` measures a DOM box and reports its
+  screen rect over IPC), not something CSS can transform. Warping that box would misalign the real
+  embed from its frame. They kept their existing flat bar and just gained a starfield background
+  behind it, added via a wrapper `div` around each `<main>` so `showVenue()`'s own
+  `innerHTML` writes never touch it — zero risk to the live trading embed.
+- scope cut, logged rather than silently dropped: each room carries the numbers that matter at a
+  glance (verdict, price, move, what's sellable; the scanner's sorted contacts; the triage counts
+  and top posts; calibration + both operators' open forecasts; the combined and per-venue book).
+  The exhaustive detail on a coin's flat card — the price chart, the social panel, "where these
+  numbers came from" — was NOT rebuilt a second time; Your Coins' room has a "detail" link per row
+  that jumps to the real flat card instead. What's Happening's room also drops the market-wide
+  funnel stats, the "coins the scanner found" table and the J7 Tracker link that the flat tab has.
+- ! NOT YET CONFIRMED ON SCREEN. This session has no way to launch the real Electron window or
+  screenshot it — the code was written against the exact data shapes read out of `app.js` (verified
+  field-by-field: `t.gate.verdict`, `t.market.priceUsd`, `t.exit.usd`, the D-117 24h-change rule,
+  the `screenLatest()`/`sector()`/`portfolio()`/`calibration()` response shapes) and passed the
+  existing `station.test.js` / `station-css.test.js` / `renderer.test.js` suites unchanged, but
+  nobody has pressed the actual tabs yet. Do that before calling this done.
+
+## 2026-09-04 — 20. #19 SHIPPED UNTESTED AND IT SHOWED — THE BOARDS COLLAPSED, THE BACKDROP FLOATED
+- operator, with screenshots from the real app: "it looks kinda messed up now like everything is
+  misplaced." Then, after a first fix: "still looks terrible... you should be running the app and
+  taking screenshots making sure it looks perfect before you finish" — correctly calling out that
+  #19 shipped on code review alone, with no visual confirmation, exactly the risk its own entry
+  flagged and then nobody closed.
+- bug 1, real and confirmed from the screenshot: the "tracked coins" board (`grid-column: span 2`
+  of 3) rendered as a near-zero-width sliver with its own label wrapped one letter per line, while
+  the "alerts" board (span 1) took the whole row — CSS grid's item auto-sizing losing to something
+  in this file under conditions never isolated. Fixed by replacing the grid with flexbox
+  (`flex: 2.2 1 380px` / `flex: 1 1 220px`, `flex-wrap: wrap`) — a pattern already proven in the
+  concept-render pass and not vulnerable to the same failure class.
+- bug 2: the room's backdrop motifs (berths, the sensor sweep, the calibration dial, cargo) were
+  positioned by PERCENT OF THE WHOLE ROOM (`bottom: 4%`, `top: 8%`), which read fine against the
+  first draft's forced near-viewport-height room. Once the room was made content-driven (fixing the
+  dead-space complaint below), the boards routinely ran right past those percentage marks and the
+  motif ended up mostly hidden BEHIND the opaque board, with only a sliver poking out past its
+  bottom edge — the "little disconnected empty boxes" in the screenshot. Root cause: two different
+  sizing models (percent-of-variable-room vs. content-driven-room) coexisting without either being
+  told about the other. Fixed by giving every room a FIXED backdrop band (`--fl-band: 128px`) that
+  `.st-flatwall` is pushed below with `margin-top`, and repositioning every motif to fixed pixel
+  offsets within that band, measured from the room's top — not a percentage of its total height,
+  which can no longer move the motif behind a board at any content length. One motif (What's
+  Happening's waveform) had the same bug in a second form — `bottom: 14px`, which anchors to the
+  real bottom of a now-content-driven room rather than the band — same fix, `top` instead.
+- bug 3, the original complaint's root cause: `.st-flatroom { min-height: calc(100vh - 220px) }` —
+  written assuming the backdrop would fill that space; it doesn't, it's a handful of small motifs,
+  so most of a near-full-screen room sat empty and black. Fixed: `min-height: 360px`, room otherwise
+  sized by its own content (topbar + band + wall).
+- bug 4: the flat `#alerts` strip (old style, amber-bordered cards) stayed visible above Your
+  Coins' new room, showing the same alerts twice in two different visual languages. It's watch-only
+  already (`switchView`); now also hidden whenever the watch room is the thing on screen.
+- ! WHAT ACTUALLY CHANGED THIS TIME: built `app/renderer/mock-mcii.js` + `app/renderer/test.html`
+  — a fake `window.mcii` (every call the renderer makes, resolved with realistic sample data) plus
+  a copy of `index.html` that loads it before `app.js`. Served over a plain local HTTP server
+  (`python3 -m http.server`, from `app/renderer/`) so a real Chromium tab renders the real
+  `station/*.js` and `station/*.css` unmodified and can be screenshotted and measured
+  (`getBoundingClientRect()`, computed styles) like any other web page. This is what actually found
+  bug 1's exact mechanism and bug 2's exact pixel math, on the first pass, after two rounds of pure
+  code-reading had missed both. ! next session: reach for this BEFORE claiming a station change is
+  done, not after the operator sends back a screenshot. The harness costs about a minute to stand
+  up and is still sitting in `app/renderer/` (clearly named, not wired into the real `index.html`)
+  for exactly that reason.
+- verified live (not just read): all five rooms screenshotted at 1100px and 820px width, the
+  Your-Coins "detail" link confirmed to land on the real flat card (`#grid` un-hidden, 6 real
+  `.card` elements present, room hidden), and the narrow-width case (row buttons overflowing the
+  board edge, a fifth bug caught only by resizing the tab) fixed with `flex-wrap` on `.st-flatrow`
+  before it ever reached the operator.
+
+## 2026-09-05 — 21. THE ROOMS REBUILT AGAINST THE OPERATOR'S OWN ANSWERS, AND THE EIGHTH DOOR THAT COULD NOT EXIST
+- source: the 34-question worksheet came back filled in. Answers are transcribed VERBATIM in
+  [[design/ROOM-BRIEF|design/ROOM-BRIEF.md]] §A — read that, not a summary of it. §B is what the
+  answers decide, §C is what he did NOT answer (do not invent those).
+- what the answers changed, room by room:
+  - **Your Coins** — "the graph is shit" and the original render was "poorly executed. Everything
+    was overlapping". Rebuilt: a real price+volume chart (`readouts.js: stripChart/wireChart`), a
+    per-row sparkline, and every row now carries a WORD for its reading, not just a colour.
+  - **The Market** — planets and asteroids, per §10, sized by market cap on a log scale and placed
+    by volume-shock. Needed a new number the app did not collect: `volShock()` in `main/index.js`
+    measures today's volume against that coin's OWN trailing MEDIAN, over observations older than
+    24h. ! median and the 24h exclusion both matter — `vol24` is itself a rolling 24h figure, so
+    averaging the spike into its own baseline is how a doubling reports as +40%.
+  - **What's Happening** — the three things #19 cut are back, per "No dont lose those find a new
+    way to display all the same information": the funnel stats, the J7 Tracker link, and the
+    coins-the-scanner-found table.
+  - **The Journal** — REDESIGNED, not refined. Asked instrument-or-ship's-log the operator said
+    "Narrative and chronological", so the calibration dial is demoted to a readout and the room is
+    one stream in time under day headings. Gained an "orion asks" board and a "connections" board,
+    both on a button — each is a real Claude CLI subprocess and firing it on every render would
+    spend money to redraw a screen nobody asked a question on.
+  - **The Portfolio** — the joint FOMO+Axiom figure, its 24h change and a value graph.
+- **`synthesis.js` is the new load-bearing file**, and it is pure functions with its own test
+  (`app/test/synthesis.test.js`, 31 assertions). Four laws it exists to enforce, all from the
+  answers: a MISSING input drops out and cuts coverage rather than voting 0; a CONFLICT is its own
+  state and is never averaged into a shrug; manufactured enthusiasm votes NEGATIVE, not unknown;
+  and there is NO FAKE INPUT — `trader` is always absent because nothing feeds it yet.
+- **THE WAR ROOM EXISTS, BUT NOT AS A DOOR — and that is a correction to this vault's own brief.**
+  ROOM-BRIEF §B.6 says "an eighth door ... is approved". It is not buildable, and the geometry is
+  what says so, not taste:
+  - every door angle must be an even multiple of 14° so a vault rib lands over the doorway and a
+    glazed bay over each pillar (`VAULT_SEG_DEG`), i.e. every door sits on a multiple of 28°;
+  - a door also has to be inside the visible arc, and past ~90° the projection `x = -R·sin(θ)`
+    turns back toward the centre — a door at 112° renders at 0.93 where the 84° door renders at
+    0.99, so it would appear BETWEEN two existing doors, not beyond them.
+  - 0, ±28, ±56, ±84 is therefore the complete set. **The ring holds exactly seven doors and all
+    seven are taken.** I built it at ±112 first, and `station.test.js`'s "screen-x DESCENDS as
+    array index rises" caught it immediately — the one invariant that encodes "where does ↑ take
+    me". The geometry change (and the HULL_SPAN_DEG 133→154 it dragged in) was reverted whole.
+  - so the War Room is reached from the TAB BAR, and from a "How was this read? →" link under the
+    compact verdict in Your Coins and The Market — which is arguably where it belongs anyway: you
+    go to the deep synthesis FROM the coin that raised the question, carrying that coin with you
+    (`mcii:open-room` → `boot.js` → `room.focus(ca)`, the same one-way seam rule as
+    `mcii:open-flat`; a room still never reaches into another room or into app.js).
+  - ! OPEN: there is no way into the War Room from inside the Observatory, because the tab bar is
+    hidden there and it has no door. Ask the operator before spending anything on it — the honest
+    options are re-architecting the door/vault alignment law, or an affordance on an existing
+    board, and the second is much cheaper.
+- the room itself is about the ARITHMETIC, not the verdict — the operator asked to "see how the
+  data is being assessed". Its middle board prints the actual expression `fuse()` evaluates: every
+  input, what it saw, its move, its trust, its weight and its signed effect, then the sum, the
+  divisor and the resulting reading. Its last board, `what this room cannot see`, NAMES the three
+  blocked inputs (trader flow, real-world events, prediction markets). A synthesis screen that
+  shows only what it happened to collect reads as complete when it is not.
+- ! `room-warroom.js` computes nothing of its own — every figure comes from `synthesis.js`, the
+  same functions the compact panels call. A second fusion written to look good on this one screen
+  is how an "explain the assessment" room ends up disagreeing with the assessment.
+- **verified in the harness before shipping this time** (#20's lesson, applied rather than
+  re-learned). `app/renderer/test.html` + `mock-mcii.js` over `python3 -m http.server`, then a
+  scripted layout audit across all six rooms at 1280 / 1024 / 860 px asserting: no board narrower
+  than 190px, none collapsed, none overlapping another, no board past the room edge, no label
+  squeezed, no horizontal page scroll, and no backdrop motif reaching under the wall. Two real
+  bugs came out of it, neither visible by reading the code:
+  - **The Market's sweep broke the band law.** `.fl-sweep` is a 340px circle centred 60px down, so
+    it hung 102px past the 128px band and painted behind the first opaque board, re-emerging in
+    the wall's side gutter — LOG #20's bug 2 in a third form, in the very file that documents the
+    rule. Fixed by clipping both market motifs inside a `.fl-band` wrapper (`overflow:hidden`)
+    rather than trusting each motif to stay inside a boundary nothing enforced.
+  - **The War Room read zero coins.** `getTokens()` resolves to the ARRAY, not `{tokens: [...]}`;
+    the room unwrapped a property that does not exist and rendered every board perfectly, empty.
+    That failure mode looks like a design problem and is a data-shape one — worth remembering.
+  - ! module caching bit twice during this: `python3 -m http.server` + a reload kept serving the
+    OLD `station/*.js`, and a fix looked like it had not worked. Serve on a NEW PORT to bust it.
+- ! STILL NOT SEEN IN THE REAL ELECTRON WINDOW. Everything above is the real `station/*.js` and
+  `rooms.css` rendered by a real Chromium against mock IPC. The data shapes were checked against
+  `preload.js` and `app.js` call sites, but nobody has pressed these tabs in the actual app.
+- pre-existing and NOT from this work, but they should not sit unexamined: `sweep`, `importance`,
+  `history` and `alerts` fail on the current tree. All four exercise `shared/importance.js`,
+  `main/adapters/twitterapi.js`, `main/history.js` and `main/alerts.js` — none of which this
+  change touches. `npm test` runs with `&&`, so `alerts` failing first HIDES the other three.
+
+## 2026-09-05 — 22. "THE CONCEPT IS THERE AND IT'S STILL BEING BUILT" — THE ROOMS FINISHED
+- operator, after #21: "they still all just look sloppy and like not correct... in the whats
+  happening tab the scanner doesnt go over the planets and stuff. it almost looks like the concept
+  is there in every room and its still being built."
+- ! THE DIAGNOSIS WAS ARCHITECTURAL, NOT DECORATIVE. #20's band law — a fixed 128px strip the wall
+  is pushed below — solved a real bug (motifs hiding behind opaque boards) by creating a worse
+  one: every room was a decorative strip holding two small doodads, sitting on top of a stack of
+  flat cards on black. Nothing about that composition can be fixed by improving the doodads. Three
+  changes replaced it:
+  1. **The rooms got an environment.** A panelled far wall running the FULL height behind
+     everything, plus a lit horizon seam at the top. ! the first attempt was a perspective floor
+     at the room's bottom edge, which is invisible: these rooms are content-driven and routinely
+     run past 3000px, so anything anchored to the bottom sits far below the fold. An environment
+     here has to work at any height and any scroll position — a far wall does, a stage floor does
+     not. It lives in its own `.st-flatenv` layer because every room overwrites `beyond.innerHTML`
+     on render and would otherwise wipe it.
+  2. **The boards became glass** — translucent with a backdrop blur, and this REVERSES #20's
+     working assumption. There, motifs were kept out from behind boards because a board was opaque
+     and swallowed them. Translucent boards mean the room is now MEANT to be read through the
+     instrument, which is most of what makes a panel read as standing in a space rather than
+     pasted on one. The blur is what keeps 11px mono legible over a grid.
+  3. **A room-wide scan.** First shipped ABOVE the wall; operator: "i dont like how it overlays in
+     front of everything else it should be in the background". Correct — a wash crossing live
+     numbers is a veil over the reading. It sits at z-index 1, below the wall, and the glass
+     carries it through from behind.
+- **The Market, which is what the operator was actually pointing at.** Its sweep was decoration in
+  the strip ABOVE the plot, rotating over nothing while the contacts sat in a board underneath it.
+  A radar sweep that never crosses the things it is finding is the clearest possible tell that a
+  screen is a mock-up. Four fixes, in order of how much each one mattered:
+  - the sweep is now part of the plot, centred on its origin, turning under the bodies. ! it is a
+    CSS conic-gradient behind the svg, not an svg wedge inside it: a sweep's whole character is
+    that it fades ANGULARLY behind its leading edge, and an svg wedge filled with a radial
+    gradient fades outward instead — which is why the first attempt read as a hard triangle laid
+    over the chart. A radial MASK on top of the conic supplies the range falloff conic cannot.
+  - ! `st-spin` sets `transform: rotate()`, which REPLACES the whole transform property —
+    including the `translate(-50%,-50%)` centring the sweep on the plot origin. It was rotating
+    around a point ~500px off the chart. Any element positioned by transform AND animated by
+    transform needs its own keyframe carrying both. Caught by measuring the two centres, not by
+    looking — on screen it just read as "a slab slides past".
+  - the band repeater came out entirely. Operator: "the scanner that was there in the wrong spot
+    is still there as well as the new fixed scanner". One room, one scanner; this room's scanner
+    is the plot, where the contacts are. The Market also opts out of the room-wide scan
+    (`mountRoom({scan:false})`) — two unrelated sweeps at two speeds read as two bugs, not one idea.
+  - the bodies stopped overlapping. Coins that moved alike land on the same spot BY CONSTRUCTION,
+    so a short relaxation pass separates them, capped at 16 plot units from where the data put
+    them — far less than the distance to an axis, so a contact can never cross into a quadrant it
+    does not belong in. Measured after: worst remaining overlap 1px, down from bodies fully
+    buried. Labels are FLIPPED rather than nudged, and are tested against labels already placed —
+    testing a label against a BODY is why the first attempt still smeared "POPCAT" over "BOME".
+- other rooms, same complaint, smaller causes: What's Happening's waveform was drawn straight from
+  the day's top posts, so a quiet day rendered three stubs in the corner of an empty band — it now
+  always spans, with the real posts as its peaks. Its dish was one thin ring bleeding off the
+  corner; it has ribs, a rim and a feed arm now. The Journal's ribbon carried only entries, so a
+  quiet week was one tick on a bare line — it is graduated, one mark per day, and a quiet week
+  reads as a quiet week. The War Room's four feed rails were rotated divs crossing each other past
+  their own convergence point, which read as scratches on the glass; they are one svg now, curves
+  that actually meet at a node and stop, with the pulses staggered.
+- ! FORM CONTROLS WERE INHERITING `style.css` — the FLAT app's light stylesheet — so The Journal's
+  note box rendered as a bright white slab across a dark instrument wall. That one unstyled
+  element did more to make the room look unfinished than any motif did. Inputs, textareas and
+  buttons inside `.st-flatwall` now have the station's own voice.
+- two more that only showed up under measurement: the beyond layer starts at the room's own top
+  edge while the placard row sits in normal flow above it, so a full-width motif anchored at 0
+  runs straight THROUGH the title — that is what the War Room's rails and the Portfolio's crates
+  were doing. Both now clear the row. And Your Coins' berth labels were riding each berth's lift,
+  leaving the row ragged; the tag counter-translates its own lift so the names sit on one baseline
+  while the berths still rise and fall with the day's move.
+- verified: all six rooms audited at 1280 / 1024 / 860 px — no sliver, collapsed, overlapping or
+  overflowing board, no horizontal page scroll, the scan proven to sit below the wall, The Market
+  proven to carry no room-wide scan, and no painted motif element inside the placard's box. Every
+  station/synthesis/journal/portfolio/sector suite still passes.
+- ! still not seen in the real Electron window — same caveat as #21.

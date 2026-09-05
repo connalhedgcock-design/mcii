@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
-<title>CII</title>
+<title>CII (visual test harness — not the real app)</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="station/station.css">
 <link rel="stylesheet" href="station/rooms.css">
@@ -20,10 +19,6 @@
   </header>
   <div class="viewport" aria-hidden="true"></div>
   <nav class="tabs">
-    <!-- ⚠️ SCAFFOLDING. The tab bar is deleted at gate 4, when the Observatory
-         becomes the room you land in. Getting to a screen is meant to be
-         physical -- you turn and walk. A tab bar makes that optional, and
-         optional things get kept. -->
     <button class="tab" data-view="observatory">The Observatory</button>
     <button class="tab active" data-view="watch">Your coins</button>
     <button class="tab" data-view="market">Market <span class="count" id="mktcount"></span></button>
@@ -56,11 +51,6 @@
        in app.js needs no change for it -- an unknown view id hides every flat main
        and loads nothing, which is exactly what a room-only view wants. -->
   <div id="room-war" hidden></div>
-  <!-- fomo/axiom stay flat: the venue's page is a native, pixel-positioned
-       view (see venueRect() in app.js), not a DOM node -- it cannot take a
-       CSS transform, so these two get the room's atmosphere as a background
-       behind the existing bar, never a parallel room that could drift out
-       of alignment with the real embed. -->
   <div class="rm-venue-wrap"><div class="rm-venue-beyond"></div><main id="fomo" class="venue" hidden></main></div>
   <div class="rm-venue-wrap"><div class="rm-venue-beyond"></div><main id="axiom" class="venue" hidden></main></div>
   <footer class="foot">
@@ -68,6 +58,7 @@
     <span id="stamp"></span>
   </footer>
   <div id="observatory"></div>
+  <script src="mock-mcii.js"></script>
   <script src="app.js"></script>
   <script type="module" src="station/boot.js"></script>
 </body>

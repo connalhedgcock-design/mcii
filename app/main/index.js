@@ -543,11 +543,32 @@ ipcMain.handle('screen:latest', () => {
   const risers = scanstore.risers({ minScans: 3, windowMs: 12 * 36e5 });
   const riserBy = new Map(risers.map((r) => [r.ca, r]));
 
+  // Volume today against this coin's OWN trailing normal -- the reading the
+  // market room's planets and asteroids are sized and sorted by (ROOM-BRIEF
+  // Q10: "coins that blew up/fell off that day"). Deliberately NOT a comparison
+  // between coins: a $40k coin doubling and a $4M coin doubling are different
+  // events and their raw volumes are not comparable at all.
+  // ! MEDIAN, not mean, and only over observations OLDER than 24h. vol24 is
+  // itself a rolling 24-hour figure, so today's reading and yesterday's overlap;
+  // averaging the spike into its own baseline is how a doubling reports as +40%.
+  // ! null, never 0, when there is not enough history -- "no reading" and "no
+  // change" are different facts and the room paints them differently.
+  const DAY = 864e5;
+  function volShock(seen, o) {
+    const prior = seen.filter((x) => x.ts < o.ts - DAY && x.vol24 != null).map((x) => x.vol24).sort((a, b) => a - b);
+    if (prior.length < 3 || o.vol24 == null) return { volAvg: null, volShockPct: null };
+    const mid = Math.floor(prior.length / 2);
+    const volAvg = prior.length % 2 ? prior[mid] : Math.round((prior[mid - 1] + prior[mid]) / 2);
+    if (!volAvg) return { volAvg: null, volShockPct: null };
+    return { volAvg, volShockPct: Math.round(((o.vol24 - volAvg) / volAvg) * 100) };
+  }
+
   const rows = [...latest.values()].map((o) => {
     const r = riserBy.get(o.ca);
     const seen = all.filter((x) => x.ca === o.ca);
     return { ...o, scans: seen.length,
       firstSeen: seen[0]?.ts ?? o.ts,
+      ...volShock(seen, o),
       accumulating: r?.accumulating ?? false,
       holderGrowth: r?.holderGrowth ?? null,
       liqGrowth: r?.liqGrowth ?? null,

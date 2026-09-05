@@ -1,0 +1,769 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE FLAT DOORS, MADE ROOMS — Your Coins, The Market, What's Happening, The
+   Journal, The Portfolio.
+
+   Same idea as the Observatory itself: a beyond layer that is pure
+   atmosphere and never carries a reading, in front of it a wall of real
+   .st-board instruments (the same class the Observatory's own boards and the
+   Portfolio's flat view already use — this file does not reinvent that
+   component, only the rooms around it).
+
+   ⚠️ Same rule as station.css §9.1: nothing between .st-flatbeyond and its
+   moving children may carry a grouping property (opacity<1, filter, mask,
+   clip-path) above the leaf nodes, or any 3D on those leaves flattens
+   silently. There is no 3D transform-style here (these rooms use 2D
+   layering, not the Observatory's yaw), so this mostly matters for the
+   masks used on a couple of the sweep/haze layers — keep those on leaves.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.st-flatroom {
+  position: relative;
+  /* Content-driven, NOT a forced viewport height. A room whose content is
+     three short board rows and whose canvas is "100vh minus chrome" is
+     mostly empty black — the actual bug an earlier pass shipped. 360px is
+     just enough for the backdrop motif to read before the wall's own
+     content (which usually runs taller than this anyway) takes over. */
+  min-height: 360px;
+  overflow: hidden;
+  isolation: isolate; /* the beyond layer must never paint over the header/tabs above it */
+}
+
+.st-flatbeyond {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 120% 70% at 50% 0%,
+    oklch(0.175 0.009 250) 0%, var(--st-room) 55%, var(--st-void) 100%);
+}
+
+/* ── THE ENVIRONMENT ───────────────────────────────────────────────────────
+   The rooms read as "cards on black" until they had a floor and a horizon.
+   That was the actual complaint — not that any one motif was wrong, but that
+   a motif with nothing around it is a prop on an empty stage. A receding floor
+   grid and a lit horizon give the room a FAR and a NEAR, which is the whole
+   difference between a background and a place.
+
+   ⚠️ The floor is a perspective plane, so it is a LEAF (a <span>, not a
+   container of moving parts) — see this file's header rule about grouping
+   properties above 3D leaves. */
+.st-flatenv { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+
+/* ! A FLOOR AT THE BOTTOM OF THE ROOM IS INVISIBLE. These rooms are
+   content-driven and routinely run 3000px+, so anything anchored to the room's
+   bottom edge sits far below the fold and the room still reads as cards on
+   black — which is what the first attempt at this actually did. The
+   environment therefore has to work at ANY height and at ANY scroll position:
+   a far wall that continues the whole way down, not a stage floor.
+
+   So: a faint panelled bulkhead running the full height behind the glass, lit
+   from the top where the room's signature object stands. Same bulkhead the
+   Observatory's own hull is made of, flattened. */
+.st-flatenv .fl-floor {
+  position: absolute; inset: 0;
+  background:
+    /* the vertical seams of the wall panels */
+    repeating-linear-gradient(to right,
+      oklch(0.52 0.012 250 / 0.10) 0 1px, transparent 1px 132px),
+    /* deck lines, much fainter, so the wall has a horizontal rhythm too */
+    repeating-linear-gradient(to bottom,
+      oklch(0.52 0.012 250 / 0.055) 0 1px, transparent 1px 96px);
+  -webkit-mask-image: radial-gradient(ellipse 92% 60% at 50% 0%, black 10%, transparent 78%);
+  mask-image: radial-gradient(ellipse 92% 60% at 50% 0%, black 10%, transparent 78%);
+}
+/* The lit seam at the top of the wall, behind the signature object. One line
+   does more for depth than any amount of gradient — it gives the room a FAR. */
+.st-flatenv .fl-horizon {
+  position: absolute; left: 0; right: 0; top: var(--fl-band, 104px); height: 1px;
+  background: linear-gradient(90deg, transparent, var(--fl-tint, oklch(0.62 0.055 240 / 0.40)) 18%, var(--fl-tint, oklch(0.62 0.055 240 / 0.40)) 82%, transparent);
+  box-shadow: 0 0 26px 3px var(--fl-tint-glow, oklch(0.55 0.09 240 / 0.13));
+}
+
+/* ── THE SCAN ──────────────────────────────────────────────────────────────
+   A sweep that passes OVER the instruments, at z-index 3 — above the wall.
+   Deliberately the opposite of every other motif in this file: those sit
+   behind the boards and describe the room, this one crosses the whole frame
+   and makes the room feel live. Screen-blended at very low alpha so it lifts
+   an edge as it passes and never washes out a number underneath it. */
+.st-flatscan {
+  /* z-index 1: above the environment and the motif, BELOW the wall (2). The
+     glass boards carry it through from behind — the room reads as being
+     scanned without a wash ever crossing a number. */
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none; overflow: hidden;
+}
+.st-flatscan i {
+  position: absolute; left: 0; right: 0; height: 210px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    var(--fl-scan, oklch(0.72 0.145 235 / 0.055)) 62%,
+    var(--fl-scan-edge, oklch(0.80 0.13 230 / 0.16)) 97%,
+    transparent 100%);
+  border-bottom: 1px solid var(--fl-scan-line, oklch(0.82 0.12 228 / 0.20));
+  mix-blend-mode: screen;
+  animation: fl-scan 11s cubic-bezier(0.55, 0, 0.5, 1) infinite;
+}
+@keyframes fl-scan {
+  0%   { top: -210px; opacity: 0; }
+  8%   { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.st-flattop {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 22px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.st-flatplacard {
+  font-family: var(--st-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--st-fg-mute);
+  background: oklch(0.10 0.006 250 / 0.60);
+  border: 1px solid var(--st-edge);
+  border-radius: 3px;
+  padding: 6px 10px 5px;
+  white-space: nowrap;
+}
+.st-flatplacard b { color: var(--st-fg); letter-spacing: 0.08em; }
+.st-flatpill {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; row-gap: 6px;
+}
+.st-flatpill .p {
+  font-family: var(--st-mono); font-size: 11px; color: var(--st-fg-2);
+  background: oklch(0.10 0.006 250 / 0.60); border: 1px solid var(--st-edge);
+  border-radius: 3px; padding: 6px 10px 5px; white-space: nowrap;
+}
+.st-flatpill .p b { color: var(--st-fg); font-weight: 700; }
+.st-flatpill .p.is-up b { color: var(--st-up); }
+.st-flatpill .p.is-down b { color: var(--st-down); }
+.st-flatpill .p.is-warn b { color: var(--st-warn); }
+
+/* Flexbox, not CSS grid with grid-column:span. The grid version shipped
+   with a real bug: the "wide" board (span 2 of 3) rendered as a near-zero
+   sliver with its label wrapped one letter per line, while the "narrow"
+   board (span 1) took the full row — a grid item's auto min-width fighting
+   its track under a set of conditions this file never isolated. Flex with
+   an explicit flex-basis has no equivalent failure mode: each board gets a
+   real minimum pixel width it can't be squeezed below, and flex-wrap
+   degrades to one full-width board per row rather than collapsing anything. */
+.st-flatwall {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 22px 40px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+}
+.st-flatboard { flex: 1 1 280px; min-width: 0; }
+.st-flatboard.is-wide { flex: 2.2 1 380px; }
+.st-flatboard.is-full { flex: 1 1 100%; }
+
+/* the boards float over the room, so they get the lift the Observatory's own
+   boards don't need (those hang from a ceiling; these have nothing behind
+   them but open space) */
+/* ⚠️ GLASS, NOT CARDS — and this REVERSES the assumption LOG #20 worked under.
+   There, motifs were kept out from behind the boards because a board was
+   opaque and swallowed them. Making the boards translucent turns that around:
+   the environment is now MEANT to be read through the instrument, which is what
+   makes the room feel like a space the boards are standing in rather than a
+   list of panels on black. The blur is what keeps it legible — an unblurred
+   grid behind 11px mono is noise, a blurred one is depth. */
+.st-flatwall .st-board {
+  background: linear-gradient(to bottom,
+    oklch(0.205 0.011 250 / 0.74), oklch(0.150 0.008 250 / 0.82));
+  -webkit-backdrop-filter: blur(9px) saturate(1.06);
+  backdrop-filter: blur(9px) saturate(1.06);
+  border-color: oklch(0.48 0.012 250 / 0.52);
+  box-shadow:
+    inset 0 1px 0 oklch(0.62 0.022 245 / 0.16),
+    0 24px 46px -28px oklch(0.02 0.004 250 / 0.95);
+}
+/* A hairline of light down the left edge: the room's own key light catching
+   the panel. Cheap, and it is most of what separates "a rectangle with a
+   border" from "a machined object". */
+.st-flatwall .st-board::before {
+  content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 1px;
+  background: linear-gradient(to bottom, transparent, oklch(0.72 0.145 235 / 0.30), transparent);
+  pointer-events: none;
+}
+/* .st-lamp is built as a rectangular annunciator cell (a subsystem word with
+   a label inside it) — reused here inline, next to a coin's name, exactly
+   the way the caution panel already uses it. Only new rule: let it sit
+   inline in a text row instead of a grid cell. */
+.st-flatwall .st-lamp {
+  display: inline-block;
+  margin: 0 8px 0 0;
+  vertical-align: 1px;
+}
+
+.st-flatrow {
+  display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+  padding: 7px 0; font-family: var(--st-mono); font-size: 12.5px;
+  border-top: 1px solid oklch(0.34 0.008 250 / 0.32);
+}
+.st-flatrow:first-child { border-top: none; }
+.st-flatrow .name { flex: none; min-width: 84px; font-weight: 700; color: var(--st-fg); }
+/* min-width:120px, not flex:1 alone — a bare flex:1 can be squeezed to zero
+   by its siblings' own min-widths before THEY ever wrap, which is exactly
+   what clipped the row/rename buttons off the right edge of a narrow board
+   instead of dropping them to a second line. flex-wrap on the row is the
+   other half of the fix: once this can't shrink further, later cells wrap. */
+.st-flatrow .grow { flex: 1 1 120px; min-width: 120px; color: var(--st-fg-mute); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-flatrow .v { flex: none; min-width: 58px; text-align: right; color: var(--st-fg-2); }
+.st-flatrow .v.is-up { color: var(--st-up); } .st-flatrow .v.is-down { color: var(--st-down); }
+.st-flathead {
+  display: flex; gap: 10px; padding-bottom: 5px; font-family: var(--st-mono);
+  font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--st-fg-faint);
+}
+.st-flathead .name { flex: none; min-width: 84px; } .st-flathead .v { flex: none; min-width: 58px; text-align: right; } .st-flathead .grow { flex: 1; }
+
+.st-flatempty { font-size: 12.5px; color: var(--st-fg-mute); padding: 6px 0; }
+
+@keyframes st-breathe { 0%, 100% { opacity: 0.86; } 50% { opacity: 1; } }
+@keyframes st-breatheSlow { 0%, 100% { opacity: 0.72; } 50% { opacity: 0.96; } }
+@keyframes st-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes st-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .st-flatbeyond * { animation: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE BACKDROP BAND — a fixed, GUARANTEED-visible strip between the placard
+   row and the board wall. Not a full-room background positioned by percent:
+   an earlier version put the backdrop's own motifs at e.g. "bottom: 4%" of
+   the whole room, which reads fine when the room is tall — but this room's
+   height is now driven by its content (fixed below), so the boards routinely
+   run right past that 4% mark and the motif ends up mostly hidden BEHIND the
+   opaque board, with only a sliver poking out past its bottom edge — the
+   "disconnected little empty boxes" bug. A fixed band the wall is pushed
+   below (margin-top, not overlap) can never be covered by a board, at any
+   content length. ═══════════════════════════════════════════════════════ */
+/* ! REVISED. The band was 128px of RESERVED EMPTY SPACE holding two small
+   motifs, and with a real environment behind the whole room that reads as a
+   gap the designer forgot to fill — which is exactly what it looked like. The
+   signature object still gets its own clear zone at the top, but it is smaller
+   and the motifs now continue DOWN behind the glass wall instead of stopping
+   dead at a line. */
+.st-flatwall { margin-top: var(--fl-band, 104px); }
+.st-flatroom { --fl-band: 104px; }
+
+/* ═══ Your Coins — a dock of berths, one per tracked coin ═══════════════════ */
+.rm-watch .fl-rail { position: absolute; left: 6%; right: 6%; top: 96px; height: 2px; background: linear-gradient(90deg, transparent, var(--st-edge-hi), transparent); }
+.rm-watch .fl-berths { position: absolute; left: 0; right: 0; top: 18px; display: flex; align-items: flex-end; justify-content: center; gap: 16px; height: 80px; }
+.rm-watch .fl-berth { width: 52px; height: 64px; border-radius: 7px 7px 2px 2px; border: 2px solid var(--st-edge-hi);
+  background: linear-gradient(to bottom, oklch(0.24 0.013 250), oklch(0.15 0.008 250) 75%); position: relative; }
+.rm-watch .fl-collar { position: absolute; top: 0; left: 14%; right: 14%; height: 4px; border-radius: 2px; }
+.rm-watch .fl-collar.ok { background: var(--st-up); box-shadow: 0 0 10px var(--st-up); animation: st-breathe 4.4s ease-in-out infinite; }
+.rm-watch .fl-collar.warn { background: var(--st-warn); box-shadow: 0 0 10px var(--st-warn); animation: st-breathe 3.2s ease-in-out infinite .3s; }
+.rm-watch .fl-collar.alarm { background: var(--st-down); box-shadow: 0 0 10px var(--st-down); animation: st-breathe 2.2s ease-in-out infinite .1s; }
+.rm-watch .fl-collar.dim { background: var(--st-fg-faint); opacity: 0.5; }
+
+/* ═══ The Market — a sweep over the sector ═══════════════════════════════════ */
+/* The Market has no band object at all now, so it does not reserve a band. */
+.rm-market { --fl-band: 34px; }
+.rm-market { --fl-scan: oklch(0.72 0.145 235 / 0.05); }
+/* ── the plot as a radar scope ─────────────────────────────────────────────
+   The sweep turns behind the contacts: the grid and the bodies stay fully
+   legible and the light passes under them. A scope lights its targets; it must
+   never wash them out, which is the failure mode of putting the sweep on top. */
+.st-fieldwrap { position: relative; overflow: hidden; border-radius: 4px; }
+.st-fieldwrap .st-field { position: relative; z-index: 1; display: block; }
+.st-fieldsweep {
+  position: absolute; left: 50%; top: 50%; z-index: 0;
+  width: 116%; aspect-ratio: 1; transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
+  /* the bright edge LEADS and the tail falls away behind it — the one thing
+     that makes a rotating gradient read as a sweep rather than as a spinning
+     pie slice. */
+  background: conic-gradient(from 0deg,
+    oklch(0.80 0.14 230 / 0.26) 0deg,
+    oklch(0.72 0.145 235 / 0.09) 16deg,
+    transparent 62deg,
+    transparent 360deg);
+  /* ! a conic gradient is UNIFORM along the radius, so without this the wedge
+     is as bright at the rim as at the hub and reads as a solid triangle laid
+     on the chart. Real returns fade with range; the mask is what turns the
+     shape from a wedge into a sweep. */
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 0%, black 26%, transparent 70%);
+  mask-image: radial-gradient(circle at 50% 50%, black 0%, black 26%, transparent 70%);
+  /* ⚠️ NOT `st-spin`. That keyframe sets `transform: rotate(...)`, which REPLACES
+     the whole transform property — including the translate(-50%,-50%) that
+     centres this on the plot origin. The sweep was rotating around a point
+     ~500px off the chart, which is why it read as a slab sliding past the edge
+     rather than a scope turning on its axis. Any element that is both
+     positioned by transform AND animated by transform needs its own keyframe
+     that carries both. */
+  animation: fl-scope 7.5s linear infinite;
+}
+@keyframes fl-scope {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.st-field .rng { fill: none; stroke: oklch(0.62 0.06 240 / 0.11); stroke-width: 1; }
+@media (prefers-reduced-motion: reduce) { .st-fieldsweep { animation: none; } }
+
+/* ═══ What's Happening — the signal layer's own room ════════════════════════ */
+.rm-sector { --fl-tint: oklch(0.68 0.195 305 / 0.34); --fl-tint-glow: oklch(0.68 0.195 305 / 0.13);
+  --fl-scan: oklch(0.68 0.195 305 / 0.05); --fl-scan-edge: oklch(0.78 0.17 305 / 0.15); --fl-scan-line: oklch(0.80 0.16 305 / 0.20); }
+/* THE DISH — a real object, not a faint circle. It was one thin ring bleeding
+   off the top corner, which reads as a stray gradient; a dish is a DISH because
+   of its ribs, its rim and the feed arm standing off the centre. */
+.rm-sector .fl-dish { position: absolute; top: -34px; right: 4%; width: 168px; height: 168px; }
+.rm-sector .fl-dish b {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1px solid oklch(0.68 0.195 305 / 0.30);
+  background: radial-gradient(circle at 42% 34%, oklch(0.68 0.195 305 / 0.10), transparent 68%);
+}
+.rm-sector .fl-dish b:nth-child(2) { inset: 22%; border-color: oklch(0.68 0.195 305 / 0.22); background: none; }
+.rm-sector .fl-dish b:nth-child(3) { inset: 41%; border-color: oklch(0.68 0.195 305 / 0.18); background: none; }
+/* the feed arm + its receiver, standing off the dish face */
+.rm-sector .fl-dish s {
+  position: absolute; left: 50%; top: 50%; width: 1px; height: 44%; margin-left: -0.5px;
+  transform-origin: 50% 100%; transform: rotate(34deg); text-decoration: none;
+  background: linear-gradient(to top, transparent, oklch(0.68 0.195 305 / 0.42));
+}
+.rm-sector .fl-dish s::after {
+  content: ''; position: absolute; top: -3px; left: -3px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--st-sig); box-shadow: 0 0 12px -1px var(--st-sig);
+  animation: st-breathe 4.2s ease-in-out infinite;
+}
+/* THE TRACE — spans the room. A waveform that stops at 40% of the width is a
+   stub, and a stub is what "unfinished" looks like. */
+.rm-sector .fl-wave { position: absolute; left: 5%; right: 27%; top: 26px; display: flex; align-items: flex-end; gap: 3px; height: 74px; }
+.rm-sector .fl-wave i { display: block; flex: 1 1 0; min-width: 2px; border-radius: 1.5px 1.5px 0 0;
+  background: linear-gradient(to top, oklch(0.28 0.055 305 / 0.5), var(--st-sig)); animation: fl-bar 2.6s ease-in-out infinite; }
+@keyframes fl-bar { 0%, 100% { height: 20%; } 50% { height: var(--h, 65%); } }
+
+/* ═══ The Journal — a calibration dial, held steady ═════════════════════════ */
+/* ═══ The Portfolio — cargo, sized by weight ═════════════════════════════════ */
+.rm-folio .fl-rail { position: absolute; left: 6%; right: 6%; top: 126px; height: 2px; background: linear-gradient(90deg, transparent, var(--st-edge-hi), transparent); }
+.rm-folio .fl-crate { position: absolute; border: 1px solid var(--st-edge-hi); border-radius: 3px;
+  background: linear-gradient(160deg, var(--st-panel-hi), var(--st-panel)); animation: st-drift 6s ease-in-out infinite; }
+.rm-folio .fl-crate.hazard { background-image: var(--st-hazard); background-color: transparent; border-color: oklch(0.82 0.165 75 / 0.6); }
+
+/* ═══ FOMO / Axiom — a slim starfield behind the real embed ═════════════════
+   The venue's own page is a native OS-level view positioned by pixel rect
+   (see venueRect() in app.js), not a DOM node — it cannot receive a CSS
+   transform, and its measured box must not change shape or the embed
+   misaligns from its frame. So this is background only, applied to the
+   room's OWN container behind .venue-bar/.venue-host, never to either of
+   those two elements themselves. */
+.rm-venue-wrap { position: relative; }
+.rm-venue-wrap main.venue { position: relative; z-index: 1; }
+.rm-venue-beyond {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.3px 1.3px at 18% 22%, oklch(0.9 0.02 240 / 0.5), transparent 50%),
+    radial-gradient(1px 1px at 72% 16%, oklch(0.9 0.02 240 / 0.35), transparent 50%),
+    radial-gradient(1.3px 1.3px at 86% 62%, oklch(0.9 0.02 240 / 0.45), transparent 50%),
+    radial-gradient(1px 1px at 30% 80%, oklch(0.9 0.02 240 / 0.35), transparent 50%);
+  background-color: var(--st-void);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE ROOM BRIEF, 2026-09-05 — the instruments the operator's own answers
+   added (70-AREAS/observatory/design/ROOM-BRIEF.md).
+
+   Everything below obeys the same two laws as the file above it: colour the
+   READING and never the container, and every mark encodes something real.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── shared readouts ────────────────────────────────────────────────────── */
+.st-stats { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.st-stat { display: flex; flex-direction: column; gap: 2px; min-width: 84px; }
+.st-stat .k { font-family: var(--st-mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--st-fg-faint); }
+.st-stat .v { font-family: var(--st-mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--st-fg); }
+.st-stat .v.is-up { color: var(--st-up); } .st-stat .v.is-down { color: var(--st-down); }
+
+.st-say { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--st-fg-2); }
+.st-say.is-warn { color: var(--st-warn); }
+.st-note { margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--st-fg-faint); }
+.st-actrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+
+.st-caveats { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--st-edge); }
+.st-caveats b { display: block; font-family: var(--st-mono); font-size: 9.5px; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--st-fg-faint); margin-bottom: 4px; }
+.st-caveats span { display: block; font-size: 11.5px; color: var(--st-fg-mute); line-height: 1.45; }
+
+.st-post { padding: 8px 0; border-top: 1px solid oklch(0.34 0.008 250 / 0.32); }
+.st-post:first-of-type { border-top: none; }
+.st-post .h { display: flex; align-items: center; gap: 8px; font-family: var(--st-mono); font-size: 10.5px; color: var(--st-fg-mute); }
+.st-post .h b { color: var(--st-fg-2); font-weight: 700; }
+.st-post .h span:last-child { margin-left: auto; }
+.st-post .t { margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--st-fg-2); }
+.st-post .w { margin-top: 3px; font-size: 11px; color: var(--st-fg-faint); }
+.st-aside { margin-top: 10px; }
+.st-aside summary { font-family: var(--st-mono); font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--st-fg-mute); cursor: pointer; }
+
+/* a word-sized state, next to the thing it describes. Colour the READING. */
+.chip {
+  flex: none; font-family: var(--st-mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 3px 7px 2px; border-radius: 2px;
+  border: 1px solid var(--st-edge); color: var(--st-fg-mute); white-space: nowrap;
+}
+.chip.is-up { color: var(--st-up); border-color: color-mix(in oklch, var(--st-up) 45%, transparent); }
+.chip.is-down { color: var(--st-down); border-color: color-mix(in oklch, var(--st-down) 45%, transparent); }
+.chip.is-warn { color: var(--st-warn); border-color: color-mix(in oklch, var(--st-warn) 55%, transparent); }
+.st-flathead .chip { border-color: transparent; padding-left: 0; }
+
+/* a row you can pick. The selected row is marked on its LEFT EDGE, not by a
+   filled background — colouring the container is banned, and a filled row also
+   destroys the lamp/verdict colours sitting inside it. */
+.st-flatrow.is-pick { cursor: pointer; padding-left: 7px; border-left: 2px solid transparent; }
+.st-flatrow.is-pick:hover { background: oklch(0.22 0.010 250 / 0.35); }
+.st-flatrow.is-sel { border-left-color: var(--st-holo); }
+.st-flatrow .sp { flex: none; width: 108px; display: flex; align-items: center; }
+.st-flathead .sp { flex: none; width: 108px; }
+
+/* ── the strip chart (§9: "the graph is shit") ──────────────────────────── */
+.st-chart { position: relative; width: 100%; }
+.st-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.st-chart .g { stroke: oklch(0.42 0.010 250 / 0.30); stroke-width: 1; }
+.st-chart .gt, .st-chart .xt { font-family: var(--st-mono); font-size: 11px; fill: var(--st-fg-faint); }
+.st-chart .base { stroke: var(--st-edge-hi); stroke-width: 1; }
+.st-chart .ln { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.st-chart .vb { fill: oklch(0.62 0.014 250 / 0.34); }
+.st-chart .cross { stroke: var(--st-holo); stroke-width: 1; stroke-dasharray: 3 3; }
+.st-chart.is-up .ln, .st-chart.is-up .dot { stroke: var(--st-up); fill: none; }
+.st-chart.is-down .ln, .st-chart.is-down .dot { stroke: var(--st-down); fill: none; }
+.st-chart.is-up .dot { fill: var(--st-up); } .st-chart.is-down .dot { fill: var(--st-down); }
+.st-chart.is-up .ar { fill: color-mix(in oklch, var(--st-up) 16%, transparent); }
+.st-chart.is-down .ar { fill: color-mix(in oklch, var(--st-down) 16%, transparent); }
+.st-chart.is-empty { display: flex; align-items: center; justify-content: center; min-height: 90px;
+  border: 1px dashed var(--st-edge); border-radius: 3px; font-size: 12px; color: var(--st-fg-faint); }
+.st-chart-read { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; font-family: var(--st-mono); }
+.st-chart-read b { font-size: 14px; color: var(--st-fg); font-variant-numeric: tabular-nums; }
+.st-chart-read i { font-style: normal; font-size: 10.5px; color: var(--st-fg-faint); }
+.st-chart-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-family: var(--st-mono); }
+.st-chart-top .who { font-size: 12px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--st-fg); }
+.st-chart-top .px { font-size: 15px; color: var(--st-fg); font-variant-numeric: tabular-nums; }
+.st-chart-top .mv { font-size: 12px; } .st-chart-top .mv.is-up { color: var(--st-up); } .st-chart-top .mv.is-down { color: var(--st-down); }
+.st-chart-top .rng { margin-left: auto; display: flex; gap: 5px; }
+
+.st-sparkline { width: 108px; height: 26px; display: block; }
+.st-sparkline path { fill: none; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.st-sparkline.is-up path { stroke: var(--st-up); } .st-sparkline.is-down path { stroke: var(--st-down); }
+.st-sparkline.is-empty { border-bottom: 1px dashed var(--st-edge); height: 26px; }
+
+/* ── the confidence needle (§19) ────────────────────────────────────────── */
+.st-conf { gap: 4px; }
+/* A needle that is not sure LOOKS not sure. The whole face dims (set inline,
+   from the number), and under 35% the needle itself drifts — small, slow, and
+   never synchronised with anything else in the room. */
+.st-arc-needle.is-unsure { animation: st-waver 5.2s ease-in-out infinite; }
+@keyframes st-waver {
+  0%, 100% { transform: translate(-50%, -100%) rotate(calc(-135deg + var(--v, 0) * 270deg - 3deg)); }
+  50%      { transform: translate(-50%, -100%) rotate(calc(-135deg + var(--v, 0) * 270deg + 3deg)); }
+}
+.st-conf-note { margin-top: 4px; font-family: var(--st-mono); font-size: 9.5px; color: var(--st-fg-faint); text-align: center; }
+
+/* ── the verdict panel (§17, §18) ───────────────────────────────────────── */
+.st-verdict-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.st-verdict-word { font-family: var(--st-mono); font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; }
+.st-verdict.is-up .st-verdict-word { color: var(--st-up); }
+.st-verdict.is-down .st-verdict-word { color: var(--st-down); }
+.st-verdict.is-warn .st-verdict-word { color: var(--st-warn); }
+.st-verdict.is-flat .st-verdict-word { color: var(--st-fg-mute); }
+.st-verdict-say { font-size: 12px; color: var(--st-fg-mute); }
+
+/* Centred on zero. A bar that grows rightward from a left edge cannot show a
+   negative reading without lying about its own baseline. */
+.st-vbar { position: relative; height: 8px; margin: 10px 0 2px; background: oklch(0.16 0.008 250);
+  border: 1px solid var(--st-edge); border-radius: 2px; overflow: hidden; }
+.st-vbar .zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--st-edge-hi); }
+.st-vbar .fill { position: absolute; top: 0; bottom: 0; transition: width 300ms var(--st-ease); }
+.st-vbar .fill.is-up { background: var(--st-up); } .st-vbar .fill.is-down { background: var(--st-down); }
+.st-vbar .fill.is-warn { background: var(--st-warn); } .st-vbar .fill.is-flat { background: var(--st-fg-faint); }
+
+.st-votes { margin-top: 10px; }
+.st-vote { display: flex; align-items: baseline; gap: 9px; padding: 5px 0;
+  border-top: 1px solid oklch(0.34 0.008 250 / 0.32); font-family: var(--st-mono); font-size: 11.5px; }
+.st-vote:first-child { border-top: none; }
+.st-vote .k { flex: none; min-width: 76px; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; color: var(--st-fg-mute); }
+.st-vote .d { flex: none; width: 12px; text-align: center; color: var(--st-fg-faint); }
+.st-vote .d.is-up { color: var(--st-up); } .st-vote .d.is-down { color: var(--st-down); }
+.st-vote .w { flex: 1 1 140px; color: var(--st-fg-2); }
+.st-vote .c { flex: none; letter-spacing: 1px; color: var(--st-holo); font-size: 9px; }
+.st-vote .c i { color: var(--st-edge-hi); font-style: normal; }
+.st-vote.is-missing .w { color: var(--st-fg-faint); }
+
+/* ── the market field: planets and asteroids (§10) ──────────────────────── */
+.st-field { display: block; width: 100%; height: auto; overflow: visible; }
+.st-field .ax { stroke: var(--st-edge-hi); stroke-width: 1; }
+.st-field .axl { font-family: var(--st-mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; fill: var(--st-fg-faint); }
+.st-field .rock path { fill: var(--st-fg-faint); transition: fill 180ms var(--st-ease); }
+.st-field .rock .hit { fill: transparent; cursor: pointer; }
+.st-field .rock:hover path, .st-field .rock.is-sel path { fill: var(--st-holo); }
+.st-field .orb { cursor: pointer; }
+.st-field .orb .body { fill: oklch(0.30 0.014 250); }
+.st-field .orb.is-up .body { fill: color-mix(in oklch, var(--st-up) 34%, oklch(0.24 0.012 250)); }
+.st-field .orb.is-down .body { fill: color-mix(in oklch, var(--st-down) 34%, oklch(0.24 0.012 250)); }
+/* the limb: a lit edge, so a body reads as a sphere lit from the room rather
+   than as a flat disc — the one piece of shading here, and it is structural */
+.st-field .orb .lim { fill: none; stroke: oklch(0.72 0.020 250 / 0.55); stroke-width: 1; }
+.st-field .orb.is-up .lim { stroke: var(--st-up); }
+.st-field .orb.is-down .lim { stroke: var(--st-down); }
+.st-field .orb .ring { fill: none; stroke: var(--st-holo); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.85; }
+.st-field .orb .lab { font-family: var(--st-mono); font-size: 11px; letter-spacing: 0.06em; fill: var(--st-fg-2); }
+.st-field .orb.is-sel .lab { fill: var(--st-fg); }
+.st-field .orb.is-sel .body { stroke: var(--st-holo-hot); stroke-width: 1.5; }
+.st-field-key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px;
+  font-family: var(--st-mono); font-size: 10px; color: var(--st-fg-faint); }
+.st-field-key i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: -1px; }
+.st-field-key .k-orb { border-radius: 50%; background: color-mix(in oklch, var(--st-up) 34%, oklch(0.24 0.012 250)); border: 1px solid var(--st-up); }
+.st-field-key .k-rock { background: var(--st-fg-faint); clip-path: polygon(20% 0, 100% 25%, 85% 100%, 10% 80%); }
+.st-field-key .k-ring { border-radius: 50%; border: 1px dashed var(--st-holo); }
+
+/* ── the journal, as a log (§4) ─────────────────────────────────────────── */
+.st-compose { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--st-edge); }
+.st-day {
+  margin: 14px 0 6px; font-family: var(--st-mono); font-size: 9.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--st-fg-faint);
+  display: flex; align-items: center; gap: 10px;
+}
+.st-day::after { content: ''; flex: 1; height: 1px; background: var(--st-edge); }
+.st-entry { display: flex; gap: 12px; padding: 8px 0 8px 11px; border-left: 2px solid var(--st-edge-hi); }
+.st-entry .t { flex: none; width: 62px; font-family: var(--st-mono); font-size: 10.5px; color: var(--st-fg-faint); padding-top: 2px; }
+.st-entry .b { flex: 1; min-width: 0; }
+.st-entry .k { display: block; font-family: var(--st-mono); font-size: 9.5px; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--st-fg-mute); margin-bottom: 3px; }
+.st-entry p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--st-fg-2); }
+.st-entry p.lesson { margin-top: 4px; font-size: 11.5px; color: var(--st-fg-faint); }
+.st-entry.is-forecast { border-left-color: var(--st-holo-deep); }
+.st-entry.is-hit { border-left-color: var(--st-up); }
+.st-entry.is-miss { border-left-color: var(--st-down); }
+.st-entry.is-position { border-left-color: var(--st-warn); }
+.st-orion p { margin: 0 0 7px; font-size: 12.5px; line-height: 1.5; color: var(--st-fg-2);
+  padding-left: 11px; border-left: 2px solid var(--st-sig-dim); }
+
+/* ── the portfolio's joint headline (§13) ───────────────────────────────── */
+.st-joint { margin-bottom: 12px; }
+.st-joint .n { font-family: var(--st-mono); font-variant-numeric: tabular-nums;
+  font-size: 34px; line-height: 1; color: var(--st-fg); letter-spacing: -0.01em; }
+.st-joint .m { margin-top: 5px; font-family: var(--st-mono); font-size: 12.5px; color: var(--st-fg-mute); }
+.st-joint .m.is-up { color: var(--st-up); } .st-joint .m.is-down { color: var(--st-down); }
+.st-joint .w { margin-top: 2px; font-family: var(--st-mono); font-size: 9.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--st-fg-faint); }
+
+/* ── backdrop additions ─────────────────────────────────────────────────── */
+/* Your Coins: the berths now carry the day's move in their own height, and a
+   four-letter tag so the dock reads as YOUR dock rather than as six boxes. */
+.rm-watch .fl-berths { pointer-events: auto; }
+.rm-watch .fl-berth { cursor: pointer; transform: translateY(calc(var(--lift, 0px) * -1)); transition: transform 300ms var(--st-ease); }
+.rm-watch .fl-berth.is-sel { border-color: var(--st-holo); box-shadow: 0 0 14px -4px var(--st-holo); }
+/* ! the tag counter-translates its own berth's lift, so every name sits on ONE
+   baseline while the berths themselves still rise and fall with the day's move.
+   Letting the labels ride the lift left the row looking ragged — the reading is
+   in the berth's height, never in where its name happens to land. */
+.rm-watch .fl-berth-tag { position: absolute; left: 0; right: 0; bottom: -15px; text-align: center;
+  font-family: var(--st-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--st-fg-faint);
+  transform: translateY(var(--lift, 0px)); }
+.rm-watch .fl-berth.is-sel .fl-berth-tag { color: var(--st-fg-2); }
+
+/* the rail sits lower now (see room-folio.js RAIL_Y), so the band is taller. */
+.rm-folio { --fl-band: 134px; }
+
+/* The Portfolio: crates say what they are. */
+.rm-folio .fl-crate-tag { position: absolute; left: 0; right: 0; bottom: -16px; text-align: center;
+  font-family: var(--st-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--st-fg-mute); white-space: nowrap; }
+.rm-folio .fl-crate-tag i { font-style: normal; color: var(--st-fg-faint); margin-left: 4px; }
+
+/* The Journal: the log ribbon replaces the calibration dial as this room's
+   backdrop — §4 asked for narrative and chronological, and a dial is neither. */
+.rm-journal .fl-tape { position: absolute; left: 6%; right: 6%; top: 52px; height: 46px; }
+.rm-journal .fl-tape-line { position: absolute; left: 0; right: 0; top: 22px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--st-edge-hi) 12%, var(--st-edge-hi) 88%, transparent); }
+.rm-journal .fl-tick { position: absolute; top: 26px; width: 1px; height: 6px; background: oklch(0.52 0.012 250 / 0.40); }
+.rm-journal .fl-tick.is-week { top: 22px; height: 11px; background: oklch(0.58 0.02 245 / 0.60); }
+.rm-journal .fl-mark { position: absolute; top: 14px; width: 2px; height: 17px; border-radius: 1px; background: var(--st-fg-faint); }
+.rm-journal .fl-mark.is-note { background: var(--st-holo-deep); }
+.rm-journal .fl-mark.is-forecast { background: var(--st-holo); }
+.rm-journal .fl-mark.is-hit, .rm-journal .fl-mark.is-resolved { background: var(--st-up); }
+.rm-journal .fl-mark.is-position { background: var(--st-warn); }
+.rm-journal .fl-tape-end, .rm-journal .fl-tape-start {
+  position: absolute; top: 0; font-family: var(--st-mono); font-size: 9px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--st-fg-faint);
+}
+.rm-journal .fl-tape-end { right: 0; } .rm-journal .fl-tape-start { left: 0; }
+.chip.is-none { color: var(--st-fg-faint); border-style: dashed; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE WAR ROOM — where the reading is taken apart (ROOM-BRIEF §21-22)
+
+   The backdrop is the diagram of what the room does: four input rails feeding
+   one fusion point, with a pulse running down each rail. It is not decoration
+   borrowed from another room — every other room's motif is a PLACE (a dock, a
+   sweep, a cargo rail) because those rooms are about a thing; this room is
+   about an OPERATION, so its motif is the operation.
+
+   ⚠️ Everything lives inside .fl-band, which clips. Same law as the rest of
+   this file: a motif that can reach past the band ends up behind an opaque
+   board at some content length. ═══════════════════════════════════════════ */
+/* ! offset below .st-flattop, not inset:0. The placard row sits in normal flow
+   at the top of the room while the beyond layer starts at the room's own top
+   edge, so a full-width motif anchored at 0 runs straight through the placard —
+   which is what made the rails read as scratches ACROSS the title rather than
+   as a harness in the room. 46px clears the row; the wall still starts below
+   the band, so the bench has the gap to itself. */
+.rm-war .fl-band { position: absolute; left: 0; right: 0; top: 46px; height: var(--fl-band, 104px); overflow: hidden; }
+.rm-war .fl-bench { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rm-war .fl-bench path { fill: none; }
+.rm-war .fl-rail { stroke: oklch(0.58 0.05 240 / 0.55); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.rm-war .fl-trunk { stroke: oklch(0.72 0.145 235 / 0.55); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+/* the pulse: one short dash running the length of the rail. Staggered, because
+   four inputs arriving in lockstep read as one signal split four ways — the
+   opposite of what this room is about. */
+.rm-war .fl-pulse {
+  stroke: var(--st-holo); stroke-width: 2; vector-effect: non-scaling-stroke;
+  stroke-linecap: round; stroke-dasharray: 26 900; filter: drop-shadow(0 0 4px var(--st-holo-glow));
+  animation: fl-pulse 4.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.rm-war .fl-pulse-1 { animation-duration: 5.4s; animation-delay: .7s; }
+.rm-war .fl-pulse-2 { animation-duration: 4.1s; animation-delay: 1.5s; }
+.rm-war .fl-pulse-3 { animation-duration: 6.0s; animation-delay: .3s; }
+@keyframes fl-pulse {
+  0%   { stroke-dashoffset: 26; opacity: 0; }
+  10%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { stroke-dashoffset: -900; opacity: 0; }
+}
+/* the fusion node, pinned to the same 62% the paths converge on */
+.rm-war .fl-fuse {
+  position: absolute; left: 62%; top: 50px; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border-radius: 50%; background: var(--st-holo);
+  box-shadow: 0 0 0 4px oklch(0.72 0.145 235 / 0.13), 0 0 20px -2px var(--st-holo);
+  animation: st-breathe 3.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .rm-war .fl-pulse { animation: none; opacity: .6; } }
+
+/* ── the arithmetic table ────────────────────────────────────────────────
+   A numeric column is `.n`: MONOSPACE AND RIGHT-ALIGNED, because the whole
+   claim of this board is that these figures add up, and figures the eye cannot
+   column-scan do not read as arithmetic. */
+.st-warrow .d { flex: none; width: 14px; text-align: center; }
+.st-warrow .d.is-up { color: var(--st-up); } .st-warrow .d.is-down { color: var(--st-down); }
+.st-warrow .n {
+  flex: none; min-width: 52px; text-align: right; font-family: var(--st-mono);
+  font-size: 11px; color: var(--st-fg-2);
+}
+.st-warrow .n.contrib { min-width: 62px; color: var(--st-fg); }
+.st-warrow .n.contrib.is-up { color: var(--st-up); } .st-warrow .n.contrib.is-down { color: var(--st-down); }
+.st-flathead.st-warrow .n { color: var(--st-fg-faint); font-size: 9.5px; letter-spacing: 0.08em; }
+/* A missing input is dimmed and dashed — present on the board, absent from the
+   sum. It must not look like a row that voted zero. */
+.st-warrow.is-missing { opacity: 0.62; }
+.st-warrow.is-missing .grow { font-style: italic; }
+.st-warsum { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--st-edge); }
+.st-warsum-line {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  font-family: var(--st-mono); font-size: 11px; color: var(--st-fg-mute);
+}
+.st-warsum-line b { color: var(--st-fg); font-size: 12.5px; }
+.st-warsum-line b.is-up { color: var(--st-up); } .st-warsum-line b.is-down { color: var(--st-down); }
+.st-warsum-note { margin-top: 7px; font-size: 11.5px; line-height: 1.5; color: var(--st-fg-mute); }
+
+/* ── the disagreement board ──────────────────────────────────────────────
+   §18: a conflict is its own STATE. Two opposed columns, never one averaged
+   number — the layout itself has to refuse to blend them. */
+.st-warcalm p, .st-warconflict p { margin: 8px 0 0; font-size: 12px; line-height: 1.55; color: var(--st-fg-mute); }
+.st-warsides { display: flex; gap: 10px; margin-top: 11px; flex-wrap: wrap; }
+.st-warside { flex: 1 1 190px; min-width: 0; padding: 9px 11px; border: 1px solid var(--st-edge); border-radius: 3px; }
+.st-warside.is-up { border-color: oklch(0.72 0.16 150 / 0.42); }
+.st-warside.is-down { border-color: oklch(0.66 0.19 25 / 0.42); }
+.st-warside-h { font-family: var(--st-mono); font-size: 9.5px; letter-spacing: 0.14em; color: var(--st-fg-faint); }
+.st-warside.is-up .st-warside-h { color: var(--st-up); }
+.st-warside.is-down .st-warside-h { color: var(--st-down); }
+.st-warside-row { margin-top: 7px; font-size: 12px; }
+.st-warside-row b { display: block; color: var(--st-fg); }
+.st-warside-row span { color: var(--st-fg-mute); }
+
+/* ── the whole book ──────────────────────────────────────────────────────
+   The score bar is inline per row, so the book reads as a spread of readings
+   rather than a column of decimals. */
+.st-warbook .bar { flex: 1 1 120px; min-width: 90px; }
+.st-warbook .bar .st-vbar { margin: 0; }
+.st-warbook .grow { flex: 1 1 150px; }
+.st-warbook .grow b.is-up { color: var(--st-up); } .st-warbook .grow b.is-down { color: var(--st-down); }
+.st-warbook .grow b.is-warn { color: var(--st-warn); }
+.st-flathead.st-warbook .bar { flex: 1 1 120px; }
+
+/* ── what this room cannot see ───────────────────────────────────────────  */
+.st-warblind-row { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--st-edge); align-items: flex-start; }
+.st-warblind-row:first-child { border-top: none; padding-top: 2px; }
+.st-warblind-row .st-lamp { flex: none; }
+.st-warblind-row p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--st-fg-mute); }
+.st-warblind-row code { font-family: var(--st-mono); font-size: 11px; color: var(--st-fg-2); }
+.st-warblind-foot { margin: 11px 0 0; padding-top: 9px; border-top: 1px solid var(--st-edge);
+  font-size: 11.5px; line-height: 1.5; color: var(--st-fg-faint); }
+
+/* The link out of a compact verdict panel and into this room. The War Room has
+   no door on the Observatory's ring — that ring is full (every door angle must
+   be a multiple of 28° so a vault rib lands over it, and 0/±28/±56/±84 are all
+   taken), so the way in is from the coin you are already reading. */
+.st-verdict-why {
+  margin-top: 9px; font-family: var(--st-mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--st-fg-faint); background: none; border: none;
+  padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.st-verdict-why:hover { color: var(--st-holo); }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORM CONTROLS INSIDE A ROOM
+
+   ! These inherit style.css — the FLAT app's stylesheet, which is a light-on-
+   pale design — so a note box in The Journal rendered as a bright white slab
+   across a dark instrument wall. That single unstyled element did more to make
+   the room look unfinished than any motif did. The station has its own voice
+   and its controls have to speak it. ══════════════════════════════════════ */
+.st-flatwall input,
+.st-flatwall textarea,
+.st-flatwall select {
+  background: oklch(0.135 0.008 250 / 0.86);
+  border: 1px solid oklch(0.44 0.012 250 / 0.55);
+  border-radius: 4px;
+  color: var(--st-fg);
+  font-family: var(--st-mono);
+  font-size: 12.5px;
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 160ms var(--st-ease), box-shadow 160ms var(--st-ease);
+}
+.st-flatwall input::placeholder,
+.st-flatwall textarea::placeholder { color: var(--st-fg-faint); }
+.st-flatwall input:focus,
+.st-flatwall textarea:focus,
+.st-flatwall select:focus {
+  border-color: var(--st-holo);
+  box-shadow: 0 0 0 3px oklch(0.72 0.145 235 / 0.14);
+}
+.st-flatwall textarea { width: 100%; resize: vertical; line-height: 1.5; }
+.st-flatwall .btn {
+  background: linear-gradient(to bottom, oklch(0.235 0.011 250), oklch(0.175 0.009 250));
+  border: 1px solid oklch(0.46 0.012 250 / 0.62);
+  border-radius: 4px;
+  color: var(--st-fg-2);
+  font-family: var(--st-mono);
+  font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase;
+  padding: 7px 12px; cursor: pointer;
+  transition: border-color 160ms var(--st-ease), color 160ms var(--st-ease);
+}
+.st-flatwall .btn:hover { border-color: var(--st-holo); color: var(--st-fg); }
+.st-flatwall .btn.accent { border-color: oklch(0.72 0.145 235 / 0.55); color: var(--st-holo-hot); }
+.st-flatwall .btn.accent:hover { border-color: var(--st-holo); }
+.st-flatwall .st-actrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 9px; }
