@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1788516769112,
+  "checkedAt": 1788588787502,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -7,14 +7,19 @@
       "sym": "CATE",
       "rivals": [
         {
+          "ca": "535p2iUy6Jj8f3hYaiDRoPe7Ye1f99qVoKoDxcFmiZzz",
+          "name": "Catecoin",
+          "liquidityUsd": 120857554
+        },
+        {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764263
+          "liquidityUsd": 73764156
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477202
+          "liquidityUsd": 1477147
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
@@ -22,8 +27,8 @@
           "liquidityUsd": 1432737
         }
       ],
-      "rank": 2,
-      "of": 4
+      "rank": 3,
+      "of": 5
     },
     "DOGE-1": {
       "ticker": "DOGE-1",
@@ -33,11 +38,64 @@
         {
           "ca": "9BFw5KMWpBfzbEKh7qtp5U6hXRVZ6DqykZGV1BkFpump",
           "name": "DOGE-1",
-          "liquidityUsd": 42022
+          "liquidityUsd": 41649
         }
       ],
       "rank": 1,
       "of": 2
+    },
+    "BONER": {
+      "ticker": "BONER",
+      "ca": "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18",
+      "sym": "BONER",
+      "rivals": [
+        {
+          "ca": "PPbYZBFkRMq6Y2Lf2xL2ZN3AYKpxzfTNZqF5Z5Dpump",
+          "name": "Boner Coin",
+          "liquidityUsd": 99747
+        },
+        {
+          "ca": "Cm8G3wxvH6YPxNRvx4f3PkHJdCnwvLhBjhoKTa2ypump",
+          "name": "BONER",
+          "liquidityUsd": 11453
+        },
+        {
+          "ca": "D223YRWu6MSjhcG5wdgm5gptDfMYC4ziQwpKqnsgpump",
+          "name": "Bonercoin",
+          "liquidityUsd": 9954
+        },
+        {
+          "ca": "3MrwYcAvGNNtMcHwscSqFQJ3qhMpKwxZCbprYrz1RYWi",
+          "name": "boner",
+          "liquidityUsd": 9274
+        }
+      ],
+      "rank": null,
+      "of": 4
+    },
+    "MICRODUCK": {
+      "ticker": "MICRODUCK",
+      "ca": "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725",
+      "sym": "microduck",
+      "rivals": [
+        {
+          "ca": "9iXjd5HErb6dX3vhHdr4LPphtc8DKWtdidAW9ezA8uNq",
+          "name": "microduck",
+          "liquidityUsd": 30969980
+        },
+        {
+          "ca": "CTuw8xEE15hKi2yB9n8CoLDq8ZhBLVbh8ydcuN11pump",
+          "name": "Microduck",
+          "liquidityUsd": 13941
+        },
+        {
+          "ca": "GLQvgQzxgD3toBe65jEdAj5JEUXec9KzFb6xSeWqQ39C",
+          "name": "Microduck",
+          "liquidityUsd": 6850
+        }
+      ],
+      "rank": null,
+      "of": 3
     }
   }
 }
