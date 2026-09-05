@@ -1,0 +1,9 @@
+# Two machines collect into these files at the same time, so both sides always have real rows the
+# other doesn't. "Whose lines win" is the wrong question -- both are true. `tools/merge-data.py`
+# keeps every line from both, drops exact duplicates, and re-sorts by time.
+# ! registered automatically by share.sh; nobody has to configure anything by hand.
+data/*.jsonl            merge=mcii-data
+data/holder-truth.json  merge=mcii-data
+
+# ! everything else is deliberately NOT here. A conflict in real code or a vault note is a genuine
+# disagreement between two people and must stop and ask, never be auto-resolved.

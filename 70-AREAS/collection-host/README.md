@@ -83,3 +83,19 @@ in `data/`**, not at whether the timer claims to be enabled.
   not its silence.
 - `?` no off-server backup of `/etc/mcii.env`. If the box is lost the key must come from
   twitterapi.io again — recoverable, but know it before deleting anything.
+
+## DATA-FILE CONFLICTS SOLVE THEMSELVES NOW, 2026-09-05
+The host collects every 30 minutes while a laptop is also working, so both sides routinely append
+different real rows to the same `data/*.jsonl`. Git correctly refused to guess, and `share.sh`
+stopped dead — hit for real on 09-05 with 25 host collection commits against a laptop's own.
+- ! "whose lines win" is the WRONG QUESTION for these files. They are append-only logs of things
+  that really happened on two machines. Both sides are true; dropping either puts a hole in the
+  record, and this area's own D-98 history says holes are the expensive failure.
+- ✓ `tools/merge-data.py`, registered as a git merge driver via `.gitattributes` and installed
+  automatically by `share.sh` on every run (so neither machine needs manual setup). Keeps every
+  line from both sides, drops exact duplicates, re-sorts by timestamp. `holder-truth.json` is a
+  per-coin snapshot rather than a log, so the NEWEST reading per coin wins instead.
+- ! DELIBERATELY LIMITED TO THE DATA FILES. Verified both ways before trusting it: a two-sided
+  data conflict merges cleanly with every row preserved and correctly interleaved by time, AND a
+  conflict in real code or a vault note still stops and asks. Two people editing the same function
+  is a genuine disagreement and must never be auto-resolved.
