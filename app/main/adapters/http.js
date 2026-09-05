@@ -1,7 +1,7 @@
 // Shared fetch wrapper. Every gotcha we hit in live testing is handled here, once.
 const UA = 'MCII/0.1 (personal research dashboard)';
 
-async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {}, method = 'GET', body } = {}) {
+async function request(url, { retries = 3, timeoutMs = 20000, headers = {}, method = 'GET', body, accept = 'application/json' } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) await sleep(400 * Math.pow(2, attempt)); // exponential backoff
@@ -14,7 +14,7 @@ async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {}, meth
         body,
         // Caller headers must merge, not be ignored. Dropping them silently sent unauthenticated
         // requests that failed with 403 and no clue why.
-        headers: { 'User-Agent': UA, accept: 'application/json', ...headers },
+        headers: { 'User-Agent': UA, accept, ...headers },
         signal: ctrl.signal,
       });
       clearTimeout(timer);
@@ -24,7 +24,7 @@ async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {}, meth
       if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
       const text = await res.text();
       if (!text) { lastErr = new Error('empty body'); continue; }
-      return JSON.parse(text);
+      return text;
     } catch (e) {
       clearTimeout(timer);
       // "fetch failed" from the runtime is almost always no network -- a sleeping laptop, dropped
@@ -37,5 +37,15 @@ async function getJSON(url, { retries = 3, timeoutMs = 20000, headers = {}, meth
   throw lastErr || new Error('request failed');
 }
 
+async function getJSON(url, opts = {}) {
+  return JSON.parse(await request(url, opts));
+}
+
+// For RSS/XML/plain-text sources (`newsfeed.js`) -- same timeout+backoff discipline as getJSON
+// (D-87: every network call goes through this, never a raw fetch()), just no JSON.parse at the end.
+async function getText(url, opts = {}) {
+  return request(url, { accept: 'application/rss+xml, application/xml, text/xml, */*', ...opts });
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-module.exports = { getJSON, sleep };
+module.exports = { getJSON, getText, sleep };

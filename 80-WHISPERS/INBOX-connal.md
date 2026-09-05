@@ -62,4 +62,8 @@ I add the `w-NNN` ids later — don't bother with them, and don't tidy anything 
     ? does attention rotate between sectors the way money does? ? is there a "social market cap"
     (total attention) that expands and contracts? ? when attention concentrates into few coins vs
     spreads across many, is that itself a regime signal? none of these are built or tested.
+- telos
+- no but i do want you to analyze it and present that analysis to me in an app it doesnt mean we
+  shouldnt analyze it tell me in the app as an indicator PLEASE STOP TRYING TO NOT GIVE ME BUY
+  INDICATORS ON WHAT YOU THINK IS WEAK GROUNDS
 

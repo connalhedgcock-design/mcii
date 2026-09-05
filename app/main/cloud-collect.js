@@ -29,6 +29,10 @@ const { searchTokens } = require('./adapters/dexscreener');
 const screener = require('./screener');
 const onchain = require('./adapters/onchain');
 const scanstore = require('./scanstore');
+const newsfeed = require('./adapters/newsfeed');
+const journal = require('./journal');
+const labels = require('../shared/labels');
+journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
 // whole monthly bill. 4 searches x 15 posts, twice an hour (D-90, 08-31), is ~$13 of the $24.
@@ -591,12 +595,72 @@ function recentScanned() {
   } catch { return []; }
 }
 
+// Real-world-story news, per coin, only for coins a person opted in with `newsQuery`
+// (`data/watchlist.json`) -- design + the DOGE-1 case: `60-KB/news-catalyst-research.md`.
+// Deduped by article LINK, not appended fresh every run like market/social readings: a headline
+// does not change between scans the way a price does, so re-logging the same 10 links forever
+// would be pure noise, not a time series worth keeping (D-76's "seen-ids" idiom, applied here).
+async function collectNewsEvents(tokens) {
+  const seen = new Set(readJsonl('news.jsonl').map((r) => r.link).filter(Boolean));
+  const withQuery = tokens.filter((t) => t.newsQuery);
+
+  const catalyst = withQuery.length
+    ? await newsfeed.collectNews(withQuery, { onError: (coin, e) => log(`  catalyst news failed for ${coin.sym}: ${e.message}`) })
+    : [];
+  const selfName = await newsfeed.collectSelfNameNews(tokens, {
+    onError: (coin, e) => log(`  self-name news failed for ${coin.sym}: ${e.message}`),
+  });
+  const cryptoMarket = await newsfeed.collectCryptoNews(tokens, {
+    onError: (_, e) => log(`  crypto-outlet news failed: ${e.message}`),
+  });
+
+  return [...catalyst, ...selfName, ...cryptoMarket].filter((n) => n.link && !seen.has(n.link));
+}
+
+function readJsonl(name) {
+  try {
+    return fs.readFileSync(path.join(DATA, name), 'utf8').trim().split('\n')
+      .filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  } catch { return []; }
+}
+
+// Resolves auto-logged triple-barrier labels (`shared/labels.js`) against real, just-collected
+// price history -- the labelled-outcome record this project has been missing since it started
+// (see `labels.js`'s own header). Runs every cycle so a barrier is caught close to when it fires,
+// not discovered stale much later. D-05's n>=50 bar still applies before any of this is trusted;
+// this is what makes n start moving instead of staying at zero.
+function resolveLabels() {
+  const marketRows = readJsonl('market.jsonl');
+  const byCa = {};
+  for (const r of marketRows) {
+    if (!r.ca || r.price == null) continue;
+    (byCa[r.ca] ||= []).push(r);
+  }
+  const open = journal.readForecasts().filter((f) => f.entryPrice != null && !f.resolved);
+  let resolvedCount = 0;
+  for (const f of open) {
+    const rows = byCa[f.ca];
+    if (!rows) continue; // this coin has no fresh reading yet this run -- check again next cycle
+    const result = labels.checkBarrier(f.entryPrice, f.entryTs, rows);
+    if (!result) continue; // still pending -- D-29, not a zero
+    journal.resolveForecast(f.id, result.win, `${result.outcome} at ${(result.ret * 100).toFixed(1)}%`, f.owner);
+    resolvedCount++;
+  }
+  return { checked: open.length, resolved: resolvedCount };
+}
+
 async function main() {
   const tokens = watchlist();
   log(`cloud collection — ${tokens.map((t) => t.sym).join(', ')}`);
 
   log('market:');
   append('market.jsonl', await collectMarket(tokens));
+
+  log('labels:');
+  try {
+    const { checked, resolved } = resolveLabels();
+    log(`  ${checked} open forecast(s) checked, ${resolved} resolved this run`);
+  } catch (e) { log(`  label resolution failed — ${e.message}`); }
 
   log('chatter sweep:');
   const chatter = await collectSocial(tokens);
@@ -624,6 +688,13 @@ async function main() {
       top1: c.safety?.top1Pct != null ? +c.safety.top1Pct.toFixed(2) : null, verdict: c.gate?.verdict,
     })));
   } catch (e) { log(`  scan failed — ${e.message}`); }
+
+  log('news:');
+  try {
+    const newsEvents = await collectNewsEvents(tokens);
+    append('news.jsonl', newsEvents.map((n) => ({ ts: Date.now(), publishedTs: n.ts, kind: n.kind, confirmed: n.confirmed ?? true, ca: n.ca, sym: n.sym, query: n.query, source: n.source, title: n.title, link: n.link })));
+    log(`  ${newsEvents.length} new headline(s)`);
+  } catch (e) { log(`  news failed — ${e.message}`); }
 
   log('done');
 }

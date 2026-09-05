@@ -194,4 +194,4 @@ async function walletHistory(walletAddress, { limit = 40 } = {}) {
   return rows;
 }
 
-module.exports = { poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow, walletActivity, walletHistory };
+module.exports = { rpc, poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow, walletActivity, walletHistory };

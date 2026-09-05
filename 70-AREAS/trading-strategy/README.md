@@ -1,8 +1,8 @@
 ---
 id: area.trading-strategy.readme
 t: area-readme
-v: 2
-upd: 2026-09-02
+v: 3
+upd: 2026-09-05
 machine: connal
 ---
 # TRADING STRATEGY — designing a tested, data-driven approach; not yet built
@@ -108,9 +108,13 @@ confidence, horizon, why` — the Insight shape already adopted from QuantConnec
    ✓ built for discovery. ! degraded for HELD coins as of yesterday's cost fix — see the open
    decision below, not yet resolved.
 3. **WALLET** — funding-linked wash-trade filtering, then whale sell (high confidence, alert-path)
-   and whale buy (low confidence, admission-tiebreaker only). NOT BUILT. The premise itself
-   (persistent "smart money") is UNPROVEN — [[whale-tracking/README]] rates it below a coin flip
-   and says so plainly, twice, so it does not get quietly assumed true by a later session.
+   and whale buy (low confidence, admission-tiebreaker only). ! UPDATED 09-05: the flow READ
+   (`walletflow.js`) and the wash-trade FILTER (`shared/washtrade.js`) are both built and tested
+   against real chain data — see [[80-WHISPERS/whale-tracking/README]]. Sell/buy detection on top
+   of the filtered flow (build-order steps 3-5) is NOT built yet, and nothing from this sensor
+   reaches a screen or notification. The premise itself (persistent "smart money") is still
+   UNPROVEN — [[whale-tracking/README]] rates it below a coin flip and says so plainly, twice, so
+   it does not get quietly assumed true by a later session.
 
 **SYNTHESIS, in two stages, never one:**
 - Stage 1, GATES — non-compensatory, run first, can each alone stop everything: structural safety
@@ -173,14 +177,15 @@ plan needs and reasoned DEFAULTS, not a decision — every number below is propo
 ### THE DATA AUDIT HE ASKED FOR — what's good enough now, what isn't, ranked worst first
 Connal: "if you dont think some of what we have is useful right now we need to find ways to refine
 it... the algorithms can only be as good as the data they collect is." Answered plainly, in order:
-1. **!! THE LABELLED OUTCOME RECORD DOES NOT EXIST AT ALL. n=0.** Not degraded, not thin — absent.
-   Every piece above the gates (Stage 3 confidence, the ATR stop widths, ever revisiting fixed
-   sizing) needs real triple-barrier-labelled outcomes to tune against, and none are being
-   collected today. ! THIS IS THE ONE ITEM ON THIS LIST WHERE DELAY IS IRREVERSIBLE — the same
-   lesson as the per-post evidence finding from 09-01 (`[[70-AREAS/social-collection/LOG]]`), one
-   level up: a day without labelling is a day of outcomes that can never be recovered. ∴ start
-   recording triple-barrier labels for whatever gets tracked TODAY, under today's rules, before any
-   of the rest of this is built — the record is the prerequisite, not a later step.
+1. **✓ FIXED 2026-09-05 — the labelled outcome record now exists and is running.** Was n=0 for
+   days despite being flagged repeatedly as the one irreversible gap. `shared/labels.js` +
+   `journal.js` (reused, not reinvented — a triple-barrier label IS a resolvable forecast, the
+   exact shape `journal.js` already tracked): every real admission now auto-logs a forecast at the
+   real entry price, and `cloud-collect.js` resolves open ones against real price history every
+   cycle. Tested end-to-end against real CATE history before trusting it. ! still n≈0 in practice
+   until admissions actually happen — the MECHANISM is proven, the record itself starts from here,
+   same "walk-forward has no lookahead, the rule still needs real n" distinction as the other
+   backtests this week. D-05's n>=50 bar is unchanged; this is what lets n start moving at all.
 2. **WALLET is not a data quality problem, it is a missing sensor.** Nothing to refine; it has to
    be built, and [[whale-tracking/README]] already has the answered design questions and a build
    order. First step there is a 5-minute test that decides the whole shape.
@@ -334,6 +339,11 @@ too, or his app simply skips the push.
   will need more money and am okay with it."
 - The holder-ground-truth and ticker-collision checks inside `cloud-collect.js` already gate on
   wall-clock time, not on cron firing count, so they did not need any change for the cadence move.
+
+## !! OPEN QUESTIONS DOC, 2026-09-05 → [[OPEN-QUESTIONS]]
+Requested by Connal directly as a standalone reference: every currently-undecided question about
+the algorithm, how it shows up in the app, and what's being tracked, in one place, for him to
+answer over time. Read that file, not this section, for the live list.
 
 ## READ NEXT
 - `LOG.md` — the full conversation, in order, including the exact exchanges behind every decision

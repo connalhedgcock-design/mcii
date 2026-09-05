@@ -51,6 +51,10 @@ const walletAdapter = require('./adapters/wallet');
 const venues = require('./venues');
 const fomoNotifications = require('./adapters/fomonotifications');
 const admission = require('../shared/admission');
+const labels = require('../shared/labels');
+const pumpcapture = require('./pumpcapture');
+const chartfallback = require('../shared/chartfallback');
+const calendar = require('../shared/calendar');
 const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
@@ -86,6 +90,7 @@ syncWatchlist();
 scanstore.init(app.getPath('userData'));
 fomoNotifications.init(app.getPath('userData'));
 journal.init(path.join(__dirname, '..', '..'));
+pumpcapture.init(path.join(__dirname, '..', '..'));
 
 let win;
 function createWindow() {
@@ -194,6 +199,12 @@ async function loadToken(entry) {
     if (out.safety) out.gate = evaluateSafety(out.safety, out.market);
 
     out.history = await historyP;
+    // Fallback for exactly the gap this project has had since before it was named T-009: real
+    // OHLCV only ever accumulates while a coin is open on screen, so overnight or an unsupported
+    // chain leaves `out.history` thin or null. The snapshots already being collected every cycle
+    // (`market.jsonl`/`candidates.jsonl`) fill that gap, honestly labelled `synthetic: true` per
+    // point (`shared/chartfallback.js`) so nothing renders it as if it were a real candle.
+    try { out.historyFallback = chartfallback.snapshotSeries(ca); } catch { out.historyFallback = []; }
     if (out.meta && out.market) progress(`${sym}: simulating a real sale (this takes a moment)`);
     out.exit = await exitP;
   } else {
@@ -462,25 +473,45 @@ function runDiscovery() {
     byCoin.get(s.coinAddress).fomo.push(s);
   }
 
+  // The pump-duration measurement (`pumpcapture.js`) -- every real buy signal, tracked or not
+  // (unlike the admission loop below, which only evaluates coins NOT already on the watchlist).
+  // "Does a followed trader's buy predict a move, and how long does the window stay open" applies
+  // equally whether the coin ends up admitted or not; gating this on admission would silently
+  // exclude most of the denominator (D-63) the measurement needs.
+  for (const s of signals) {
+    if (!s.coinAddress || s.direction !== 'buy') continue;
+    try {
+      const r = pumpcapture.startCapture(s.coinAddress, s.coinTitle, { kind: 'fomo-buy', handle: s.handle, at: s.at });
+      if (r.started) console.log(`pumpcapture: started for ${s.coinTitle} (${s.coinAddress.slice(0, 8)}...), 2h @ 90s`);
+    } catch (e) { console.error(`pumpcapture: ${e.message}`); }
+  }
+
   const social = readJsonl('sector.jsonl').filter((r) => r.kind === 'sector').pop() || null;
   const tickers = social ? (social.tickers || []) : [];
+  // Only CONFIRMED news counts as a vote -- an unreviewed self-name candidate must never feed
+  // admission, same reasoning as `admission.js`'s own comment on this (the Cate-Blanchett/microduck
+  // false positives are exactly what an unconfirmed hit voting here would risk).
+  const confirmedNews = readJsonl('news.jsonl').filter((r) => r.confirmed);
 
   for (const [ca, { sym, fomo }] of byCoin) {
     if (store.watchlist.some((w) => w.ca === ca)) continue; // already tracked -- nothing to decide
 
     (async () => {
       let market = null;
+      let entryPrice = null;
       try {
         const m = await fetchMarket(ca);
         market = { verdict: null, flags: null, liq: m.totalLiquidityUsd,
                    buys24: m.txns?.h24?.buys ?? null, sells24: m.txns?.h24?.sells ?? null };
+        entryPrice = m.priceUsd;
       } catch (e) { /* no market read yet -- evaluateCandidate() rejects cleanly on null */ }
 
       const bareSym = String(sym || '').split(' ')[0]; // "SLINK at $30m MC" -> "SLINK"
       const socialMatch = tickers.find((t) => t.ticker?.toUpperCase() === bareSym.toUpperCase());
       const socialEvidence = socialMatch ? { weighted: socialMatch.people, mentions: socialMatch.mentions } : null;
+      const newsHit = confirmedNews.find((n) => n.ca === ca) || null;
 
-      const result = admission.evaluateCandidate({ ca, sym: bareSym, market, fomo, social: socialEvidence });
+      const result = admission.evaluateCandidate({ ca, sym: bareSym, market, fomo, social: socialEvidence, news: newsHit });
       console.log(`discovery: ${bareSym} (${ca.slice(0, 8)}...) -> ${result.admit ? 'ADMIT' : 'reject'} -- ${result.reasons[0] || ''}`);
       if (!result.admit) return;
 
@@ -488,6 +519,22 @@ function runDiscovery() {
       save();
       syncWatchlist();
       if (live) live.watch(store.watchlist);
+      // Auto-label this admission as a real, resolvable forecast -- turns the algorithm's own
+      // decision into the labelled-outcome record `70-AREAS/trading-strategy/README`'s data audit
+      // flagged as the one thing that could not be built later (see `shared/labels.js`). Entry
+      // price comes from the SAME market read `evaluateCandidate()` just used, so the label starts
+      // from the exact price the admission decision was made against, not a later, different one.
+      if (entryPrice) {
+        journal.addForecast({
+          owner: store.owner,
+          question: `${bareSym} hits its +${(labels.TARGET_PCT * 100).toFixed(0)}% target before its ${(labels.STOP_PCT * 100).toFixed(0)}% stop or ${labels.TIMEOUT_HOURS}h timeout`,
+          prob: 50, // placeholder -- Stage 3 confidence classifier per signal-architecture-research needs n>=50 resolved first
+          resolveBy: new Date(Date.now() + labels.TIMEOUT_HOURS * 3600 * 1000).toISOString().slice(0, 10),
+          ca, sym: bareSym,
+          entryPrice, entryTs: Date.now(),
+          basis: `auto-logged on admission: ${result.reasons.join(' · ')}`,
+        });
+      }
       try {
         new Notification({
           title: `Now tracking ${bareSym}`,
@@ -608,6 +655,8 @@ ipcMain.handle('journal:forecasts', (_e, owner) => journal.readForecasts(owner =
 ipcMain.handle('journal:addForecast', (_e, f) => journal.addForecast({ ...f, owner: store.owner }));
 ipcMain.handle('journal:resolve', (_e, { id, outcome, lesson }) => journal.resolveForecast(id, outcome, lesson));
 ipcMain.handle('journal:calibration', (_e, owner) => journal.calibration(owner || store.owner));
+ipcMain.handle('calendar:list', () => calendar.listEvents());
+ipcMain.handle('calendar:upcoming', (_e, withinDays) => calendar.upcoming(withinDays));
 ipcMain.handle('journal:notes', (_e, owner) => journal.readNotes(owner === undefined ? store.owner : owner));
 ipcMain.handle('journal:addNote', (_e, n) => journal.addNote({ ...n, owner: store.owner }));
 

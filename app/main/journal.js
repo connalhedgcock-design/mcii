@@ -117,6 +117,10 @@ function addForecast(f) {
     marketImplied: f.marketImplied != null && f.marketImplied !== '' ? Number(f.marketImplied) : null,
     basis: f.basis || '',
     ca: f.ca || null, sym: f.sym || null,
+    // Optional -- only set on auto-logged triple-barrier labels (`shared/labels.js`), so the
+    // resolver has the exact price/time the label started from. null for manually-typed forecasts,
+    // which have never needed this and still resolve by a person's own yes/no.
+    entryPrice: f.entryPrice ?? null, entryTs: f.entryTs ?? null,
     resolved: null, outcome: null, brier: null, lesson: '',
   };
   fs.mkdirSync(path.join(REPO, '50-LOG'), { recursive: true });

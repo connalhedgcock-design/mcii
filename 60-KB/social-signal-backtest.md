@@ -1,8 +1,8 @@
 ---
 id: kb.social-signal-backtest
 t: kb
-v: 1
-upd: 2026-09-04
+v: 2
+upd: 2026-09-05
 machine: connal
 prio: high
 ---
@@ -57,6 +57,37 @@ That autocorrelation means the TRUE number of independent data points behind an 
 smaller than 143 — how much smaller is not computed here. ∴ even the per-coin checks above should
 be read as "did not obviously fail," not "confirmed." The honest ceiling on what this data can
 prove right now is lower than the raw sample sizes suggest.
+
+## !! RE-CHECKED 2026-09-05 — DOES A SOCIAL BURST'S EFFECT FADE OVER TIME, AS CONNAL PROPOSED?
+Connal, pushing back on the walk-forward trend-candidate result the same night: the timing of a
+social-driven move is probably short — a post only moves price while an algorithm (Twitter's FYP)
+keeps surfacing it, and that window closes. Separately, some posts carry a LONGER-horizon signal —
+his example: posts connecting the DOGE-1 memecoin to the real Dogecoin-funded rocket mission could
+have flagged an early entry before the real +200% spike the mission's own news caused (Nov 2025,
+`[[news-catalyst-research]]`). Both are real, distinct, testable ideas, and "all data is real data"
+is the right instinct — a null result on one specific rule is not the same claim as "this data is
+worthless," and the write-up above should not be read that way.
+- Checked the FIRST idea directly against real numbers already collected, not dismissed: several
+  features (`noiseFiltered`, `totalViews`, `engagement`) DO show exactly the rise-then-fade shape
+  Connal described, POOLED across coins — effect size grows from 3h to a peak around 6-12h, then
+  collapses (often flipping sign) by 24h. That is consistent with a real shelf-life.
+- ! but the same per-coin check that broke the original findings breaks this one too: CATE, ANSEM,
+  CASHCAT and DOGE-1 each point a DIFFERENT direction for every one of these features at every
+  horizon, with no exceptions found. The rise-then-fade shape is real in the pooled number; it is
+  not yet shown to be real for any ONE coin. It may be four different coins' unrelated patterns
+  averaging into that shape by coincidence, not the same real mechanism in each.
+- The SECOND idea (catalyst posts, e.g. the DOGE-1 rocket story) cannot be tested on our own past
+  data — that spike happened Nov 2025, before this project existed or collected anything. It is a
+  real, documented historical fact (per independent reporting), not something we can re-run
+  numbers on. What IS real going forward: DOGE-1 is one of only two coins with enough clean history
+  to test almost anything on, so a future real-world story about it is exactly the case to catch
+  live, not after — this is a forward-looking watch, not a backward-looking finding.
+- ∴ next real step, not yet built: separate "hype burst" posts from "real-world story" posts before
+  testing either — right now every feature above lumps both together, which could be smearing two
+  genuinely different mechanisms into one number that fits neither well. Needs a way to flag when a
+  post references something happening outside crypto twitter (a name, an event, a launch date) —
+  not built, and not to be built by guessing what that detector should look like without checking
+  what data exists to build it from.
 
 ## SOURCES / METHOD NOTES
 - Pearson correlation, computed from stdlib only (no scipy/numpy on this machine — checked).

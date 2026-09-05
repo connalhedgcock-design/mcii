@@ -20,19 +20,27 @@ const MIN_FOMO_TRADERS = 2;         // one trader flipping fast is not corrobora
 const MIN_LIQUIDITY_USD = 15000;    // base-rates.md: a pool this thin is not a real exit either way
 const BUY_SELL_RATIO_MIN = 1.3;     // meaningfully more buying than selling, not a coin-flip ratio
 
-function evaluateCandidate({ ca, sym, chain, market, fomo = [], social } = {}) {
+// !! TIER, added 2026-09-05 -- Connal asked directly for a middle state between admit/reject
+// ("there should be a spectrum") and for weak evidence to be SHOWN, never hidden pending proof
+// (D-119). `tier` answers both with the exact same gates-then-vote logic already proven here,
+// nothing new invented: 'red' = a gate failed (same reasons as always), 'green' = cleared the
+// existing ADMIT bar (unchanged), 'yellow' = cleared every gate but didn't reach ADMIT -- real
+// evidence exists, just not enough of it yet. `admit` (unchanged, still boolean) stays the only
+// thing that triggers an actual watchlist add (`main/index.js`) -- 'yellow' is for display only,
+// never for action, exactly the "show it, labelled, never act on it alone" split D-119 asked for.
+function evaluateCandidate({ ca, sym, chain, market, fomo = [], social, news } = {}) {
   const reasons = [];
-  const evidence = { market: null, fomo: null, social: null };
+  const evidence = { market: null, fomo: null, social: null, news: null };
 
   // --- GATES -----------------------------------------------------------------------------------
   if (!market) {
-    return { admit: false, reasons: ['never seen by the market scanner yet -- nothing to score'], evidence };
+    return { admit: false, tier: 'red', reasons: ['never seen by the market scanner yet -- nothing to score'], evidence };
   }
   if (market.verdict === 'FAIL') {
-    return { admit: false, reasons: [`failed the safety check (${market.flags ?? '?'} finding(s))`], evidence };
+    return { admit: false, tier: 'red', reasons: [`failed the safety check (${market.flags ?? '?'} finding(s))`], evidence };
   }
   if ((market.liq ?? 0) < MIN_LIQUIDITY_USD) {
-    return { admit: false, reasons: [`pool too thin to be a real position ($${Math.round(market.liq || 0).toLocaleString()})`], evidence };
+    return { admit: false, tier: 'red', reasons: [`pool too thin to be a real position ($${Math.round(market.liq || 0).toLocaleString()})`], evidence };
   }
   // ! EVM/other-chain coins have NO Solana-only safety check (rugcheck/jupiter are Solana-only,
   // `70-AREAS/multichain-market-data/README`) -- market.verdict is null for them by construction,
@@ -46,7 +54,7 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social } = {}) {
   // A followed list net-selling something is not a moment to newly admit it -- your own trusted
   // traders are the ones telling you to stay away, and a fresh admission is not a rescue.
   if (fomoBuyers.size === 0 && fomoSellers.size > 0) {
-    return { admit: false, reasons: [`followed traders are selling this, not buying (${fomoSellers.size} seller(s), 0 buyers)`], evidence };
+    return { admit: false, tier: 'red', reasons: [`followed traders are selling this, not buying (${fomoSellers.size} seller(s), 0 buyers)`], evidence };
   }
 
   // --- VOTES, equal weight, only from sensors that actually have evidence -----------------------
@@ -80,6 +88,17 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social } = {}) {
     }
   }
 
+  // 4th sensor, added 2026-09-05 (`newsfeed.js`) -- a CONFIRMED real-world-story or crypto-media
+  // hit for this coin. ! `confirmed` only -- an unreviewed self-name candidate (`kind:
+  // 'self-name-candidate'`, `confirmed: false`) must never cast a vote here, that is exactly the
+  // Cate-Blanchett/microduck false-positive risk `60-KB/news-catalyst-research.md` found live; a
+  // human has to clear it first, same as every other unconfirmed candidate in this project.
+  if (news && news.confirmed) {
+    possible++;
+    evidence.news = { source: news.source, title: news.title };
+    votes++; reasons.push(`confirmed real-world news hit: ${news.title}`);
+  }
+
   // ! market alone is NEVER enough, however positive -- it is one leg, not corroboration, and
   // admitting on it alone is exactly the "trending list" shape D-38/D-43 already rejected twice.
   const nonMarketVotes = votes - (marketPositive ? 1 : 0);
@@ -88,7 +107,12 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social } = {}) {
   if (!admit && votes < 2) reasons.push(`only ${votes} of ${possible} available vote(s) -- needs at least 2, including one non-market`);
   if (!admit && votes >= 2 && nonMarketVotes < 1) reasons.push('market agreed with itself but nothing independent confirmed it');
 
-  return { admit, reasons, evidence };
+  // ! 'yellow' (cleared every gate, real evidence exists, just not enough of it) is DISPLAY ONLY.
+  // Nothing reads this tier to decide anything -- `main/index.js` still only acts on `admit`.
+  // Widening what counts as actionable is a decision for Connal to make explicitly, not something
+  // that should happen by quietly wiring a UI tier into a trigger.
+  const tier = admit ? 'green' : 'yellow';
+  return { admit, tier, reasons, evidence };
 }
 
 module.exports = { evaluateCandidate, MIN_SOCIAL_WEIGHTED, MIN_FOMO_TRADERS, MIN_LIQUIDITY_USD, BUY_SELL_RATIO_MIN };

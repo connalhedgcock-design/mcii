@@ -1,8 +1,8 @@
 ---
 id: whisper.analysis-algorithm
 t: whisper-topic
-v: 2
-upd: 2026-09-01
+v: 3
+upd: 2026-09-05
 whispers: 5
 machine: connal
 ---
@@ -227,6 +227,23 @@ Per-tweet extraction. Every tweet already arrives with far more than we use (see
 4. posting-time clustering per coin → the coordination signal
 5. shared-distinctive-wording clustering per coin → w-002 + Connal's refinement
 6. `source` (posting client) → automation tell, captured and unused
+
+## !! THE PUMP-DURATION CAPTURE IS BUILT AND LIVE, 2026-09-05 — `app/main/pumpcapture.js`
+The measurement itself ("how long is the window after a big post") still needs real data to
+accumulate before it can be answered — that has not changed. What changed: the RECORDER now runs.
+Every real FOMO buy signal (tracked coin or not — gating this on admission would silently exclude
+most of the denominator, D-63) starts a 2-hour, ~90-second-interval price capture, tagged with the
+trigger that started it. Tested live against real CATE data before trusting it. Writes to
+`data/pump-captures.jsonl`, local to whichever Mac the trigger fires on (same laptop-dependency as
+`fomonotifications.js` itself — stated, not glossed over).
+- The four things the eventual study reports were fixed BEFORE any data exists, per this file's own
+  discipline: (1) how much of the move survives at 1/5/15/30/60 min, (2) what fraction of triggers
+  move price at all, (3) how much survives fees+slippage at a real position size, (4) whether the
+  twice-hourly cloud scan would have caught it while the window was open.
+- ! Elon/Trump triggers would use this SAME recorder once T-032 unblocks — nothing here changes,
+  only the trigger source does.
+- ! n=0 until real FOMO buy signals actually fire while this is running. Same "walk-forward has no
+  lookahead, the record starts from here" shape as everything else built this week.
 
 ## OPEN `?`
 - `?` does rising attention actually precede price moves for coins this small? ! UNKNOWN, and the

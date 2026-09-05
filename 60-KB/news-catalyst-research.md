@@ -1,8 +1,8 @@
 ---
 id: kb.news-catalyst-research
 t: kb
-v: 1
-upd: 2026-09-04
+v: 5
+upd: 2026-09-05
 machine: connal
 prio: high
 ---
@@ -95,18 +95,134 @@ actual coins:
   days ago. Not built tonight; flagged as newly-unblocked, worth a session of its own.
 
 ## ∴ BUILD ORDER, IF THIS IS NEXT
-1. Add `newsQuery` as an optional field on `data/watchlist.json` entries — same manual-curation
-   shape already used for coins and wallets, cheapest possible step.
-2. A small adapter reading Google News RSS per coin with a query set, on the collector's existing
-   cadence — no new infrastructure, extends the pattern `walletflow.js`/`fomonotifications.js`
-   already established this week.
-3. Wire matches into the SAME evidence block D-96 already puts in alerts and (once it exists) the
-   admission scorer — a fourth sensor alongside market/social/FOMO, gated the same way: a hit is
-   evidence to show, never a standalone reason to admit or alert on its own.
+1. ✓ DONE 2026-09-05 — `newsQuery` added to `data/watchlist.json`'s DOGE-1 entry:
+   `"DOGE-1" OR "Geometric Energy Corporation"`. No other coin has one — none has a documented
+   real-world story, and inventing one would be exactly the fabricated-lore the mandate bans.
+2. ✓ DONE 2026-09-05 — `app/main/adapters/newsfeed.js`, wired into `cloud-collect.js: main()` on
+   the existing cadence, zero marginal cost (Google News RSS, no key). Real run, same night:
+   **found real, dated headlines suggesting the ACTUAL rocket mission may be close to launching** —
+   "Musk is putting Dogecoin on the moon in 28 days" (thestreet.com, 2026-08-17) and "Dogecoin
+   Targets $0.10 Ahead of DOGE-1 Lunar Launch" (Cryptonews, 2026-09-03). ! stated as fact-of-a-
+   headline-existing, not as a confirmed launch date — the actual date needs reading the source
+   articles, not arithmetic on a headline. Full list: `data/news.jsonl`.
+   - !! REAL PROBLEM FOUND AND FIXED LIVE: Node's own `fetch` was served a well-formed but EMPTY
+     result by Google's edge on the exact same query `curl` answered correctly — a silent-wrong
+     failure (D-85's shape), not an error. Worked around by shelling out to `curl` specifically for
+     this adapter (`execFile`, never a shell string) rather than the project's normal fetch wrapper.
+     ! NOT YET CONFIRMED `curl` exists on the Hetzner collection host (near-certain on any normal
+     Linux box, but this project's own rule is check, don't assume — D-93's whole finding was
+     exactly "the assumed-blocked thing turned out fine, and vice versa is just as possible").
+   - !! ALSO FOUND: Google News indexes exchange/converter boilerplate ("Convert DOGE-1 to Yen",
+     "Live Price Chart") on every query regardless of real news — filtered by title pattern in
+     `newsfeed.js`, not by source (the same outlets also publish real articles).
+3. NOT YET DONE — wire matches into the same evidence block D-96 puts in alerts and (once it
+   exists) the admission scorer. Currently `data/news.jsonl` is a real, growing record with nowhere
+   to look at it — added to Austin's queue.
 4. Revisit the pump-duration measurement now that the always-on host exists — a real session of
    its own, not a line item inside this one.
+5. ✓ DONE 2026-09-05, same night — Connal asked directly for GENERAL crypto news alongside the
+   per-coin catalyst pillar, not instead of it. Added a second, always-on pillar to the same file:
+   `collectCryptoNews()` sweeps four named crypto outlets (Cointelegraph, Decrypt, The Block,
+   Bitcoin.com News — all verified live, plain `fetch` works fine for all four, no Google-News-style
+   anti-bot issue) and separately checks every headline against the watchlist (whole-word match on
+   `sym`/`nick`, same D-72 discipline as social ticker-matching) in case a tracked coin gets real
+   crypto-media coverage. Real run: 50 headlines, 0 matched a tracked coin — an honest null result,
+   not a bug; these are small memecoins and mainstream crypto press rarely covers them, which is
+   itself informative. ! stored with `kind: 'catalyst'` vs `kind: 'crypto'` in `data/news.jsonl` so
+   the two pillars stay distinguishable — they answer different questions and must not be merged
+   into one "news score".
+6. ✓ DONE 2026-09-05 — Connal asked for a way to catch "the next DOGE-1" without already knowing a
+   coin's story first. Added a third pillar, `collectSelfNameNews()`: runs every watchlist coin's
+   OWN NAME through the same Google News search, no curated `newsQuery` needed. Confirmed live: a
+   bare `"DOGE-1"` search alone surfaces the same real rocket-mission articles the curated query
+   does — so this genuinely can surface a real story before anyone has identified it.
+   - !! BUT PROVEN UNSAFE TO AUTO-TRUST, SAME NIGHT, SAME METHOD: `CATE` returned real news about
+     actress Cate Blanchett; `BONER` returned FDA drug-recall news and real funeral-home obituaries
+     for people surnamed Boner; `microduck` returned a Hugging Face robot of the same name. All
+     real articles, zero connection to the coins. Automatically treating a name-match as a real
+     narrative link would be exactly the fabricated-connection the mandate bans — a coincidence
+     reading as a finding. ! `confirmed: false` on every row by construction; this is a CANDIDATE
+     LIST for a person to glance at, same shape as `resolve.js: identify()`'s results, never
+     auto-promoted to a real connection the way market/social/wallet evidence is.
+   - ! also genuinely useful, same run: `BONER` surfaced a real, relevant article ("A Memecoin
+     Called BONER Has Cornered Half the Tokenized Hims & Hers Float" — The Defiant) and `CASHCAT`
+     confirmed its real "Robinhood Chain" ecosystem context (already independently known from
+     `[[trading-strategy/admission-backtest]]`'s SLINK/PONS finding). The mechanism works; the
+     judgment of what it found still needs a person, every time.
+   - ✓ FILTERED, 2026-09-05 (T-030): self-name results now require the title itself to mention
+     crypto (`coin`/`crypto`/`token`/`blockchain`/`memecoin`/etc). Re-tested live against the exact
+     same coins: Cate Blanchett, the funeral-home obituaries, the FDA candy recall, and the Hugging
+     Face robot are ALL gone; CASHCAT's real Robinhood Chain story and BONER's real Hims & Hers
+     connection both survive. ! does NOT replace the `confirmed: false` human-review step — fewer
+     bad candidates reach a person, a surviving hit is still not automatically trusted.
+   - ✓ CONFIRMED 2026-09-05: `curl` exists on the Hetzner collection host (`/usr/bin/curl 8.18.0`,
+     checked live via SSH) — this adapter's dependency on it is no longer an unverified assumption.
 
-## SOURCES
+## !! CONNAL ALSO ASKED FOR AN ELON/TRUMP-STYLE INFLUENCER TRACKER, 2026-09-05
+Already researched in depth, not re-derived here — `[[80-WHISPERS/analysis-algorithm/README]]`
+"HALF A". The short version, so it isn't lost in a whisper file:
+- ! REAL-TIME monitoring of specific named accounts is a BUDGET decision, not a feature: MCII's
+  social collector watches SEARCHES, not ACCOUNTS (D-67/D-81) — "tell me the moment this specific
+  person posts" is a different query shape competing for the same $24/mo cap, not a free add-on.
+  Truth Social specifically has no covered source at all today (twitterapi.io is X-only).
+- ✓ WHAT'S ALREADY FREE, TODAY, PARTIALLY WORKING: news coverage OF a high-profile post, via the
+  same Google News pillar above — confirmed live in tonight's own DOGE-1 results ("Elon Musk's
+  Latest Move Could Send Dogecoin Soaring", "Elon Musk Says 'It's Time' To Put Dogecoin On The
+  Moon"). This is SLOWER than watching the account directly (only catches a post once it's
+  newsworthy enough for a journalist to write about) and FILTERED (routine posts never get
+  covered), but it costs nothing and is already running.
+- ! real direct account-watching, if wanted, needs Connal's explicit go-ahead on spend — same
+  posture as D-90 (the $20→$30/mo raise was his call, stated explicitly, not assumed). Not started.
+- Connal's own idea, 09-05: reuse the `fomonotifications.js` trick — read specific people's posts
+  off his own Mac's notification database for free, instead of paying for a live feed, the same way
+  FOMO's trade alerts already are. Checked before building: **X (Twitter) no longer has a native
+  macOS app as of 2026** — the exact mechanism `fomonotifications.js` uses (reading a native app's
+  local notification store by its `app_id`) has no equivalent app to read for X specifically.
+  ! this does NOT close the idea, it changes what has to be tested: does a browser's own web-push
+  notification for x.com (Safari/Chrome) land in the same local notification database under the
+  BROWSER's `app_id`, filterable by text content? Untested, plausible, and answerable in minutes
+  once Connal has notifications turned on for specific accounts — the next concrete step, not
+  assumed either way.
+  ! !! WIDENING THE NOTIFICATION QUERY NEEDS FRESH, EXPLICIT CONSENT, NOT ASSUMED FROM "START
+  BUILDING". `fomonotifications.js`'s own header is explicit: "do not widen this query to any other
+  app without asking again — that consent was for FOMO." The Full Disk Access grant is broad (it
+  can see notifications from every app on the Mac), and Connal's original consent was scoped
+  deliberately narrow. Checking a browser's notifications for X-shaped content means reading data
+  the FOMO consent never covered. Asked directly; Connal said yes, 09-05 ("yes i grant permission").
+  - ! FIRST REAL CHECK, SAME NIGHT, KEPT NARROW: queried only which browser app IDs exist in the
+    notification store and how many records each has — no content read, because there was none to
+    read. Safari and Chrome are BOTH registered (`com.apple.safari.webapp`,
+    `com.apple.safari.webapp.<pinned-site-uuid>`, `com.google.chrome`,
+    `com.google.chrome.framework.alertnotificationservice`) — the plumbing exists on this Mac.
+    **All four currently have ZERO stored notification records.** Same shape as
+    `fomonotifications.js`'s own finding for FOMO ("the notification database only holds what the
+    OS has not yet discarded, and nothing before this feature existed was ever captured") — this
+    doesn't mean the mechanism fails, it means nothing has fired through it yet to test against.
+  - ∴ REAL NEXT STEP, needs a person to actually do it, not something to build blind: open x.com in
+    Safari or Chrome, allow notifications when the browser prompts, turn on post notifications for
+    the specific accounts (Elon, Trump), and let one real notification actually arrive. Only then
+    can the decode step (same NSKeyedArchiver approach `fomonotifications.js` already proved out)
+    be tested against real data — building the decoder before that exists would be guessing at a
+    data shape, the same mistake this project avoids everywhere else.
+  - ! Connal's own X account is suspended, so Austin is doing the follow/notification setup on his
+    own account instead — sensible, sidesteps the whole question above. ! BUT THIS MOVES WHICH
+    MACHINE THE MECHANISM HAS TO RUN ON: the local-notification trick only ever sees a notification
+    on the Mac whose BROWSER is logged into that account and showing it — that will be AUSTIN'S
+    Mac, not Connal's, once he sets this up on his own X login. ∴ this becomes an Austin-side build
+    (his machine, his browser session), and it needs AUSTIN'S OWN explicit Full Disk Access consent
+    on his own Mac — Connal's consent for his own machine does not transfer to Austin's. Same
+    standing rule as `fomonotifications.js`'s header, applied to whoever's machine is actually
+    asked. Not yet asked of Austin — flagged as a real coordination step, not assumed.
+
+## !! ON "ANALYZE THESE NEWS POINTS FOR CONNECTIONS," 2026-09-05 — WHY THAT STAYS A HUMAN STEP
+Connal asked for the news data to be ANALYZED for coin/market connections, not just shown. The
+`microduck`/Hugging-Face-robot and `CATE`/Cate-Blanchett results two sections up are the direct
+answer to why this can't be automated as a verdict: the exact same mechanism that correctly found
+DOGE-1's real story would, with equal confidence, invent a connection between a memecoin and an
+unrelated actress or robot if nothing stopped it. The mandate's core rule — never generate
+plausible-sounding facts about a coin's story — applies with full force here. ∴ what's automated is
+finding CANDIDATES (this file's three pillars); what stays manual is JUDGING whether a candidate is
+real, the same split `resolve.js: identify()` already uses for social-discovered tickers.
 - [LunarCrush — Galaxy Score methodology](https://lunarcrush.com/metrics/galaxy-score)
 - [LunarCrush — Social Dominance](https://lunarcrush.com/faq/what-is-social-dominance)
 - [How LunarCrush analyzes crypto social metrics (Medium)](https://medium.com/lunarcrush/how-does-lunarcrush-help-you-understand-social-metrics-in-cryptocurrency-markets-102fd9c5cb6e)

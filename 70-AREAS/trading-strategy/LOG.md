@@ -1,8 +1,8 @@
 ---
 id: area.trading-strategy.log
 t: area-log
-v: 1
-upd: 2026-08-31
+v: 2
+upd: 2026-09-05
 machine: connal
 ---
 # TRADING STRATEGY — log (append-only)
@@ -196,3 +196,270 @@ full — his actual answers, condensed (verbatim flavor kept where it matters):
   the other is training-serving skew and would manufacture a fake edge. Must pick one surface
   before any picker is built. NOT yet fixed.
 - Nothing built this session — research only, per the request.
+
+## 2026-09-05 — 7. WASH-TRADE FILTER BUILT, REAL TREND-VS-GROWTH ANALYSIS, WORK HANDED TO AUSTIN
+- machine: connal
+- Connal asked for the wash-trading filter flagged as the next real step in
+  `[[80-WHISPERS/whale-tracking/README]]` (step 2 of that file's build order) to actually be built.
+- **Built `app/shared/washtrade.js`** — two signals, both cited from Victor & Weintraud (WWW 2021):
+  same wallet buying AND selling one coin in a window (self-trade), and wallets funded in SOL from
+  the same source (funding-link cluster). Tested against a synthetic case (confirmed it flags a
+  real self-trade) and a real run against CATE's live pool flow (ran cleanly, 0 flagged on a small
+  sample — proves the mechanism works on real chain data, not that CATE has no wash trading; n too
+  small either way). Full detail and the honest limits (bounded lookback, RPC-capped, "unchecked"
+  is a real third state, never silently read as clean) in the whale-tracking file. ! NOT wired to
+  any screen, alert, or admission score yet — same discipline as `walletflow.js` itself.
+- Connal also asked, same session, to expand how new coins get found (a list of coins upticking in
+  trend) and for analysis of whether a price uptick actually coincides with holders growing, market
+  cap growing, or neither. The growth-type question was answerable RIGHT NOW from data already
+  being collected — `data/market.jsonl` already carries holders + top1 history for several coins.
+  Built `app/tools/backtest-trend-growth.py`, ran it for real: **CATE and DOGE-1 (this project's
+  two longest-tracked coins) show price rising WITH holder count growing (r=+0.22, +0.26) — real
+  people joining, not just re-pricing. LaPeace shows the opposite (r=−0.45) — price rose while
+  holders left**, the shape of a shrinking group re-pricing the same coin, and it is a coin Connal
+  later removed from the watchlist. Full write-up, all caveats (per-coin only, watchlist-bias,
+  autocorrelation — same discipline as the social backtest two days ago) in
+  `[[60-KB/trend-growth-analysis]]`. ! nothing here feeds `admission.js` yet, same "prove it first"
+  rule as every other finding this week.
+- The trend-UPTICK discovery expansion (a list of coins moving before anyone posts or trades them)
+  was first logged here as needing new infrastructure — WRONG, corrected same night below.
+
+## !! CORRECTION, SAME NIGHT — the trend-record already existed, T-023 was checked against the wrong file
+The line above was written after checking `screener.js` and `data/market.jsonl` but NOT
+`cloud-collect.js`'s own append call — the exact "read the files, not the commits/code path" gap
+`00-INDEX.md` warns about, just inside one file instead of across a git history. Checked properly:
+`cloud-collect.js: main()` already appends every scan's survivors to `data/candidates.jsonl` on the
+same twice-hourly cadence as everything else — 3,480 rows, 120 distinct coins, **87 of them seen 3+
+times across an 8.5-day span**, measured live, not assumed. The trend record was already there.
+- Built `app/tools/find-trending-candidates.js` — ranks untracked candidates by price move from
+  first-to-last scan AND how CONSISTENT that move was (most individual steps agreeing on direction,
+  not one spike). Real run: 56 untracked coins had enough history to rank. Top mover, `stonkape`,
+  was +519% over 17.5h but only 57% consistent — most "winners" in this ranking sit at 40-60%
+  consistency, barely above a coin flip, meaning most of what looks like a climb in this pool is
+  volatile back-and-forth, not a clean sustained trend. ! `est:` conf 40% that "consistency" as
+  computed here separates real trend from noise — worth checking against later outcomes before
+  trusting it, same discipline as every other fresh metric this week.
+- ! same source bias as everything `screener.js` finds: the universe is still only DexScreener's
+  newest/promoted listings + GeckoTerminal's trending-by-volume — already-new or already-popular.
+  A sustained climb inside that universe is real and checkable; it does not fix what gets INTO the
+  universe in the first place.
+- NOT wired to `admission.js` or the real watchlist — a report only. `main/index.js`'s own
+  discovery comment already states the discipline: one path wired and proven before the next is
+  added (FOMO is wired; social ticker-resolution, already computed, is the stated next candidate,
+  not this). Whether a sustained-uptick candidate should ever auto-admit is Connal's call.
+- Connal decided to put the list on screen anyway, unproven, on condition testing continues:
+  "we will have to continue to do analysis of our records on what this data does ... please run
+  tests on it even though it is still on display." Ran a real walk-forward test the same night,
+  not deferred — `app/tools/backtest-trend-candidates.py`: does the consistency score, using only
+  data available at the time, predict the coin's NEXT move? **40 coins tested, 5 significant, but
+  the three best-sampled coins (fone n=295, OTC n=290, STONK n=268) all came back at ~zero — the
+  significant hits are concentrated in the SMALLEST samples, the classic shape of noise clearing a
+  significance bar rather than a real effect.** Full write-up
+  `[[60-KB/trend-candidate-walkforward]]`. ∴ the list can go on screen (Connal's call, nothing
+  dangerous about a flagged observation) but must display as an unproven observation, never a
+  score that implies it predicts anything — added to Austin's queue as T-026.
+- Connal pushed back hard, correctly, on how that result was framed: a post only moves price while
+  Twitter's own algorithm keeps surfacing it (a short shelf-life), and separately, some posts carry
+  a genuinely LONGER-horizon signal — his example, DOGE-1 posts connecting the memecoin to the real
+  Dogecoin-funded rocket mission, which could have flagged an early entry before the mission's own
+  news caused a real +200% spike (Nov 2025, `[[news-catalyst-research]]`). His point: a null result
+  on one specific rule was said in a way that read as "this data isn't real," which is wrong — the
+  data is real, only the tested RULE failed. Re-ran `backtest-social-signals.py` specifically to
+  check his shelf-life idea: several features DO show a real rise-then-fade shape pooled across
+  coins (peaking ~6-12h, gone by 24h) — consistent with his theory — but the same per-coin check
+  that broke the original findings breaks this one too, no exceptions. The catalyst-post idea
+  (DOGE-1/rocket) cannot be tested on our own data — that event predates this project entirely —
+  but DOGE-1 is one of only two coins with a long clean history, making it the one to watch if a
+  similar real story happens again. Logged T-027: build a way to separate hype-burst posts from
+  real-world-story posts before testing either — right now both are lumped into one number that
+  may fit neither. Full write-up appended to `[[60-KB/social-signal-backtest]]`.
+- Connal asked directly for a way to get this session's work in front of Austin so he knows what to
+  build. The existing task system (`90-TASKS/`) is exactly this mechanism — added T-020/T-021 to
+  `austin.md`: a real screen for `admission.js`'s reasoning (D-117 already requires this and it does
+  not exist yet), and a way to show wash-trade flags wherever wallet activity reaches a screen, so a
+  raw count never displays manufactured activity as real interest. `BOARD.md` regenerated to match.
+- Built the concrete answer to T-027's real-world-story half, same night: a full design already
+  existed, unbuilt, in `[[60-KB/news-catalyst-research]]` (09-04) — Google News RSS, searched per
+  coin by a person-set `newsQuery` keyword, never a generic crypto-news API (already checked and
+  rejected there: those filter by exchange ticker and would never surface DOGE-1's real story,
+  which is aerospace-media coverage, not crypto-media coverage). Added DOGE-1's query to
+  `data/watchlist.json`, built `app/main/adapters/newsfeed.js`, wired into `cloud-collect.js` on the
+  existing free cadence. **Real, live run found genuine headlines suggesting the actual rocket
+  mission may be close to launching** — "Musk is putting Dogecoin on the moon in 28 days"
+  (thestreet.com, 08-17) and "Dogecoin Targets $0.10 Ahead of DOGE-1 Lunar Launch" (Cryptonews,
+  09-03) — a real, dated, checkable finding on a coin Connal holds, stated as a headline existing,
+  not as a confirmed date (that needs reading the source article, not arithmetic on a headline).
+  - Found and fixed a real bug live: Node's own network layer was silently served an
+    empty-but-valid result by Google's anti-bot layer, on the exact same query `curl` answered
+    correctly — same silent-failure shape as D-85, a new source of it. Worked around with
+    `execFile('curl', …)` isolated to this one adapter, not the shared fetch wrapper. ! `curl`'s
+    presence on the Hetzner host is assumed, not yet confirmed.
+  - Also filtered exchange/converter boilerplate ("Convert DOGE-1 to Yen") that matches any ticker
+    query regardless of real news, by title pattern, not by source.
+  - NOT wired into `admission.js` or alerts — a real, growing record (`data/news.jsonl`) with
+    nowhere to look at it yet. Added to Austin's queue as T-028.
+- Connal then asked directly for general crypto news too, not only the per-coin catalyst check.
+  Added a SECOND pillar to the same file, kept distinct (`kind: 'catalyst'` vs `kind: 'crypto'`,
+  never merged into one score — they answer different questions, same reasoning as keeping
+  market/social/wallet as three sensors instead of one blended number): `collectCryptoNews()`
+  sweeps four named crypto outlets (Cointelegraph, Decrypt, The Block, Bitcoin.com News — verified
+  live, no anti-bot issue like Google News had) and checks every headline against the watchlist too,
+  in case a tracked coin gets real crypto-media coverage. Real run: 50 headlines, 0 matched a
+  tracked coin — honest, not a bug; these coins are too small for mainstream crypto press.
+- Connal pushed further, correctly: he doesn't want this limited to DOGE-1's one known story — he
+  wants to catch "the next DOGE-1" before anyone has identified it, plus a way to watch for
+  Elon/Trump-style influential posts, plus real ANALYSIS of news for coin/market connections, not
+  just a list. Answered each honestly rather than building blind:
+  - Built `collectSelfNameNews()`: runs every watchlist coin's own name through the same search,
+    no curated query needed. Confirmed live it would have found DOGE-1's story on its own. Then
+    immediately proved, same method, why it can't be auto-trusted: `CATE` returned Cate Blanchett
+    news, `BONER` returned FDA drug-recall news and real funeral obituaries for people surnamed
+    Boner, `microduck` returned an unrelated Hugging Face robot — all real articles, zero
+    connection to the coins. Every row ships `confirmed: false`; a person has to say yes before any
+    of it is treated as real. Also found two genuinely useful hits the same run (BONER's real
+    Hims & Hers connection, CASHCAT's Robinhood Chain ecosystem, both worth him seeing).
+  - Elon/Trump tracking: already researched in full, `[[80-WHISPERS/analysis-algorithm/README]]`
+    "HALF A" — real-time account-watching is a BUDGET decision (competes with the $24/mo social
+    cap), not a free feature; Truth Social has no covered source at all. What's free today: news
+    coverage OF a viral post, already flowing through the pillar above.
+  - "Analyze for connections" stays a human judgment call, not an automated verdict — the
+    CATE/BONER/microduck results are the direct, same-night proof of why: the identical mechanism
+    that correctly found DOGE-1's real story would, with equal confidence, invent a connection to
+    an unrelated actress or robot if nothing checked it. Full reasoning in
+    `[[60-KB/news-catalyst-research]]`.
+- Connal filled in the `[[OPEN-QUESTIONS]]` doc directly and pushed back hard on one pattern: I was
+  gating VISIBILITY on proof, when he wants evidence shown, honestly labelled, always — logged as
+  D-119. He also settled position sizing has no hard cap, sized by combined confidence, his call
+  final — D-120, with the mandate's advisor line explicitly held regardless (he was clear this
+  isn't him overriding that line, and it doesn't move even so).
+- Then, mid-reply, he said to build everything that had been on hold. Did the concretely-scoped,
+  bounded pieces same night, honestly reporting what didn't fit:
+  - **The labelled outcome record — the single most-repeated gap in this whole vault — is now
+    LIVE.** `shared/labels.js` (triple-barrier, same TARGET/STOP/TIMEOUT constants as
+    `backtest-walkforward.js`, no new untested rule variant) + reused `journal.js`'s existing
+    forecast/calibration machinery rather than building a parallel one. Every real admission now
+    auto-logs a resolvable forecast at its real entry price; `cloud-collect.js` resolves open ones
+    every cycle against real price history. Verified end-to-end against real CATE data before
+    trusting it (correctly resolved a synthetic test as a timeout at -14.5%), test artifact deleted
+    after.
+  - **T-030, the news filter**: self-name candidates now require the headline to actually mention
+    crypto. Re-ran the exact CATE/BONER/microduck cases — all four false positives gone, both real
+    hits (BONER/Hims & Hers, CASHCAT/Robinhood Chain) survive.
+  - **Robinhood Chain researched**, `[[60-KB/robinhood-chain-research]]`: real chain (Robinhood
+    Markets' own L2, Arbitrum Orbit, chain ID 4663). Live price already works today (DexScreener
+    covers it, confirmed) — this was already true, just never checked. Raw RPC works too (confirmed
+    live), so a wallet-flow reader is buildable later. The historical-candle gap
+    (`admission-backtest.md`) stands: GeckoTerminal doesn't cover it and the human-facing Blockscout
+    explorer is Cloudflare-blocked to a plain script.
+  - **curl on the collection host — confirmed present**, live via SSH. No longer an assumption.
+  - **Elon/Trump tracker — researched, NOT built.** X has no native macOS app any more, so the
+    exact FOMO-notifications trick doesn't transfer as-is; the real next test (a browser's own
+    web-push notification for x.com landing in the same local notification store) is untested but
+    plausible. ! did not touch the notification database beyond FOMO's own scope to check this —
+    `fomonotifications.js`'s own header requires fresh, explicit consent before widening that query
+    to any other app, and "build everything" isn't that — asked directly instead of assumed.
+  - **Not done this session, queued honestly rather than rushed**: wallet-derivation research
+    (whale-tracking build-order step 4), chart-history-from-existing-data, a scheduled-dates
+    calendar, and the pump-duration-after-a-post measurement. All added to `[[OPEN-QUESTIONS]]` and
+    the task board rather than half-built under time pressure.
+- Asked to just use judgement and clear the backlog. Picked the ones actually completable without
+  Austin or an external action, real results each:
+  - **T-012 answered**: the manipulation detector now fires on 30 of 567 recent readings (5.3%),
+    up from the 3-of-376 that prompted the task — consistent with D-104's recalibration, not a new
+    fix. It does fire.
+  - **T-011 checked for the first time, real data**: joined 4,391 real "emerging" posts to real
+    price history. 23 tickers matched, 62% hit their profit target before their stop (n=21
+    resolved) — a real improvement over the 11%-hit-rate market-only rule from 09-02. ! NOT
+    trustworthy yet: n small, a real entry-timing bias risk identified and not fixed, and only the
+    single largest win (BIKETYSON +333%) spot-checked against the raw data before being believed —
+    it held up (liquidity moved with price, unlike a real bug this project already hit once).
+    Full write-up `[[60-KB/emerging-signal-backtest]]`.
+  - **T-033 built and run for the first time**: `app/tools/derive-wallets.js` — real Solana movers,
+    real wallet flow, wash-filtered, checked for repetition across different coins. Found ONE
+    wallet buying into two different real movers. n=1, nowhere near enough to trust, but the whole
+    mechanism (whale-tracking build-order step 4) now runs end to end for the first time.
+  - **Real bug found along the way, not just a result**: STONK's price history contains an
+    impossible +1,449,410% reading — checked the raw data, it's a bad quote sandwiched in an
+    otherwise smooth series, same shape as D-117's stablecoin-mispricing bug, on a path D-117's fix
+    never covered (`candidates.jsonl`'s scanner ingestion, not the portfolio price series). Logged
+    as T-037 — this could feed a fake signal into anything that reads that file's price field.
+
+## 2026-09-05 — 8. WALLET-DERIVATION KILLED, PUMP-DURATION CAPTURE BUILT
+- machine: connal
+- Connal killed the wallet-derivation idea outright ("this idea is dumb i dont want this") right
+  after seeing the real n=1 result — no reason given, none asked for per the mandate's decision
+  hygiene, logged and stopped. `80-WHISPERS/whale-tracking/README` marked X KILLED; the sell-side
+  wallet tracking and the wash-trade filter are unaffected — this was specifically about deriving a
+  "smart wallet" list.
+- Asked what to build next. Picked the pump-duration measurement
+  (`80-WHISPERS/analysis-algorithm/README`'s own long-flagged, never-started next step) — same
+  reasoning as the labelled-outcome record: it can only ever be answered from data collected AFTER
+  a recorder exists, and every day without one is unrecoverable. Built `app/main/pumpcapture.js`:
+  every real FOMO buy signal (tracked or not — gating on admission would exclude most of the
+  denominator, D-63) now starts a real 2-hour, ~90-second-interval price recording tagged with its
+  trigger. Tested live against real CATE data before trusting it, test row deleted after. n=0 until
+  a real signal fires while it's running — the mechanism is proven, the record starts from here.
+- Told to work through the rest of `[[OPEN-QUESTIONS]]` and report back. Three more real builds:
+  - **The admit/reject spectrum Connal asked for exists now** — `admission.js` gained a `tier`
+    field (`red`/`yellow`/`green`) computed from the EXACT SAME gates-then-vote logic already
+    there, nothing new invented: red = a gate failed, green = cleared the real admit bar (still the
+    only thing that actually triggers a watchlist add), yellow = cleared every gate but fell short
+    — real evidence, not enough of it, exactly the D-119 "show it, labelled" shape. Also added news
+    as a genuine 4th sensor (confirmed hits only — an unreviewed self-name candidate must never
+    vote, that's the Cate-Blanchett risk verbatim). Tested all four cases (yellow/green/red/news
+    tipping a vote) live before trusting it. `tier` is display-only for now — nothing acts on
+    'yellow' automatically, that would be a real decision to widen what's actionable, not mine to
+    make silently.
+  - **Chart history fallback built** (`shared/chartfallback.js`) — turns the price snapshots
+    already collected every cycle into the SAME candle shape `geckoterminal.js`'s real OHLCV
+    returns, so existing chart code can render either. Every point honestly labelled
+    `synthetic: true` (a single reading, not a real aggregated candle) so nothing downstream
+    mistakes it for the real thing. Tested against real CATE data (300 real points). Wired into
+    `tokens:refresh` as `out.historyFallback`, alongside the real history, never replacing it.
+  - **A real scheduled-dates calendar built** (`shared/calendar.js`, `data/calendar.json`) —
+    refuses to accept an entry without a real source, and marks anything computed from a headline
+    (not independently confirmed) as `estimated`, never silently rounded into a fact. Seeded with
+    the one real date this project has: DOGE-1's estimated launch window (~09-14, computed from
+    "28 days" in an 08-17 article) — sourced, flagged as an estimate, not asserted as firm.
+  - **Verified no regressions**: ran the full test suite before and after tonight's changes
+    (`git stash` / `git stash pop`) — `history.test.js`, `importance.test.js`, and `sweep.test.js`
+    fail identically on BOTH, meaning these are pre-existing, unrelated to anything built tonight,
+    not something newly broken. `sweep.test.js`'s failures look like the same stale-fixture shape
+    as T-018 (asserting old budget/rate numbers a real config change already superseded) — not
+    dug into further tonight, flagged as its own item.
+
+## 2026-09-05 — 9. THE RESEARCH ASKS FROM THE QUESTIONS DOC, DONE PROPERLY
+- machine: connal
+- Connal asked directly whether I'd actually done the RESEARCH he asked for, not just the builds.
+  Honest answer at the time: partly. Three research items from `[[OPEN-QUESTIONS]]` had been passed
+  over while building — the wash-filter rework, the push-notification question, and extending the
+  holders-vs-price work. Done now, all three, with real sources.
+- **Wash-filter rework → `[[60-KB/market-manipulation-research]]` + `app/shared/marketmanip.js`.**
+  !! The headline finding changes how every win rate in this project should be read: fact
+  @Mongardini & Mei (arXiv 2507.01963, 34,988 tokens across four chains) — **82.8% of high-return
+  memecoins (>100% gains) show evidence of artificial growth**. Every selection mechanism here
+  (trend list, "notable movers", the emerging-signal backtest's +20% wins) samples exactly that
+  population.
+  - Implemented the two detectors the literature recommends (volume-without-price,
+    price-without-volume), ran them over all 128 coins: **2% flagged, and the one flagged "winner"
+    was our own known price bug.** Root cause found by running rather than assuming — those
+    thresholds need per-TRADE data; this project has 30-min snapshots of 24-HOUR aggregates, so a
+    "5x volume spike vs the previous reading" essentially cannot fire. A real negative result.
+  - ✓ Fixed with a third detector fitted to the data actually available: **price rising while
+    holder count does not** — which is `[[60-KB/trend-growth-analysis]]`'s own earlier measurement
+    turned into a manipulation check. Result: flags LaPeace (independently the same coin that
+    analysis singled out, and the one Connal removed) AND **`cat`, one of the 13 "wins" behind
+    tonight's 62% emerging-signal hit rate** (+82% price, −7.3% holders). At least one of those
+    wins looks manufactured — exactly what the 82.8% base rate predicts, found in our own data.
+    `[[60-KB/emerging-signal-backtest]]` updated with that caveat rather than left standing.
+- **Push-notification question → `[[60-KB/alert-threshold-research]]`.** Answer: no. Best practice
+  is a <10% false-positive rate for anything allowed to interrupt a person; measured reality when
+  that slips — 46% of security alerts are false positives, 74-99% of clinical alarms non-actionable,
+  49-96% override rates. The self-name news pillar measured ~50% false positives before filtering,
+  five times the ceiling. ∴ GREEN tier push-eligible, YELLOW in-app only, self-name candidates never.
+  ! this does not conflict with D-119 — showing and interrupting are different acts, and D-114
+  already reached the same conclusion by instinct on Connal's own alerts.
+- **Holders-vs-price extension**: rather than re-running the same finite dataset for a marginally
+  different correlation, the real extension turned out to be the one above — it became the only
+  manipulation detector that works at this project's data granularity, which is a genuinely new,
+  tested use rather than a repeat of the same measurement.

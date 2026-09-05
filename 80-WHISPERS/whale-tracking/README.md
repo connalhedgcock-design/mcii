@@ -1,8 +1,8 @@
 ---
 id: whisper.whale-tracking
 t: whisper-topic
-v: 1
-upd: 2026-09-01
+v: 4
+upd: 2026-09-05
 machine: connal
 whispers: 1
 researched: 2026-09-01
@@ -162,6 +162,53 @@ for a sell, both perfectly symmetric. The mechanism is correct when it fires.
 3. whale SELL detection on held coins → straight onto the alert path (high value, low ambiguity)
 4. wallet derivation + out-of-sample persistence test, logged as a forecast BEFORE it is scored
 5. only if 4 holds up: the buy signal as an admission tiebreaker in the three-input score (D-117)
+
+## !! STEP 2 BUILT AND TESTED, 2026-09-05 — `app/shared/washtrade.js`
+Two signals, both from the Victor & Weintraud evidence above, not invented: (a) a wallet that both
+bought AND sold the same coin in one window (self-trade), (b) wallets funded in SOL from the same
+source (funding-link cluster) — either flags that wallet's flow as manufactured rather than real.
+- ! BOUNDED, NOT EXHAUSTIVE. Finding a wallet's true first-ever funding would mean paging its whole
+  history to genesis — expensive, possibly hundreds of calls for one busy wallet. This checks only
+  the last 20 signatures per wallet and caps at 12 wallets checked per call (largest-flow-first).
+  An owner with no funder found in that window is reported UNCHECKED, never as clean — the honest
+  reading is "did not find a link," not "found none exists."
+- Tested two ways before trusting it: (1) a synthetic case (one wallet buying then selling) —
+  correctly flagged, confirming the self-trade logic fires; (2) a real run against CATE's actual
+  pool flow (10 rows, 7 distinct owners) — ran cleanly end to end, 0 flagged, 0 unchecked. The zero
+  result is NOT evidence CATE has no wash trading — n=1 coin, small sample, and the funding-link
+  check only looked 20 signatures back per wallet. It proves the mechanism runs correctly against
+  real chain data without erroring, which is what step 2 needed to prove before step 3 can build on
+  it.
+- ! STILL NOT WIRED TO ANYTHING A PERSON SEES. Per the same discipline as `walletflow.js` itself:
+  an unvalidated wallet read must not reach a screen or alert. Step 3 (whale sell → alert) is the
+  next real step and must call this filter first.
+
+## !! STEP 4 BUILT AND RUN, 2026-09-05 — `app/tools/derive-wallets.js`
+Follows this file's own derivation method exactly: find coins with a notable real move, find who
+was buying via `walletflow.js`, filter out wash/funding-linked wallets (`washtrade.js`), require a
+wallet to appear across 2+ DIFFERENT coins before counting it as a real candidate.
+- Real run: 7 real Solana movers checked (STONK excluded — see the bug below), **1 wallet found
+  buying into 2 different real movers (biketyson +333%, HeeHaw +197%)**:
+  `mP4tnNkwAtRLpSZG5CqcH3CVPJHgVw7XH3j6YRyayQP`. Written to `data/derived-wallets.json`.
+- ! n=1 candidate is nowhere near enough to trust — same discipline as everywhere else this week.
+  This is the mechanism working end-to-end for the first time, not a validated wallet to follow.
+  Needs to run repeatedly as more coins move before this list means anything.
+- !! REAL BUG FOUND WHILE BUILDING THIS: `STONK` showed a move computed as **+1,449,410%** — not
+  real. Checked the raw data directly: two isolated readings of $269.64 and $310.92 sandwiched in
+  an otherwise smooth ~$0.02 series. Same shape as D-117's stablecoin-mispricing bug (decisions.md)
+  — a bad/wrong-pool quote for one reading — just on `candidates.jsonl`'s scanner ingestion path,
+  which D-117's fix (applied to the portfolio price-series path) never covered. `derive-wallets.js`
+  now skips anything over +500% as suspect rather than silently trusting it, but the underlying
+  scanner bug is UNFIXED — worth its own look before this data is trusted for anything else that
+  reads `candidates.jsonl`'s price field.
+
+## X KILLED, 2026-09-05 — Connal, verbatim: "this idea is dumb i dont want this"
+Said right after seeing the real n=1 result from step 4 (`derive-wallets.js`). No reason given, not
+asked to re-litigate per the mandate's decision hygiene — his call, logged, moving on. Keeping the
+receipt (D-69's rule: never delete a rejected idea): the buy-signal / wallet-derivation half of
+whale tracking (build-order steps 4-5) stops here. ! the SELL side (a followed wallet dumping a
+held coin) and the wash-trade filter itself are UNAFFECTED — this kill is specifically about
+deriving a "smart wallet" candidate list, not about wallet tracking as a whole.
 
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
