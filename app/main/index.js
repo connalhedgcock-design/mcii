@@ -655,6 +655,12 @@ ipcMain.handle('journal:forecasts', (_e, owner) => journal.readForecasts(owner =
 ipcMain.handle('journal:addForecast', (_e, f) => journal.addForecast({ ...f, owner: store.owner }));
 ipcMain.handle('journal:resolve', (_e, { id, outcome, lesson }) => journal.resolveForecast(id, outcome, lesson));
 ipcMain.handle('journal:calibration', (_e, owner) => journal.calibration(owner || store.owner));
+// Who ends up holding a coin, per tracked coin, refreshed every collection cycle
+// (`cloud-collect.js: writeGrowthQuality`). ! a read of what already happened, never a forecast.
+ipcMain.handle('growth:quality', () => {
+  try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'growth-quality.json'), 'utf8')); }
+  catch { return { computedAt: null, coins: [] }; } // never collected yet is not an error (D-29)
+});
 ipcMain.handle('calendar:list', () => calendar.listEvents());
 ipcMain.handle('calendar:upcoming', (_e, withinDays) => calendar.upcoming(withinDays));
 ipcMain.handle('journal:notes', (_e, owner) => journal.readNotes(owner === undefined ? store.owner : owner));

@@ -463,3 +463,18 @@ times across an 8.5-day span**, measured live, not assumed. The trend record was
   different correlation, the real extension turned out to be the one above — it became the only
   manipulation detector that works at this project's data granularity, which is a genuinely new,
   tested use rather than a repeat of the same measurement.
+
+## 2026-09-05 — 10. THE HOLDER READ WIRED INTO THE LIVE SYSTEM
+- machine: connal
+- Connal: commit it, then build this asap. Committed (two commits, code+vault and data separately),
+  then wired `marketmanip.js: growthQuality()` from a script that had been run once into something
+  that runs every collection cycle: `cloud-collect.js: writeGrowthQuality()` computes it per tracked
+  coin, writes `data/growth-quality.json`, exposed to the app over `growth:quality` + preload.
+- ! Ran against his REAL watchlist, and it says something about a coin he holds:
+  - **CATE: crowd-leaving-whale-staying** — price −50%, holders −53%, biggest wallet's share up.
+  - **DOGE-1: real-looking-growth** — price +117%, holders +18%, biggest wallet's share down 1.6pts.
+    The only coin of the seventeen with holder history that shows the healthy shape.
+  - CASHCAT / BONER / microduck return `unknown` and say so — holder counts are Solana-only, and an
+    absent input is reported as absent, never guessed (D-29).
+- ∴ per the mandate's "surface disconfirming evidence FIRST when they are already in a position",
+  the CATE read was told to him directly rather than left sitting in a file.

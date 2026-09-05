@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('mcii', {
   orionAsk: (text) => ipcRenderer.invoke('orion:ask', text),
   orionLogin: () => ipcRenderer.invoke('orion:login'),
   historySeries: (ca, field, days) => ipcRenderer.invoke('history:series', { ca, field, days }),
+  growthQuality: () => ipcRenderer.invoke('growth:quality'),
   calendarList: () => ipcRenderer.invoke('calendar:list'),
   calendarUpcoming: (withinDays) => ipcRenderer.invoke('calendar:upcoming', withinDays),
   // Portfolio. Public wallet addresses in, holdings out -- the renderer never sees a key,

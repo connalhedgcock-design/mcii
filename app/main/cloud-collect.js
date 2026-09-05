@@ -32,6 +32,7 @@ const scanstore = require('./scanstore');
 const newsfeed = require('./adapters/newsfeed');
 const journal = require('./journal');
 const labels = require('../shared/labels');
+const marketmanip = require('../shared/marketmanip');
 journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
@@ -649,6 +650,31 @@ function resolveLabels() {
   return { checked: open.length, resolved: resolvedCount };
 }
 
+// The holder/concentration read (`shared/marketmanip.js: growthQuality`) computed fresh every
+// cycle for every tracked coin, and written where the app and the alert path can both read it.
+// ! this is the CHEAP detector, and it is the one that works at this project's data granularity:
+// measured 09-05, only 1 of 17 coins with holder history showed real growth (holders rising while
+// the biggest wallet's share shrank), while `fone` gained 341% with its holder count FALLING.
+// Per-wallet wash detection (`washtrade.js`) costs an RPC call per wallet and covers one of four
+// manipulation mechanisms; this covers the OUTCOME of all four, from fields already collected.
+// ! a DESCRIPTION of what already happened, never a prediction, and holder counts are Solana-only,
+// so a non-Solana coin honestly returns `unknown` rather than a guess (D-29).
+function writeGrowthQuality(tokens) {
+  const history = readJsonl('market.jsonl');
+  const byCa = {};
+  for (const r of history) if (r.ca) (byCa[r.ca] ||= []).push(r);
+
+  const out = [];
+  for (const t of tokens) {
+    const q = marketmanip.growthQuality(byCa[t.ca] || []);
+    if (q.verdict === 'unknown') continue;
+    out.push({ ca: t.ca, sym: t.sym, ...q });
+  }
+  fs.writeFileSync(path.join(DATA, 'growth-quality.json'),
+    JSON.stringify({ computedAt: Date.now(), coins: out }, null, 1) + '\n');
+  return out;
+}
+
 async function main() {
   const tokens = watchlist();
   log(`cloud collection — ${tokens.map((t) => t.sym).join(', ')}`);
@@ -661,6 +687,13 @@ async function main() {
     const { checked, resolved } = resolveLabels();
     log(`  ${checked} open forecast(s) checked, ${resolved} resolved this run`);
   } catch (e) { log(`  label resolution failed — ${e.message}`); }
+
+  log('growth quality:');
+  try {
+    const rows = writeGrowthQuality(tokens);
+    for (const r of rows) log(`  ${r.sym}: ${r.verdict}`);
+    if (!rows.length) log('  no coin has enough holder history yet');
+  } catch (e) { log(`  growth quality failed — ${e.message}`); }
 
   log('chatter sweep:');
   const chatter = await collectSocial(tokens);

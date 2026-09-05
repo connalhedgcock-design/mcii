@@ -85,6 +85,14 @@ so treat the ordering as a proposal, not an assignment.
          confirm or dismiss each one, same shape as the existing "identified tickers" review flow.
       · why: a real, working signal with nowhere to see it, same problem as T-020/T-021/T-025/T-026
       · [[app/main/adapters/newsfeed.js]], [[60-KB/news-catalyst-research]]
+- [ ] T-041 P2 @austin · show the growth-quality read on each coin — `mcii.growthQuality()` returns
+      one of: real-looking-growth / price-up-nobody-arriving / crowd-leaving-whale-staying / mixed,
+      with a plain-English `why` already written for display. Refreshed every collection cycle.
+      ! word it as what ALREADY HAPPENED, never a prediction, and show `unknown` honestly for
+      non-Solana coins (no holder data exists there) rather than hiding them · why: this is
+      currently the single most informative read this project has — only 1 of 17 coins with holder
+      history shows real growth, and it flags coins Connal actually holds
+      · [[60-KB/market-manipulation-research]]
 - [ ] T-038 P3 @austin · `admission.js` now returns a `tier` (`red`/`yellow`/`green`) alongside
       `admit` — 'yellow' is the middle state Connal asked for (cleared every safety/liquidity gate,
       real evidence exists, just not enough of it to admit). Show it as a yellow indicator with the
