@@ -1,7 +1,7 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1788682406244,
+    "at": 1788686002353,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -19,8 +19,8 @@
   },
   "0x020bfC650A365f8BB26819deAAbF3E21291018b4": {
     "sym": "CASHCAT",
-    "at": 1788678804723,
-    "people": 2,
+    "at": 1788686002358,
+    "people": 1,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
@@ -37,17 +37,17 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788682406269,
-    "people": 7,
-    "tone": 0.705,
-    "confidence": "low",
-    "manipulated": false,
+    "at": 1788686002376,
+    "people": 6,
+    "tone": 0.739,
+    "confidence": "none",
+    "manipulated": true,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788682406259,
-    "people": 2,
+    "at": 1788686002368,
+    "people": 1,
     "tone": null,
     "confidence": "none",
     "manipulated": true,
