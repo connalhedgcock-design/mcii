@@ -1,7 +1,7 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1788671603169,
+    "at": 1788675209943,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -28,7 +28,7 @@
   },
   "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump": {
     "sym": "HeeHaw",
-    "at": 1788668005799,
+    "at": 1788675209955,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -37,11 +37,11 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788671603186,
-    "people": 7,
-    "tone": 0.331,
-    "confidence": "low",
-    "manipulated": false,
+    "at": 1788675209959,
+    "people": 6,
+    "tone": 0.696,
+    "confidence": "none",
+    "manipulated": true,
     "manipReasons": []
   }
 }
