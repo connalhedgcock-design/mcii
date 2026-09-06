@@ -28,7 +28,7 @@
   },
   "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump": {
     "sym": "HeeHaw",
-    "at": 1788718414535,
+    "at": 1788725609839,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -37,16 +37,16 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788722030227,
-    "people": 6,
-    "tone": 0.673,
+    "at": 1788725609844,
+    "people": 5,
+    "tone": 0.595,
     "confidence": "none",
     "manipulated": true,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788722030223,
+    "at": 1788725609835,
     "people": 1,
     "tone": null,
     "confidence": "none",
@@ -55,7 +55,7 @@
   },
   "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18": {
     "sym": "BONER",
-    "at": 1788722030218,
+    "at": 1788725609828,
     "people": 1,
     "tone": null,
     "confidence": "none",
