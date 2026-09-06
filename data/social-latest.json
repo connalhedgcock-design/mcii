@@ -37,8 +37,8 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788704012006,
-    "people": 6,
+    "at": 1788707605672,
+    "people": 5,
     "tone": 0.738,
     "confidence": "none",
     "manipulated": true,
@@ -46,7 +46,16 @@
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788704011993,
+    "at": 1788707605667,
+    "people": 1,
+    "tone": null,
+    "confidence": "none",
+    "manipulated": true,
+    "manipReasons": []
+  },
+  "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18": {
+    "sym": "BONER",
+    "at": 1788707605662,
     "people": 1,
     "tone": null,
     "confidence": "none",
