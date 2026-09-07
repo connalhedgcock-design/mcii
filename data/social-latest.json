@@ -37,25 +37,25 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788772403221,
+    "at": 1788776011288,
     "people": 5,
-    "tone": 0.626,
+    "tone": 0.624,
     "confidence": "low",
     "manipulated": false,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788772403213,
-    "people": 1,
-    "tone": null,
+    "at": 1788776011275,
+    "people": 6,
+    "tone": 0.081,
     "confidence": "none",
     "manipulated": true,
     "manipReasons": []
   },
   "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18": {
     "sym": "BONER",
-    "at": 1788772403209,
+    "at": 1788776011268,
     "people": 1,
     "tone": null,
     "confidence": "none",
@@ -64,7 +64,7 @@
   },
   "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
     "sym": "GPRO",
-    "at": 1788772403217,
+    "at": 1788776011284,
     "people": 1,
     "tone": null,
     "confidence": "none",
