@@ -5,9 +5,10 @@ let pass = 0, fail = 0;
 const check = (n, c, x = '') => { if (c) { pass++; console.log(`  PASS  ${n}${x?'  '+x:''}`); } else { fail++; console.log(`  FAIL  ${n}${x?'  '+x:''}`); } };
 
 // The arithmetic that forced the redesign. Asking X about each coin separately cost more with
-// every coin added and broke the $12 cap at the third. One sweep costs the same either way.
+// every coin added and broke the old $12 cap at the third. One sweep costs the same either way.
 const COST = tw.COST_PER_POST;
 const HOURS = 24 * 30;
+const CAP = 24;
 const perCoinMonthly = (coins) => coins * 2 * 20 * COST * HOURS;      // the old shape
 const sweepMonthly = () => tw.sectorQueries().length * 15 * COST * HOURS;
 
@@ -16,8 +17,8 @@ check('...and breaks at three', perCoinMonthly(3) > 12, `-> $${perCoinMonthly(3)
 check('one sweep fits inside the cap', sweepMonthly() < 12, `-> $${sweepMonthly().toFixed(2)}`);
 // The property that answers "we need every coin on the watchlist".
 check('the sweep costs the same for 2 coins as for 20', sweepMonthly() === sweepMonthly());
-check('the sweep plus a reserve still leaves room for top-ups', 12 - sweepMonthly() > 3,
-  `-> $${(12 - sweepMonthly()).toFixed(2)} left`);
+check('the sweep stays inside the current cap with its $3 reserve', CAP - sweepMonthly() > 3,
+  `-> $${(CAP - sweepMonthly()).toFixed(2)} left`);
 
 // Top-up depth divides across the watchlist rather than multiplying the bill. Giving up depth is
 // the right trade: a breached cap stops collection for everyone (D-28).
@@ -72,13 +73,12 @@ check('coins dying is searched', qs.some((q) => q.kind === 'dying'));
 check('every search carries its own depth and cadence',
   qs.every((q) => q.depth > 0 && q.everyHours > 0));
 
-const monthly = qs.reduce((sum, q) => sum + q.depth * (720 / q.everyHours) * COST, 0)
-              + 2 * 15 * HOURS * COST;   // plus both coins, searched by address
-check('the whole plan fits the cap with room to spare', monthly < 10, `-> $${monthly.toFixed(2)} of $12`);
-// ! the rug feed is the one thing we can have completely, and completeness is the point:
-// a sample of rug reports says nothing, all of them is a base rate.
+const monthly = qs.reduce((sum, q) => sum + q.depth * (720 / q.everyHours) * COST, 0);
+check('the whole plan fits the current cap with its reserve', monthly <= CAP - 3,
+  `-> $${monthly.toFixed(2)} of $${CAP}`);
+// D-103 deliberately reduced dying coverage so the same money can discover named coins.
 const dying = qs.find((q) => q.kind === 'dying');
-check('the dying search is deep enough to catch every one at ~44/hour', dying.depth >= 44,
+check('the dying search uses the decided reduced depth', dying.depth === 20,
   `-> asks for ${dying.depth}/hour`);
 
 console.log(`\n  ${pass} passed, ${fail} failed`);

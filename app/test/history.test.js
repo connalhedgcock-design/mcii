@@ -56,8 +56,8 @@ withTmpRepo(
 // No ground truth yet for this token -- must not block trend detection outright.
 withTmpRepo(
   [
-    { ts: 1787939753370, holders: 116808, ca: 'TEST' },
-    { ts: 1787950000000, holders: 110000, ca: 'TEST' },
+    { ts: Date.now() - 2 * 36e5, holders: 116808, ca: 'TEST' },
+    { ts: Date.now() - 1 * 36e5, holders: 110000, ca: 'TEST' },
   ],
   [],
   () => {

@@ -100,7 +100,8 @@ function classify(post, { watchlist = [], scanned = [], lex = null } = {}) {
   // ! bare words that merely spell a ticker still do not qualify — `atLeast(strong)` excludes
   // them, and D-72 exists because their own scan record contains a coin called "fone".
   const namesSomething = a.all.some((h) => resolve.atLeast(h.confidence, 'strong'));
-  const isEmerging = namesSomething && !shotgun && !isPromo && !isFailure
+  // A coin already found by the scanner is known background, not a newly discovered social lead.
+  const isEmerging = namesSomething && !scannedHit.length && !shotgun && !isPromo && !isFailure
                      && cred.plausible && !bot.likely;
 
   let kind = 'discussion', level = 'low';
@@ -144,7 +145,7 @@ function classify(post, { watchlist = [], scanned = [], lex = null } = {}) {
   // about -- it only stops a bot from being counted as a person's opinion.
   if (bot.likely) {
     reasons.push(bot.declared ? 'posted by an account X labels automated' : 'looks like an automated account');
-    if (level === 'med') level = 'low';
+    if (level === 'med' || kind === 'emerging') level = 'low';
   }
   // Reach with no reaction: pushed in front of people rather than resonating with them (D-25).
   if (post.views > 2000 && post.engagementRate != null && post.engagementRate < 0.001) {

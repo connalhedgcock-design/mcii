@@ -1,8 +1,8 @@
 ---
 id: task.board
 t: task-board
-v: 5
-upd: 2026-09-05
+v: 6
+upd: 2026-09-07
 machine: connal
 derived: true
 ---
@@ -15,14 +15,19 @@ hand-resolve — delete both sides and regenerate. see [[90-TASKS/README]].
 _none._ ✓
 
 ## P1 · SILENTLY WRONG — showing something false, and nobody would notice
-- [ ] T-039 @connal · 3 test files fail and were never flagged before (`history`/`importance`/
+- [x] T-039 @connal · fixed 2026-09-07: all three now match current dates and locked
+      social/spending decisions; the complete app check passes. Original: 3 test files failed (`history`/`importance`/
       `sweep`.test.js) — confirmed pre-existing, not newly broken. `sweep.test.js` looks like the
       same stale-fixture shape as T-018 · why: an unexplained red trains you to ignore red.
-- [ ] T-037 @connal · `candidates.jsonl` can record an impossible price (STONK logged $269.64 for
+- [x] T-037 @connal · fixed 2026-09-07: `candidates.jsonl`, app and phone price paths reject the
+      impossible quote before it can drive a signal, while preserving it for inspection. Repeated
+      bad quotes and real crashes are covered by tests. Original: `candidates.jsonl` could record
+      an impossible price (STONK logged $269.64 for
       one reading inside a smooth ~$0.02 series, same shape as D-117's stablecoin bug on a
       different path) · why: anything reading that file's price field can be fed a fake
       +1,449,410% move and act on it as real.
-- [ ] T-018 @connal · two alert tests have been failing since the $1,000 cutoff (D-114)
+- [x] T-018 @connal · fixed 2026-09-07: examples now use amounts below $1,000 and pass.
+      Original: two alert tests had been failing since the $1,000 cutoff (D-114)
       · why: the fixture still checks a $10,000→$5,000 move, both above the new cutoff, so the
       alert correctly stays silent and the test calls that a failure — a suite that always shows
       red trains you to ignore red, which is how a real break gets through.
@@ -79,6 +84,11 @@ _none._ ✓
       · why: D-117 requires a real surface — see T-020, the concrete app-side half of this. ! Connal
       09-05 wants this to go further: ANY sensor firing should trigger re-analysis of ALL of them
       for that coin, ranked by score, not a one-shot admit/reject — real design work, not done yet.
+- [ ] T-041 @connal · run the two-week discovery comparison: social versus followed-wallet buys,
+      unusual market/holder/buyer changes, and real news or scheduled events; record which source
+      found each coin first and its +20%/-15%/24h result · why: social costs about $24/mo and has
+      not proved it predicts price, but cutting it before the other sources run beside it could
+      erase the only current route to genuinely unknown coins (D-121).
 - [ ] T-020 @austin · a real screen showing why the algorithm admitted or rejected a coin
       · why: `admission.js` already returns the reasons; D-117 requires this reach a screen and it
       doesn't yet — an improvement nobody can see is indistinguishable from one never made.

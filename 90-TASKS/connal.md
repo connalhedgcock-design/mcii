@@ -1,8 +1,8 @@
 ---
 id: task.connal
 t: task-queue
-v: 3
-upd: 2026-09-05
+v: 4
+upd: 2026-09-07
 machine: connal
 owner: connal
 ---
@@ -14,19 +14,25 @@ Lane (D-89): scanner effectiveness · what the data MEANS · analysis + scoring 
 and a spot on the board next time we talk.
 
 ## NOW
-- [ ] T-039 P2 @connal · 3 test files fail and were never flagged before (`history.test.js` x1,
+- [x] T-039 P2 @connal · fixed 2026-09-07: all three now match current dates and locked
+      social/spending decisions; the complete app check passes. Original: 3 test files failed (`history.test.js` x1,
       `importance.test.js` x3, `sweep.test.js` x3) — confirmed pre-existing (failed identically
       before tonight's changes too, not something just broken). `sweep.test.js`'s look like the
       same stale-fixture shape as T-018 (asserting an old budget/rate a real config change already
       superseded) — not dug into further · why: a suite with unexplained red trains you to ignore
       red, same reasoning as T-018
-- [ ] T-037 P1 @connal · `candidates.jsonl`'s scanner path can record an impossible price (found
+- [x] T-037 P1 @connal · fixed 2026-09-07: scanner, app and phone price paths now compare each
+      jump with the last usable coin reading and its pool liquidity; bad quotes stay recorded as
+      suspect but cannot drive rankings, forecasts or alerts. Repeated bad quotes cannot validate
+      each other. Tested against both real STONK errors and a genuine crash. Original finding:
+      `candidates.jsonl`'s scanner path can record an impossible price (found
       09-05: STONK logged as $269.64 for one reading, sandwiched in an otherwise smooth ~$0.02
       series — same shape as D-117's stablecoin bug, just on a different ingestion path D-117's fix
       never covered) · why: anything that reads price off `candidates.jsonl` (trend scoring, wallet
       derivation) can be fed a fake +1,449,410% move and act like it's real
       · [[80-WHISPERS/whale-tracking/README]]
-- [ ] T-018 P1 @connal · two alert tests have been failing since the $1,000 change · why: the
+- [x] T-018 P1 @connal · fixed 2026-09-07: examples now exercise alerts below the locked $1,000
+      level and pass. Original: two alert tests had been failing since the $1,000 change · why: the
       fixture still uses $10,000→$5,000, both above the new cut-off, so the alert correctly does
       not fire and the test calls that a failure. ! a suite that always shows red trains you to
       ignore red, which is how a REAL break gets through · [[decisions]] D-114
@@ -41,6 +47,11 @@ and a spot on the board next time we talk.
       data from the other two and actually picks which coins to be tracking and comes up with an
       analysis based on those 3 data points which is portrayed to me in app and in notifications"
       · ! D-117: no part of this ships without a surface · [[60-KB/watchlist-admission-research]]
+- [ ] T-041 P3 @connal · run the two-week discovery comparison: social versus followed-wallet buys,
+      unusual market/holder/buyer changes, and real news or scheduled events; record which source
+      found each coin first and its +20%/-15%/24h result · why: social costs about $24/mo and has not
+      proved it predicts price, but switching it off before the other sources run beside it could
+      erase the only current route to genuinely unknown coins · [[decisions]] D-121
 - [ ] T-011 P2 @connal · CHECKED 09-05, promising but not trustworthy yet: 23 "emerging" tickers
       matched to real price history, 62% hit their profit target before their stop (n=21 resolved).
       Real, but n is small, one real entry-timing bias risk found and not yet fixed, and the

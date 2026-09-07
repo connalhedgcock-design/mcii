@@ -8,6 +8,7 @@
 const path = require('path');
 const screener = require('./screener');
 const store = require('./scanstore');
+const signalstore = require('./signalstore');
 
 const USERDATA = process.env.MCII_USERDATA ||
   path.join(process.env.HOME, 'Library/Application Support/mcii');
@@ -27,8 +28,14 @@ async function scanOnce() {
     const acc = ris.filter((x) => x.accumulating);
     if (acc.length) {
       log(`  accumulating (people arriving faster than price moving):`);
-      for (const a of acc.slice(0, 5))
+      for (const a of acc.slice(0, 5)) {
+        signalstore.record({ kind: 'accumulating', ca: a.ca, sym: a.sym,
+          ts: a.last.ts, market: a.last,
+          reasons: [`Liquidity grew ${a.liqGrowth}% while price moved ${a.priceGrowth}% over ${a.spanHours} hours`,
+            `Buy pressure was ${a.buyPressure ?? 'unavailable'} across ${a.scans} scans`],
+          evidence: a, source: 'local-scanner' });
         log(`    ${a.sym.padEnd(10)} holders +${a.holderGrowth}%  liquidity +${a.liqGrowth}%  price ${a.priceGrowth >= 0 ? '+' : ''}${a.priceGrowth}%  over ${a.spanHours}h / ${a.scans} scans`);
+      }
     } else if (ris.length) {
       log(`  ${ris.length} tokens tracked across scans, none showing accumulation yet`);
     }

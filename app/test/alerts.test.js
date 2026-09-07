@@ -5,11 +5,11 @@ const base = { ca: 'TEST', sym: 'TEST', gate: { verdict: 'PASS', findings: [] },
   market: { priceUsd: 0.001 }, exit: { usd: 5000 }, position: null, trend: {} };
 
 const cases = [
-  ['exit-drop', { ...base, trend: { exitUsd: { from: 10000, to: 5000, pct: -50, spanHours: 72, n: 9 } } }],
+  ['exit-drop', { ...base, trend: { exitUsd: { from: 900, to: 500, pct: -44, spanHours: 72, n: 9 } } }],
   ['liq-drain', { ...base, trend: { liq: { from: 200000, to: 120000, pct: -40, spanHours: 48, n: 8 } } }],
   ['holders-falling', { ...base, trend: { holders: { from: 20000, to: 18000, pct: -10, spanHours: 30, n: 6 } } }],
   ['concentrating', { ...base, trend: { top10: { from: 20, to: 26, pct: 30, spanHours: 40, n: 6 } } }],
-  ['position-exceeds-exit', { ...base, position: { tokens: 20000000 }, exit: { usd: 5000 },
+  ['position-exceeds-exit', { ...base, position: { tokens: 20000000 }, exit: { usd: 500 },
                               market: { priceUsd: 0.001 } }],
 ];
 

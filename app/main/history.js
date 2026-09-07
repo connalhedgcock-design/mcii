@@ -159,8 +159,7 @@ function read(ca, sinceMs) {
 function delta(ca, field, windowMs) {
   // Rows flagged suspect for this field are excluded, so a vendor's broken index can never
   // produce a trend line or fire an alert.
-  let rows = (field === 'price' ? pricesanity.cleanPrices(read(ca)) : read(ca, windowMs))
-    .filter((r) => r.ts >= Date.now() - windowMs)
+  let rows = (field === 'price' ? pricesanity.cleanPrices(read(ca, windowMs)) : read(ca, windowMs))
     .filter((r) => r[field] != null && !r[`${field}Suspect`]);
   if (field === 'holders') rows = plausibleHolders(ca, rows);
   if (rows.length < 2) return null;

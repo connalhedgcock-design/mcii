@@ -252,8 +252,18 @@ async function loadToken(entry) {
 
   const prevGate = store.tokens[ca]?.gate || null;
   out.alerts = alerts.evaluate(out, prevGate);
-  for (const a of out.alerts) signalstore.record({ kind: a.id, ca, sym, ts: a.at,
-    market: out.market, reasons: [a.title, a.detail], evidence: a });
+  // An unchanged warning is one continuing condition, not a new signal on every refresh.
+  // Keep the first complete record, then permit a fresh record after the same cool-off used by
+  // notifications. MED signals are saved too even though they do not interrupt the operator.
+  const seenSignals = (store.seenSignals ||= {});
+  for (const a of out.alerts) {
+    const key = `${ca}:${a.id}`;
+    const cooloff = a.severity === 'CRITICAL' ? 6 * 36e5 : 24 * 36e5;
+    if (Date.now() - (seenSignals[key] || 0) <= cooloff) continue;
+    signalstore.record({ kind: a.id, ca, sym, ts: a.at,
+      market: out.market, reasons: [a.title, a.detail], evidence: a });
+    seenSignals[key] = Date.now();
+  }
   // Only notify on things that are both serious and new -- a standing condition should not
   // re-nag every ten minutes, or it stops being read.
   const seen = (store.seenAlerts ||= {});
