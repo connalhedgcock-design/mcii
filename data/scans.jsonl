@@ -438,3 +438,4 @@
 {"ts":1788812021649,"src":"cloud","universe":56,"survivors":17,"tookMs":46413,"rejects":{"liquidity only $X":26,"only Nh old":2,"older than N days":11}}
 {"ts":1788813824658,"src":"cloud","universe":55,"survivors":17,"tookMs":48615,"rejects":{"only Nh old":4,"liquidity only $X":22,"older than N days":11,"Single holder ownership":1}}
 {"ts":1788815608932,"src":"cloud","universe":52,"survivors":15,"tookMs":44036,"rejects":{"only Nh old":3,"liquidity only $X":22,"no trading pairs":1,"older than N days":10,"Single holder ownership":1}}
+{"ts":1788817425451,"src":"cloud","universe":54,"survivors":13,"tookMs":40840,"rejects":{"liquidity only $X":27,"only Nh old":2,"no trading pairs":1,"older than N days":10,"Single holder ownership":1}}
