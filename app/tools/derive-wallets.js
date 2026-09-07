@@ -46,7 +46,7 @@ function findNotableMoves() {
 
   const moves = [];
   for (const [ca, list] of Object.entries(byCa)) {
-    const sorted = list.sort((a, b) => a.ts - b.ts);
+    const sorted = require('../shared/pricesanity').cleanPrices(list);
     for (let i = 1; i < sorted.length; i++) {
       const ret = (sorted[i].price - sorted[i - 1].price) / sorted[i - 1].price;
       if (ret >= SUSPECT_MOVE_RATIO) {

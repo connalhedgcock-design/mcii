@@ -155,10 +155,17 @@ function pollNewSignals() {
       if (parsed) signals.push(parsed);
     } catch (e) { /* one bad record is skipped, never turned into a false trade (D-29's rule) */ }
   }
-  saveLastSeenId(maxId);
   if (signals.length) {
+    for (const s of signals) {
+      // The notification contains a trade amount, NOT a unit price. Keep it unknown.
+      require('../signalstore').record({ kind: `fomo-${s.direction}`,
+        ca: s.coinAddress || `unresolved:${s.tradeId || s.recId}`, sym: s.coinTitle,
+        ts: s.at || Date.now(), reasons: [`@${s.handle} ${s.direction === 'buy' ? 'bought' : 'sold'} $${s.usd}; FOMO notification`],
+        evidence: s });
+    }
     fs.appendFileSync(signalsFile(), signals.map((s) => JSON.stringify(s)).join('\n') + '\n');
   }
+  saveLastSeenId(maxId);
   return signals;
 }
 

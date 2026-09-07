@@ -1,0 +1,43 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+const { markSeries, cleanPrices } = require('../shared/pricesanity');
+const { checkBarrier } = require('../shared/labels');
+const { createStore } = require('../main/signalstore');
+const { guardMarket } = require('../main/priceguard');
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mcii-integrity-'));
+try {
+  const points = [0.02, 269.64, 310.92, 0.019, 0.00001].map((price, i) => ({ ts: i + 1, price, liq: 100000 }));
+  const marked = markSeries(points);
+  assert.deepEqual(marked.map((r) => !!r.priceSuspect), [false, true, true, false, false]);
+  assert.equal(marked.length, 5);
+  assert.equal(cleanPrices(points).length, 3);
+  assert.equal(checkBarrier(0.02, 1, marked).outcome, 'stop');
+  for (const price of [null, NaN, Infinity, 0, -1]) assert.equal(markSeries([{ price, ts: 1 }])[0].priceSuspect, true);
+  assert.equal(markSeries([{ price: 1, liq: 100, ts: 1 }, { price: 20, liq: 3000, ts: 2 }])[1].priceSuspect, undefined);
+  const ca = `test-${Date.now()}`;
+  assert.equal(guardMarket(ca, { priceUsd: .02, totalLiquidityUsd: 100000 }).priceUsd, .02);
+  assert.equal(guardMarket(ca, { priceUsd: 269.64, totalLiquidityUsd: 100000 }).priceUsd, null);
+  assert.equal(guardMarket(ca, { priceUsd: 310.92, totalLiquidityUsd: 100000 }).priceUsd, null);
+  assert.equal(guardMarket(ca, { priceUsd: .00001, totalLiquidityUsd: 100000 }).priceUsd, .00001);
+  const store = createStore(root, 'test'), ts = Date.now();
+  const base = { kind: 'admission', ca, sym: 'TEST', ts, reasons: ['Two independent readings agree'], evidence: { tier: 'yellow' } };
+  store.record({ ...base, market: { priceUsd: .02, fetchedAt: ts } });
+  store.record(base);
+  store.record({ ...base, market: { priceUsd: .02, fetchedAt: ts - 3600000 } });
+  store.record({ ...base, market: { priceUsd: null, rawPrice: 269.64, fetchedAt: ts, priceSuspect: true } });
+  const reloaded = fs.readFileSync(createStore(root, 'test').file, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.deepEqual(reloaded.map((r) => r.priceStatus), ['observed', 'unavailable', 'stale', 'suspect']);
+  assert.deepEqual(reloaded.map((r) => r.price), [.02, null, null, null]);
+  assert.equal(new Set(reloaded.map((r) => r.id)).size, 4);
+  assert(reloaded.every((r) => r.ca === ca && r.ts === ts && r.reasons.length));
+  assert.throws(() => store.record({ ...base, reasons: [] }));
+  const blocked = path.join(root, 'blocked'); fs.writeFileSync(blocked, 'file');
+  assert.throws(() => createStore(blocked, 'test').record(base));
+  store.scan({ scannedAt: ts, survivors: [{ ca, symbol: 'TEST', priceUsd: .02, fetchedAt: ts }],
+    rejectedStage1: [{ ca: 'rejected', rejected: 'no market data' }], rejectedStage2: [] });
+  assert.equal(fs.readFileSync(store.file, 'utf8').trim().split('\n').length, 6);
+  const candidates = fs.readFileSync(path.join(__dirname, '../../data/candidates.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+  const bad = markSeries(candidates.filter((r) => r.sym === 'STONK')).filter((r) => r.price > 200 && r.price < 400);
+  assert(bad.length >= 2); assert(bad.every((r) => r.priceSuspect));
+  console.log(`Price/signal integrity passed; ${bad.length} real STONK bad quotes excluded; crash preserved; save failures surfaced.`);
+} finally { fs.rmSync(root, { recursive: true, force: true }); }

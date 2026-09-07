@@ -3,6 +3,7 @@ const { fetchSafety } = require('./adapters/rugcheck');
 const { maxExitable, fetchTokenMeta } = require('./adapters/jupiter');
 const { evaluateSafety } = require('../shared/safety');
 const history = require('./history');
+const signalstore = require('./signalstore');
 
 // Tiered live monitoring.
 //
@@ -28,7 +29,12 @@ const TIERS = {
 class LiveMonitor {
   constructor({ onUpdate = () => {}, onAlert = () => {} } = {}) {
     this.onUpdate = onUpdate;
-    this.onAlert = onAlert;
+    this.onAlert = (a) => {
+      const market = this.tokens.get(a.ca)?.market;
+      signalstore.record({ kind: a.id, ca: a.ca, sym: a.sym, ts: a.at, market,
+        reasons: [a.title, a.detail], evidence: a });
+      onAlert(a);
+    };
     this.tokens = new Map();     // ca -> live state
     this.timer = null;
   }
@@ -46,7 +52,7 @@ class LiveMonitor {
   async tick() {
     for (const [ca, st] of this.tokens) {
       try { await this.pollOne(ca, st); }
-      catch (e) { /* a failed poll is not a reading; leave prior state untouched */ }
+      catch (e) { console.error('live monitor failed:', e.message); }
     }
   }
 
@@ -65,7 +71,7 @@ class LiveMonitor {
     if (prev) {
       const liqPct = prev.totalLiquidityUsd
         ? ((market.totalLiquidityUsd - prev.totalLiquidityUsd) / prev.totalLiquidityUsd) * 100 : 0;
-      const pxPct = prev.priceUsd ? ((market.priceUsd - prev.priceUsd) / prev.priceUsd) * 100 : 0;
+      const pxPct = market.priceUsd != null && prev.priceUsd ? ((market.priceUsd - prev.priceUsd) / prev.priceUsd) * 100 : 0;
 
       if (liqPct <= -15) this.onAlert({
         severity: 'CRITICAL', ca, sym: st.sym, id: 'liquidity-pull',
@@ -83,7 +89,7 @@ class LiveMonitor {
       // Expensive check, triggered by change rather than by clock.
       const moved = st.lastExitLiq
         ? Math.abs((market.totalLiquidityUsd - st.lastExitLiq) / st.lastExitLiq) * 100 : 100;
-      if (moved >= TIERS.exitRecheckPct && st.meta) {
+      if (moved >= TIERS.exitRecheckPct && st.meta && market.priceUsd != null) {
         st.lastExitLiq = market.totalLiquidityUsd;
         maxExitable(ca, st.meta.decimals, market.priceUsd)
           .then((x) => { st.exit = x; this.onUpdate(this.snapshot(ca)); })

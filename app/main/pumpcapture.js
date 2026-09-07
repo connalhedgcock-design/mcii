@@ -66,6 +66,9 @@ function startCapture(ca, sym, trigger) {
       const m = await fetchMarket(ca);
       row.price = m.priceUsd ?? null;
       row.liq = m.totalLiquidityUsd ?? null;
+      row.rawPrice = m.rawPrice; row.priceSuspect = m.priceSuspect;
+      row.priceSuspectWhy = m.priceSuspectWhy;
+      row.priceTs = m.fetchedAt;
     } catch (e) {
       row.error = e.message; // D-29: a failed poll is recorded as a failure, never invented as "no move"
     }

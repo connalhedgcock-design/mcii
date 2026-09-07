@@ -1,11 +1,20 @@
 ---
 id: ctx.ops
 t: ctx
-v: 4
-upd: 2026-08-29
+v: 5
+upd: 2026-09-07
+machine: connal
 prio: high
 ---
 # OPERATORS
+
+## PROJECT CONTEXT — Google Drive + Obsidian, Connal 2026-09-07
+- Connal explicitly asks that future MCII and Telos work consult their respective Google Drive
+  folders alongside the local Obsidian vaults. Drive is an additional source, not a replacement.
+- Operator-profile sources requested: MCII document approximately "goig through mcii";
+  Telos document approximately "going through telos". Discover exact titles/IDs before citing.
+- Read 2026-09-07: Drive docs `going thru mcii` and `going through the telos app and identifying
+  changes that need to me made`. Both are inputs to the project-specific operator profiles.
 
 ## connal — PRIMARY. machine A. the person I actually talk to.
 - macOS arm64 / zsh / MacBook Air. node 26.7 + npm 11.19 @ /opt/homebrew. obsidian. build target.

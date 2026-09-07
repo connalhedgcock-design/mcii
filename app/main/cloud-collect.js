@@ -35,6 +35,7 @@ const labels = require('../shared/labels');
 const marketmanip = require('../shared/marketmanip');
 const pricesanity = require('../shared/pricesanity');
 const rescore = require('../shared/rescore');
+const signalstore = require('./signalstore');
 journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
@@ -102,14 +103,15 @@ async function collectMarket(tokens) {
       let holders = null;
       try {
         const meta = await fetchTokenMeta(t.ca);
-        exit = await maxExitable(t.ca, meta.decimals, market.priceUsd);
+        if (market.priceUsd != null) exit = await maxExitable(t.ca, meta.decimals, market.priceUsd);
         // Jupiter counts accounts with an actual balance -- the honest meaning of "holders" (see
         // onchain.js / 50-LOG/2026-08-28-data-integrity.md). RugCheck's field was renamed to
         // tokenAccounts because it counts something else entirely; never read totalHolders here.
         holders = meta.holderCount ?? null;
       } catch {}
       rows.push({
-        ts: Date.now(), src: 'cloud', ca: t.ca, sym: t.sym,
+        ts: market.fetchedAt, src: 'cloud', ca: t.ca, sym: t.sym, chain: market.chain,
+        rawPrice: market.rawPrice, priceSuspect: market.priceSuspect, priceSuspectWhy: market.priceSuspectWhy,
         price: market.priceUsd, mcap: market.marketCap,
         liq: Math.round(market.totalLiquidityUsd || 0), pools: market.poolCount,
         v24: Math.round(market.volume?.h24 || 0),
@@ -119,7 +121,7 @@ async function collectMarket(tokens) {
         top10: safety?.top10Pct != null ? +safety.top10Pct.toFixed(1) : null,
         verdict: gate?.verdict ?? null, flags: gate?.findings?.length ?? null,
       });
-      log(`  ${t.sym}: $${market.priceUsd.toPrecision(4)}  liq $${Math.round(market.totalLiquidityUsd).toLocaleString()}  exit ${exit ? '$' + Math.round(exit.usd).toLocaleString() : '—'}`);
+      log(`  ${t.sym}: $${(market.priceUsd == null ? 'unknown' : market.priceUsd.toPrecision(4))}  liq $${Math.round(market.totalLiquidityUsd).toLocaleString()}  exit ${exit ? '$' + Math.round(exit.usd).toLocaleString() : '—'}`);
     } catch (e) {
       // A failed collection writes nothing. Never a zero row.
       log(`  ${t.sym}: failed — ${e.message}`);
@@ -722,6 +724,9 @@ function writeRescore(tokens, marketRows) {
     });
   });
 
+  for (const s of scored) signalstore.record({ kind: 'rescore', ca: s.ca, sym: s.sym,
+    ts: s.scoredAt, source: 'cloud', market: latestByCa[s.ca], reasons: s.reasons, evidence: s });
+
   fs.writeFileSync(path.join(DATA, 'rescore.json'),
     JSON.stringify({ computedAt: Date.now(), note: 'FOMO sensor not available in cloud collection', coins: scored }, null, 1) + '\n');
   return scored;
@@ -773,6 +778,7 @@ async function main() {
   log('market scan:');
   try {
     const r = await screener.run({ limit: 60 });
+    signalstore.scan(r, 'cloud');
     log(`  ${r.summary}`);
     append('scans.jsonl', [{ ts: r.scannedAt, src: 'cloud', universe: r.universe,
       survivors: r.survivors.length, tookMs: r.tookMs,
@@ -780,7 +786,8 @@ async function main() {
       // everything fails on liquidity is a different market from one where safety is the killer.
       rejects: scanstore.tally([...r.rejectedStage1, ...r.rejectedStage2]) }]);
     append('candidates.jsonl', r.survivors.map((c) => ({
-      ts: r.scannedAt, src: 'cloud', ca: c.ca, sym: c.symbol, name: c.name, via: c.via,
+      ts: c.fetchedAt || r.scannedAt, src: 'cloud', chain: c.chain, rawPrice: c.rawPrice,
+      priceSuspect: c.priceSuspect, priceSuspectWhy: c.priceSuspectWhy, ca: c.ca, sym: c.symbol, name: c.name, via: c.via,
       price: c.priceUsd, mcap: Math.round(c.marketCap || 0), liq: Math.round(c.liquidityUsd || 0),
       vol24: Math.round(c.volume24h || 0), ageH: c.ageHours != null ? +c.ageHours.toFixed(1) : null,
       chg24: c.change24h, holders: c.safety?.totalHolders ?? null,

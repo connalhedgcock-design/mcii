@@ -71,7 +71,7 @@ module.exports = { pushHoldings };
 // The worker deletes what it has sent (see cloudflare/telegram-alerts/src/index.js), so this key
 // holds only events nobody has been notified about yet -- never a full history, never something
 // this file needs to dedupe against, since "already sent" lives on the worker's side of the line.
-async function pushDiscoveryEvent({ ca, sym, reasons, evidence }) {
+async function pushDiscoveryEvent({ ca, sym, reasons, evidence, signal }) {
   const token = process.env.CLOUDFLARE_KV_TOKEN;
   if (!token) return { skipped: 'no CLOUDFLARE_KV_TOKEN set' };
 
@@ -89,7 +89,7 @@ async function pushDiscoveryEvent({ ca, sym, reasons, evidence }) {
       if (Array.isArray(got)) existing = got;
     } catch (e) { /* key not created yet on first-ever push -- start from empty, not an error */ }
 
-    existing.push({ ca, sym, reasons, evidence, at: Date.now() });
+    existing.push({ ca, sym, reasons, evidence, signal, at: Date.now() });
     await getJSON(url, {
       method: 'PUT', timeoutMs: 15000, retries: 1,
       headers: { Authorization: `Bearer ${token}`, 'content-type': 'text/plain' },

@@ -1,5 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const pricesanity = require('../shared/pricesanity');
+const { createStore } = require('./signalstore');
+let signals;
 
 // The record of every market scan. One line per (scan, token) observation.
 //
@@ -10,6 +13,7 @@ const path = require('path');
 
 let dir, obsFile, scanFile;
 function init(userDataPath) {
+  signals = createStore(userDataPath);
   dir = path.join(userDataPath, 'scans');
   fs.mkdirSync(dir, { recursive: true });
   obsFile = path.join(dir, 'observations.jsonl');
@@ -17,11 +21,13 @@ function init(userDataPath) {
 }
 
 function record(result) {
+  signals.scan(result, 'local-scanner');
   const scanTs = result.scannedAt;
   const rows = [];
   for (const c of result.survivors) {
     rows.push({
-      ts: scanTs, ca: c.ca, sym: c.symbol, name: c.name, via: c.via,
+      ts: c.fetchedAt || scanTs, chain: c.chain, rawPrice: c.rawPrice,
+      priceSuspect: c.priceSuspect, priceSuspectWhy: c.priceSuspectWhy, ca: c.ca, sym: c.symbol, name: c.name, via: c.via,
       price: c.priceUsd, mcap: Math.round(c.marketCap || 0),
       liq: Math.round(c.liquidityUsd || 0), vol24: Math.round(c.volume24h || 0),
       txns24: c.txns24h, buys24: c.buys24 ?? null, sells24: c.sells24 ?? null,
@@ -42,7 +48,7 @@ function record(result) {
       // where 90% fail on liquidity is a different market from one where 90% fail on safety.
       rejects: tally([...result.rejectedStage1, ...result.rejectedStage2]),
     }) + '\n');
-  } catch {}
+  } catch (e) { throw new Error(`scan record failed: ${e.message}`); }
   return rows.length;
 }
 
@@ -71,7 +77,7 @@ function trajectories(sinceMs = 24 * 864e5 / 24) {
     if (!byToken.has(o.ca)) byToken.set(o.ca, []);
     byToken.get(o.ca).push(o);
   }
-  for (const arr of byToken.values()) arr.sort((a, b) => a.ts - b.ts);
+  for (const [ca, arr] of byToken) byToken.set(ca, pricesanity.cleanPrices(arr));
   return byToken;
 }
 

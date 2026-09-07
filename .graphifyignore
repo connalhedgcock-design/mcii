@@ -1,0 +1,9 @@
+graphify-out/
+.git/
+app/node_modules/
+app/dist/
+app/build/
+config/secrets.json
+data/*.jsonl
+data/*.tmp
+*.log

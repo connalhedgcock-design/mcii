@@ -1,3 +1,4 @@
+import pricesanity from '../../../app/shared/pricesanity.js';
 // Fast liquidity/price alert for HELD positions, on Cloudflare's cron scheduler rather than
 // GitHub Actions' — see 70-AREAS/trading-strategy/README.md for why. GitHub's scheduler has
 // already caused a multi-hour silent outage in this project once (50-LOG/2026-08-29-scanner-hang,
@@ -83,6 +84,9 @@ async function sendDiscoveryEvents(env) {
   const events = safeParse(raw, []);
   if (!Array.isArray(events) || !events.length) { await env.ALERTS_KV.delete('discovery-events'); return { sent: 0 }; }
 
+  await env.ALERTS_KV.put(`signals:discovery:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify(events.map((e) =>
+    e.signal || { ca: e.ca, sym: e.sym, ts: e.at, price: null, priceStatus: 'unavailable',
+      reasons: e.reasons, evidence: e.evidence, source: 'phone-discovery-legacy' })));
   const unsent = [];
   let sent = 0;
   for (const e of events) {
@@ -168,7 +172,7 @@ async function watchCollector(env) {
 // have broken past 3 held coins and silently stopped alerting. One combined record is 288
 // writes/day flat, however many coins are held -- the per-coin cost was a property of the first
 // design, not a real constraint. Same lesson as D-65.
-async function run(env) {
+export async function run(env) {
   // Holdings and the tracked list are fetched together and are independent: either alone is
   // enough to do useful work, and a failure of one must not silence the other.
   const [{ positions, pushedAt }, watchlist, social] =
@@ -197,27 +201,40 @@ async function run(env) {
   const bySym = heldBy;
 
   const next = {};
+  const pending = [];
   const tracked = [];
   for (const [ca, m] of priced) {
+    const checked = pricesanity.checkPrice(prev[ca] ? {
+      price: prev[ca].priceUsd, liq: prev[ca].liquidityUsd } : null,
+      { price: m.priceUsd, liq: m.liquidityUsd });
+    const rawPrice = m.priceUsd;
+    if (checked) { m.priceUsd = null; priceDiag.push({ ca, priceSuspect: true, why: checked.why }); }
     const held = bySym.get(ca);
     const isHeld = !!held;
     const tokens = held?.tokens || 0;
-    const valueUsd = isHeld ? tokens * m.priceUsd : null;
+    const valueUsd = isHeld && m.priceUsd != null ? tokens * m.priceUsd : null;
     // ! the dust rule applies ONLY to coins actually held. A watched coin has no position, so
     // testing its value would silently drop every tracked-but-unheld coin -- which is exactly the
     // "empty result shaped like a real answer" failure D-55 and D-93 are both about.
-    if (isHeld && valueUsd < DUST_USD) continue;
+    if (isHeld && valueUsd != null && valueUsd < DUST_USD) continue;
 
     const sym = held?.sym || m.sym;
-    next[ca] = { liquidityUsd: m.liquidityUsd, priceUsd: m.priceUsd, at: Date.now() };
-    tracked.push(isHeld ? `${sym} $${valueUsd.toFixed(2)}` : `${sym} (watched)`);
+    const observedAt = Date.now();
+    if (!checked) next[ca] = { liquidityUsd: m.liquidityUsd, priceUsd: m.priceUsd, at: observedAt };
+    tracked.push(isHeld && valueUsd != null ? `${sym} $${valueUsd.toFixed(2)}` : `${sym} (watched)`);
+    const queueAlert = async (_env, _ca, kind, title, detail) => pending.push({
+      id: crypto.randomUUID(), ca, sym, kind, ts: observedAt, priceTs: observedAt,
+      price: m.priceUsd, rawPrice, priceStatus: checked ? 'suspect' : 'observed',
+      priceReason: checked?.why || null, reasons: [title, detail], source: 'phone',
+      evidence: { before: prev[ca], market: m, social: social[ca] || null },
+    });
 
     const before = prev[ca];
     if (!before) continue;               // first sighting -- nothing to compare against yet
 
     const liqPct = before.liquidityUsd
       ? ((m.liquidityUsd - before.liquidityUsd) / before.liquidityUsd) * 100 : 0;
-    const pxPct = before.priceUsd
+    const pxPct = m.priceUsd != null && before.priceUsd
       ? ((m.priceUsd - before.priceUsd) / before.priceUsd) * 100 : 0;
 
     const soc = social[ca] || null;
@@ -225,13 +242,13 @@ async function run(env) {
       alertAnalysis({ soc, liquidityUsd: m.liquidityUsd, valueUsd, held: isHeld, direction });
 
     if (liqPct <= LIQ_DROP_PCT) {
-      await maybeAlert(env, ca, 'liquidity-pull',
+      await queueAlert(env, ca, 'liquidity-pull',
         `🚨 ${sym}: liquidity dropped ${Math.abs(liqPct).toFixed(0)}%`,
         `Pool liquidity fell from $${Math.round(before.liquidityUsd).toLocaleString()} to ` +
         `$${Math.round(m.liquidityUsd).toLocaleString()}. A sudden drop is how a rug looks while ` +
         `it is happening.\n\n${evidence('down')}`);
     } else if (pxPct <= PRICE_DROP_PCT) {
-      await maybeAlert(env, ca, 'price-drop',
+      await queueAlert(env, ca, 'price-drop',
         `⚠️ ${sym}: price fell ${Math.abs(pxPct).toFixed(0)}%`,
         `From $${before.priceUsd.toPrecision(4)} to $${m.priceUsd.toPrecision(4)}. Check liquidity ` +
         `before assuming this is just a dip.\n\n${evidence('down')}`);
@@ -239,11 +256,18 @@ async function run(env) {
       // D-95. ! deliberately reported for coins they do NOT hold as well. Connal overruled my
       // objection and was right on the substance: reporting a move with its evidence is analysis;
       // it is only a tip if it carries a directive, and alertAnalysis() never does.
-      await maybeAlert(env, ca, 'price-rise',
+      await queueAlert(env, ca, 'price-rise',
         `📈 ${sym}: price rose ${pxPct.toFixed(0)}%${isHeld ? '' : ' (not held)'}`,
         `From $${before.priceUsd.toPrecision(4)} to $${m.priceUsd.toPrecision(4)}.` +
         `\n\n${evidence('up')}`);
     }
+  }
+
+  // One immutable batch per tick, saved BEFORE any notification or cooldown.
+  // No expiration: this is the evidence record, not a cache.
+  if (pending.length) {
+    await env.ALERTS_KV.put(`signals:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify(pending));
+    for (const a of pending) await maybeAlert(env, a.ca, a.kind, a.reasons[0], a.reasons[1]);
   }
 
   // A coin that failed to price keeps its previous reading rather than losing it: a transient
@@ -405,7 +429,7 @@ async function priceMints(mints, diag = []) {
       const key = chunk.find((c) => String(c).toLowerCase() === String(addr).toLowerCase());
       if (!key) continue;
       const price = parseFloat(p.priceUsd);
-      if (!(price > 0)) continue;
+      if (!Number.isFinite(price) || !(price > 0)) continue;
       const liq = p.liquidity?.usd || 0;
       const best = out.get(key);
       if (!best || liq > best.liquidityUsd) {
@@ -419,8 +443,8 @@ async function priceMints(mints, diag = []) {
 async function maybeAlert(env, ca, id, title, detail, cooldownSec = ALERT_COOLDOWN_SEC) {
   const cooldownKey = `cooldown:${ca}:${id}`;
   if (await env.ALERTS_KV.get(cooldownKey)) return;   // already alerted recently, stay quiet
-  await env.ALERTS_KV.put(cooldownKey, '1', { expirationTtl: cooldownSec });
-  await sendTelegram(env, `${title}\n${detail}`);
+  const sent = await sendTelegram(env, `${title}\n${detail}`);
+  if (sent) await env.ALERTS_KV.put(cooldownKey, '1', { expirationTtl: cooldownSec });
 }
 
 // ! RETURNS whether the send actually worked. It used to swallow every error and return nothing,

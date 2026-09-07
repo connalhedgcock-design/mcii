@@ -52,6 +52,7 @@ const venues = require('./venues');
 const fomoNotifications = require('./adapters/fomonotifications');
 const admission = require('../shared/admission');
 const labels = require('../shared/labels');
+const signalstore = require('./signalstore');
 const pumpcapture = require('./pumpcapture');
 const chartfallback = require('../shared/chartfallback');
 const calendar = require('../shared/calendar');
@@ -188,7 +189,7 @@ async function loadToken(entry) {
     out.meta = await metaP;
     // Needs meta + market only -- started as soon as those are ready rather than waiting on
     // safety or history too, since exit simulation depends on neither of them.
-    const exitP = (out.meta && out.market)
+    const exitP = (out.meta && out.market?.priceUsd != null)
       ? maxExitable(ca, out.meta.decimals, out.market.priceUsd)
           .catch((e) => { out.errors.push(`exit simulation failed (${e.message})`); return null; })
       : Promise.resolve(null);
@@ -251,6 +252,8 @@ async function loadToken(entry) {
 
   const prevGate = store.tokens[ca]?.gate || null;
   out.alerts = alerts.evaluate(out, prevGate);
+  for (const a of out.alerts) signalstore.record({ kind: a.id, ca, sym, ts: a.at,
+    market: out.market, reasons: [a.title, a.detail], evidence: a });
   // Only notify on things that are both serious and new -- a standing condition should not
   // re-nag every ten minutes, or it stops being read.
   const seen = (store.seenAlerts ||= {});
@@ -499,8 +502,10 @@ function runDiscovery() {
     (async () => {
       let market = null;
       let entryPrice = null;
+      let marketReading = null;
       try {
         const m = await fetchMarket(ca);
+        marketReading = m;
         market = { verdict: null, flags: null, liq: m.totalLiquidityUsd,
                    buys24: m.txns?.h24?.buys ?? null, sells24: m.txns?.h24?.sells ?? null };
         entryPrice = m.priceUsd;
@@ -513,6 +518,8 @@ function runDiscovery() {
 
       const result = admission.evaluateCandidate({ ca, sym: bareSym, market, fomo, social: socialEvidence, news: newsHit });
       console.log(`discovery: ${bareSym} (${ca.slice(0, 8)}...) -> ${result.admit ? 'ADMIT' : 'reject'} -- ${result.reasons[0] || ''}`);
+      const recordedSignal = signalstore.record({ kind: 'admission', ca, sym: bareSym,
+        market: marketReading, reasons: result.reasons, evidence: { ...result, fomo } });
       if (!result.admit) return;
 
       store.watchlist.push({ ca, sym: bareSym });
@@ -524,14 +531,14 @@ function runDiscovery() {
       // flagged as the one thing that could not be built later (see `shared/labels.js`). Entry
       // price comes from the SAME market read `evaluateCandidate()` just used, so the label starts
       // from the exact price the admission decision was made against, not a later, different one.
-      if (entryPrice) {
+      if (recordedSignal.price != null) {
         journal.addForecast({
           owner: store.owner,
           question: `${bareSym} hits its +${(labels.TARGET_PCT * 100).toFixed(0)}% target before its ${(labels.STOP_PCT * 100).toFixed(0)}% stop or ${labels.TIMEOUT_HOURS}h timeout`,
           prob: 50, // placeholder -- Stage 3 confidence classifier per signal-architecture-research needs n>=50 resolved first
           resolveBy: new Date(Date.now() + labels.TIMEOUT_HOURS * 3600 * 1000).toISOString().slice(0, 10),
           ca, sym: bareSym,
-          entryPrice, entryTs: Date.now(),
+          entryPrice: recordedSignal.price, entryTs: recordedSignal.ts,
           basis: `auto-logged on admission: ${result.reasons.join(' · ')}`,
         });
       }
@@ -544,9 +551,9 @@ function runDiscovery() {
       // Phone notification, same trick as holdings (D-93): the worker cannot see this admission
       // happen on its own, so the app hands it over. Failure here is logged, never thrown -- a
       // Cloudflare hiccup must not undo the admission that already happened above.
-      alertsPush.pushDiscoveryEvent({ ca, sym: bareSym, reasons: result.reasons, evidence: result.evidence })
+      alertsPush.pushDiscoveryEvent({ ca, sym: bareSym, reasons: result.reasons, evidence: result.evidence, signal: recordedSignal })
         .catch((e) => console.error('discovery: phone push failed:', e.message));
-    })();
+    })().catch((e) => console.error('discovery failed:', e.message));
   }
 }
 

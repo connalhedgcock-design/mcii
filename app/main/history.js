@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const sanity = require('../shared/sanity');
+const pricesanity = require('../shared/pricesanity');
 
 // Append-only, one file per token, one JSON object per line.
 //
@@ -106,7 +107,8 @@ function record(ca, token) {
   }
   const row = {
     ts: Date.now(),
-    price: m.priceUsd,
+    price: m.priceUsd, rawPrice: m.rawPrice, priceSuspect: m.priceSuspect,
+    priceSuspectWhy: m.priceSuspectWhy,
     mcap: m.marketCap,
     liq: Math.round(m.totalLiquidityUsd || 0),
     pools: m.poolCount,
@@ -157,7 +159,8 @@ function read(ca, sinceMs) {
 function delta(ca, field, windowMs) {
   // Rows flagged suspect for this field are excluded, so a vendor's broken index can never
   // produce a trend line or fire an alert.
-  let rows = read(ca, windowMs)
+  let rows = (field === 'price' ? pricesanity.cleanPrices(read(ca)) : read(ca, windowMs))
+    .filter((r) => r.ts >= Date.now() - windowMs)
     .filter((r) => r[field] != null && !r[`${field}Suspect`]);
   if (field === 'holders') rows = plausibleHolders(ca, rows);
   if (rows.length < 2) return null;

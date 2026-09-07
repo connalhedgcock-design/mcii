@@ -18,3 +18,4 @@ app/sidecar/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 app/tools/.backtest-history-cache.json
+graphify-out/

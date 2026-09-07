@@ -28,11 +28,11 @@ function checkBarrier(entryPrice, entryTs, rows, opts = {}) {
   const target = opts.targetPct ?? TARGET_PCT;
   const stop = opts.stopPct ?? STOP_PCT;
   const timeoutH = opts.timeoutHours ?? TIMEOUT_HOURS;
-  if (!entryPrice || entryPrice <= 0) return null;
+  if (!Number.isFinite(entryPrice) || entryPrice <= 0) return null;
 
   const deadline = entryTs + timeoutH * 3600 * 1000;
   const future = rows
-    .filter((r) => r.ts > entryTs && r.price != null)
+    .filter((r) => r.ts > entryTs && Number.isFinite(r.price) && r.price > 0 && !r.priceSuspect)
     .sort((a, b) => a.ts - b.ts);
 
   for (const r of future) {

@@ -1,4 +1,5 @@
 const { getJSON } = require('./http');
+const { guardMarket } = require('../priceguard');
 
 // Live-testing notes, 2026-08-24:
 //   /latest/dex/tokens/{ca} intermittently returns {"pairs":null} under load -- a null body, not an
@@ -47,7 +48,7 @@ async function fetchMarket(ca) {
   mine.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
 
   const main = mine[0];
-  return {
+  return guardMarket(ca, {
     name: main.baseToken.name,
     symbol: main.baseToken.symbol,
     chain,
@@ -62,7 +63,7 @@ async function fetchMarket(ca) {
     txns: main.txns || {},
     pairCreatedAt: main.pairCreatedAt,
     fetchedAt: Date.now(),
-  };
+  });
 }
 
 module.exports = { fetchMarket };

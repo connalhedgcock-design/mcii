@@ -1,4 +1,5 @@
 const { getJSON } = require('./adapters/http');
+const { guardMarket } = require('./priceguard');
 const { throttle } = require('./adapters/ratelimit');
 const { fetchSafety } = require('./adapters/rugcheck');
 const { evaluateSafety } = require('../shared/safety');
@@ -75,13 +76,13 @@ async function stage1(cand) {
   // Buy and sell counts kept separately: the accumulation signal is being rebuilt on flow rather
   // than on holder counts, because pool state is read directly while holder counts come from an
   // index that has to scan every wallet -- and that index demonstrably rebuilds from zero.
-  const info = { ...cand, symbol: m.baseToken.symbol, name: m.baseToken.name,
+  const info = guardMarket(cand.ca, { ...cand, chain: 'solana', fetchedAt: Date.now(), symbol: m.baseToken.symbol, name: m.baseToken.name,
                  priceUsd: parseFloat(m.priceUsd), marketCap: m.marketCap || 0,
                  liquidityUsd: liq, ageHours: ageH, volume24h: vol, txns24h: tx,
                  buys24: m.txns?.h24?.buys ?? null, sells24: m.txns?.h24?.sells ?? null,
                  buys6: m.txns?.h6?.buys ?? null, sells6: m.txns?.h6?.sells ?? null,
                  change6h: m.priceChange?.h6 ?? null,
-                 change24h: m.priceChange?.h24 ?? null, url: m.url };
+                 change24h: m.priceChange?.h24 ?? null, url: m.url });
 
   if (liq < FILTERS.minLiquidityUsd) return { ...info, rejected: `liquidity only $${Math.round(liq).toLocaleString()}` };
   if (ageH != null && ageH < FILTERS.minPoolAgeHours) return { ...info, rejected: `only ${ageH.toFixed(1)}h old` };

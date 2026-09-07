@@ -27,7 +27,11 @@ const LIQ_FOLLOW_FACTOR = 10;    // liquidity must move at least spike/10 to be 
 // `prev` and `cur` are consecutive snapshot rows for ONE coin (`market.jsonl`/`candidates.jsonl`
 // shape). Returns null when there is nothing to question -- the overwhelmingly common case.
 function checkPrice(prev, cur) {
-  if (!prev || !cur || !prev.price || !cur.price) return null;
+  if (!cur) return null;
+  if (!Number.isFinite(cur.price) || cur.price <= 0) return {
+    suspect: true, why: 'price is missing, non-finite or not positive',
+  };
+  if (!prev || !Number.isFinite(prev.price) || prev.price <= 0) return null;
   const priceRatio = cur.price / prev.price;
   if (priceRatio < SPIKE_RATIO) return null; // includes every downward move, deliberately
 
@@ -48,9 +52,12 @@ function checkPrice(prev, cur) {
 // Marks suspect rows in a coin's own series, oldest first. Returns the same rows, never fewer.
 function markSeries(rows) {
   const sorted = [...rows].sort((a, b) => a.ts - b.ts);
-  for (let i = 1; i < sorted.length; i++) {
-    const verdict = checkPrice(sorted[i - 1], sorted[i]);
-    if (verdict) { sorted[i].priceSuspect = true; sorted[i].priceSuspectWhy = verdict.why; }
+  let trusted = null;
+  for (const row of sorted) {
+    const verdict = checkPrice(trusted, row);
+    if (verdict) { row.priceSuspect = true; row.priceSuspectWhy = verdict.why; }
+    // A bad quote must never become the reference for the next quote.
+    if (!row.priceSuspect) trusted = row;
   }
   return sorted;
 }
@@ -59,3 +66,23 @@ function markSeries(rows) {
 const cleanPrices = (rows) => markSeries(rows).filter((r) => !r.priceSuspect);
 
 module.exports = { checkPrice, markSeries, cleanPrices, SPIKE_RATIO, LIQ_FOLLOW_FACTOR };
+
+// Preserve rows and other measurements; hide only the unusable price, retaining the raw quote.
+function guardRows(rows, prior = []) {
+  const groups = new Map();
+  for (const row of [...prior, ...rows]) {
+    const key = `${row.chain || ''}:${row.ca || ''}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({ ...row });
+  }
+  const marked = new Map();
+  for (const list of groups.values()) for (const row of markSeries(list)) {
+    marked.set(`${row.chain || ''}:${row.ca || ''}:${row.ts}`, row);
+  }
+  return rows.map((row) => {
+    const checked = marked.get(`${row.chain || ''}:${row.ca || ''}:${row.ts}`);
+    return checked?.priceSuspect ? { ...row, rawPrice: row.rawPrice ?? row.price,
+      price: null, priceSuspect: true, priceSuspectWhy: checked.priceSuspectWhy } : row;
+  });
+}
+module.exports.guardRows = guardRows;
