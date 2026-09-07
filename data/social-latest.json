@@ -28,7 +28,7 @@
   },
   "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump": {
     "sym": "HeeHaw",
-    "at": 1788754406799,
+    "at": 1788761606182,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -37,16 +37,16 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788758004152,
-    "people": 5,
-    "tone": 0.63,
+    "at": 1788761606190,
+    "people": 3,
+    "tone": null,
     "confidence": "low",
     "manipulated": false,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788758004145,
+    "at": 1788761606179,
     "people": 1,
     "tone": null,
     "confidence": "none",
@@ -55,7 +55,16 @@
   },
   "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18": {
     "sym": "BONER",
-    "at": 1788758004141,
+    "at": 1788761606173,
+    "people": 1,
+    "tone": null,
+    "confidence": "none",
+    "manipulated": true,
+    "manipReasons": []
+  },
+  "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
+    "sym": "GPRO",
+    "at": 1788761606187,
     "people": 1,
     "tone": null,
     "confidence": "none",
