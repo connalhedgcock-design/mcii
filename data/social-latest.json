@@ -19,8 +19,8 @@
   },
   "0x020bfC650A365f8BB26819deAAbF3E21291018b4": {
     "sym": "CASHCAT",
-    "at": 1788738183967,
-    "people": 2,
+    "at": 1788758004132,
+    "people": 1,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
@@ -37,16 +37,16 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788754406804,
-    "people": 4,
-    "tone": 0.595,
+    "at": 1788758004152,
+    "people": 5,
+    "tone": 0.63,
     "confidence": "low",
     "manipulated": false,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788754406796,
+    "at": 1788758004145,
     "people": 1,
     "tone": null,
     "confidence": "none",
@@ -55,7 +55,7 @@
   },
   "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18": {
     "sym": "BONER",
-    "at": 1788754406791,
+    "at": 1788758004141,
     "people": 1,
     "tone": null,
     "confidence": "none",
