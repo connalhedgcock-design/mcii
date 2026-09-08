@@ -24,12 +24,12 @@
  * rather than quietly omitted, because a synthesis room that shows only what
  * it happens to have collected reads as complete when it is not.
  */
-import { mountRoom, board, esc, pctStr, pctCls } from './rooms.js';
+import { mountRoom, board, esc, pctStr, pctCls, ago } from './rooms.js';
 import { readCoin, WEIGHTS, riskWord } from './synthesis.js';
 import { verdictPanel, confidenceGauge } from './readouts.js';
 
-const VOTE_LABEL = { market: 'market', safety: 'safety', social: 'social', trader: 'trader flow' };
-const ALL_INPUTS = ['market', 'safety', 'social', 'trader'];
+const VOTE_LABEL = { market: 'market', safety: 'safety', trader: 'trader flow' };
+const ALL_INPUTS = ['market', 'safety', 'trader'];
 
 // Same rule as app.js's chg24Of (D-117) and room-watch's copy: our own recorded
 // history wins once it actually covers the day. See rooms.js on duplication.
@@ -44,8 +44,75 @@ export function initWarRoom(root) {
   let active = false;
   let tokens = [];
   let sel = null;      // ca of the coin on the bench
-  let social = null;   // socialFor(sel) — the one input that costs an extra call
   let loadingDetail = false;
+
+  // ── evidence packet + Orion analysis (`90-TASKS/TRACKING-BUILD-PLAN.md` Build Step 1) ────────
+  // One frozen snapshot of what is already collected about the coin on the bench, then an
+  // on-demand Orion read of it. `packet` is always the LATEST version for `sel`; switching coins
+  // drops it until the freshly-fetched one for the new coin lands, so a stale packet is never
+  // shown against the wrong ticker even for one frame.
+  let packet = null;
+  let analyzing = false;
+  let lastResult = null;   // { ok, reply, error, packet } from the most recent evidence:analyze
+
+  function evidenceBoard(t) {
+    if (!t) return `<div class="st-flatempty">Pick a coin on the bench first.</div>`;
+    if (!packet) {
+      return `<div class="st-actrow">
+          <button class="btn sm accent" data-analyze="${esc(t.ca)}" ${analyzing ? 'disabled' : ''}>${analyzing ? 'building…' : 'analyze'}</button>
+        </div>
+        <p class="st-warblind-foot">Freezes everything already collected about ${esc(t.nick || t.sym || 'this coin')} --
+          trades, notable posts, market data, news, rug check -- into one timed snapshot, then asks
+          Orion for an honest read of exactly that snapshot. Nothing after the moment you click is
+          included, so the same click can be checked again later.</p>`;
+    }
+    const s = packet.streams;
+    const stat = (k, v) => `<div class="st-stat"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`;
+    const counts = stat('trades', s.trades.length) + stat('notable posts', s.posts.length)
+      + stat('market observations', s.market.length) + stat('news', s.news.length)
+      + stat('rug check', packet.rugCheck ? (packet.rugCheck.rugged ? 'FLAGGED' : 'clear') : 'unavailable');
+    const missing = packet.missingData.length
+      ? `<p class="st-warblind-foot">Missing at this snapshot: ${packet.missingData.map((m) => esc(m.why)).join(' · ')}</p>`
+      : '';
+    let reply = '';
+    if (analyzing) {
+      reply = `<div class="st-flatempty">Orion is reading the snapshot…</div>`;
+    } else if (lastResult && lastResult.packet && lastResult.packet.packetId === packet.packetId) {
+      reply = lastResult.ok
+        ? `<div class="st-warblind-row"><p>${esc(lastResult.reply).replace(/\n/g, '<br>')}</p></div>`
+        : `<div class="st-flatempty">Orion could not answer: ${esc(lastResult.error || 'unknown error')}</div>`;
+    }
+    return `<div class="st-stats">${counts}</div>${missing}
+      <div class="st-actrow">
+        <button class="btn sm accent" data-analyze="${esc(t.ca)}" ${analyzing ? 'disabled' : ''}>${analyzing ? 'analyzing…' : 're-analyze (new snapshot)'}</button>
+        <span class="chip is-flat">v${packet.version} · built ${ago(packet.builtAt)}</span>
+      </div>
+      ${reply}`;
+  }
+
+  /** Kicks off build-then-analyze for the coin on the bench. Two separate calls on purpose (see
+   *  the build doc): the packet's own stream counts and missing-data notes can show immediately
+   *  even if the slower Orion call is still running or fails outright. */
+  async function analyze(ca) {
+    analyzing = true; lastResult = null;
+    render();
+    try {
+      packet = await window.mcii.evidenceBuild(ca);
+    } catch (e) {
+      analyzing = false;
+      lastResult = { ok: false, error: `Could not build the evidence packet: ${e.message || e}` };
+      render();
+      return;
+    }
+    render();
+    try {
+      lastResult = await window.mcii.evidenceAnalyze(ca);
+    } catch (e) {
+      lastResult = { ok: false, error: String(e.message || e) };
+    }
+    analyzing = false;
+    render();
+  }
 
   // THE BENCH — four inputs running in and fusing into one reading. It is the
   // diagram of what this room does, which is why it is the backdrop: every
@@ -80,8 +147,8 @@ export function initWarRoom(root) {
   /** The fused reading for one token, with the inputs this room could not get.
    *  `social` is only ever fetched for the selected coin, so every OTHER row is
    *  honestly a three-input reading and its coverage says so. */
-  function reading(t, soc) {
-    const r = readCoin(t, soc || null, null);
+  function reading(t) {
+    const r = readCoin(t, null, null);
     const got = new Set(r.votes.map((v) => v.key));
     return { r, missing: ALL_INPUTS.filter((k) => !got.has(k)) };
   }
@@ -168,7 +235,7 @@ export function initWarRoom(root) {
   // ── the whole book, assessed at once ────────────────────────────────────
   function bookRows() {
     const scored = tokens.map((t) => {
-      const { r, missing } = reading(t, t.ca === sel ? social : null);
+      const { r, missing } = reading(t);
       return { t, r, missing };
     // Worst first — the row you might act on is the row at the top. A coin with
     // NO reading is not "neutral" and must not sort among the mild ones as if
@@ -231,7 +298,7 @@ export function initWarRoom(root) {
   function render() {
     const t = tokens.find((x) => x.ca === sel) || tokens[0] || null;
     if (t && t.ca !== sel) sel = t.ca;
-    const { r, missing } = t ? reading(t, social) : { r: null, missing: ALL_INPUTS };
+    const { r, missing } = t ? reading(t) : { r: null, missing: ALL_INPUTS };
 
     const name = t ? esc(t.nick || t.sym || '?') : '—';
     const chg = t ? chg24Of(t) : null;
@@ -252,23 +319,46 @@ export function initWarRoom(root) {
       board({ label: 'how this reading was made', tag: 'WAR-3', full: true, body: arithmetic(r, missing) }) +
       board({ label: 'where they disagree', tag: 'WAR-4', wide: true, body: disagreement(r) }) +
       board({ label: `the whole book — ${tokens.length} assessed`, tag: 'WAR-5', full: true, body: bookRows() }) +
-      board({ label: 'what this room cannot see', tag: 'WAR-6', full: true, body: blindSpots() });
+      board({ label: 'what this room cannot see', tag: 'WAR-6', full: true, body: blindSpots() }) +
+      board({ label: t ? `evidence & analysis — ${name}` : 'evidence & analysis', tag: 'WAR-7', full: true, body: evidenceBoard(t) });
 
     wall.querySelectorAll('[data-pick]').forEach((el) =>
       el.addEventListener('click', () => select(el.dataset.pick)));
+    wall.querySelectorAll('[data-analyze]').forEach((el) =>
+      el.addEventListener('click', () => analyze(el.dataset.analyze)));
     benchMotif();
+  }
+
+  /** The most recent packet already built for this coin, if any -- so returning to a coin you
+   *  analyzed earlier shows that snapshot and its last reply instead of an empty "analyze" button. */
+  async function loadEvidence(ca) {
+    let p = null;
+    try { p = await window.mcii.evidenceLatest(ca); } catch { p = null; }
+    if (ca !== sel) return; // the bench moved on while this was in flight
+    packet = p;
+    lastResult = null;
+    if (p) {
+      try {
+        const analyses = await window.mcii.evidenceAnalyses(ca, p.chain, p.version);
+        if (ca !== sel) return;
+        const last = analyses[analyses.length - 1];
+        if (last) lastResult = { ok: last.ok, reply: last.reply, error: last.error,
+          packet: { packetId: last.packetId, version: last.packetVersion, hash: last.packetHash } };
+      } catch { /* no prior analysis -- the board just offers "analyze" for this packet */ }
+    }
+    if (active) render();
   }
 
   /** Selecting a coin costs ONE extra IPC call (its social reading). Every other
    *  number on every board is already in the getTokens() snapshot. */
   async function select(ca) {
-    if (ca === sel && social) return;
-    sel = ca; social = null; loadingDetail = true;
+    if (ca === sel) return;
+    sel = ca; loadingDetail = true;
+    packet = null; lastResult = null; // never show the previous coin's snapshot against a new ticker
     render();
-    try { social = await window.mcii.socialFor(ca); }
-    catch { social = null; }
     loadingDetail = false;
     if (active) render();
+    loadEvidence(ca);
   }
 
   async function load() {
@@ -282,8 +372,10 @@ export function initWarRoom(root) {
     if (!sel && tokens.length) {
       sel = tokens[0].ca;
       render();
-      // Fire and forget: the room is already useful without the social read.
+      // Fire and forget: the room is already useful without the social read, or without whatever
+      // evidence packet may already exist for the coin that landed on the bench by default.
       select(sel);
+      loadEvidence(sel);
       return;
     }
     render();
@@ -301,8 +393,9 @@ export function initWarRoom(root) {
      *  `sel` first is what makes load() honour it instead of picking tokens[0]. */
     focus(ca) {
       if (!ca || ca === sel) return;
-      sel = ca; social = null;
-      if (active) select(ca);
+      sel = ca;
+      packet = null; lastResult = null; // the bench moved on — never show the old coin's snapshot
+      if (active) { select(ca); loadEvidence(ca); }
     },
   };
 }

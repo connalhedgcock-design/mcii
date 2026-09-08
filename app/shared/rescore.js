@@ -31,10 +31,11 @@ const marketmanip = require('./marketmanip');
 
 const MANUFACTURED_SHAPES = ['crowd-leaving-whale-staying', 'price-up-nobody-arriving'];
 
-// `sensors` = { market, fomo, social, news } exactly as `admission.evaluateCandidate` takes them.
-// `history` = this coin's own past snapshot rows (for the growth read). Both optional-tolerant.
-function rescore({ ca, sym, market, fomo = [], social, news, history = [] } = {}) {
-  const base = admission.evaluateCandidate({ ca, sym, market, fomo, social, news });
+// `sensors` = { market, fomo, social, news, notable } exactly as `admission.evaluateCandidate`
+// takes them. `history` = this coin's own past snapshot rows (for the growth read). Both
+// optional-tolerant.
+function rescore({ ca, sym, market, fomo = [], news, notable, history = [] } = {}) {
+  const base = admission.evaluateCandidate({ ca, sym, market, fomo, news, notable });
   const growth = marketmanip.growthQuality(history);
 
   const reasons = [...base.reasons];

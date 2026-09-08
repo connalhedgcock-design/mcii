@@ -36,6 +36,8 @@ const marketmanip = require('../shared/marketmanip');
 const pricesanity = require('../shared/pricesanity');
 const rescore = require('../shared/rescore');
 const signalstore = require('./signalstore');
+const notableAccounts = require('./adapters/notable-accounts');
+const virality = require('../shared/virality');
 journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
@@ -131,7 +133,7 @@ async function collectMarket(tokens) {
 }
 
 async function collectSocial(tokens) {
-  if (!process.env.TWITTERAPI_KEY) { log('  no X key configured, skipping social'); return { social: [], sector: [] }; }
+  if (!process.env.TWITTERAPI_KEY) { log('  no X key configured, skipping social'); return { social: [], sector: [], sweep: [] }; }
   tw.configure({ key: process.env.TWITTERAPI_KEY, monthlyCapUsd: Number(process.env.X_MONTHLY_CAP_USD || 24) });
   try { tw.loadSpend(JSON.parse(fs.readFileSync(path.join(DATA, 'x-spend.json'), 'utf8'))); } catch {}
 
@@ -247,7 +249,91 @@ async function collectSocial(tokens) {
 
   const sectorRows = await buildSectorRow(sweep, perQuery, tokens);
   try { fs.writeFileSync(path.join(DATA, 'x-spend.json'), JSON.stringify(tw.budget(), null, 2)); } catch {}
-  return { social: rows, sector: sectorRows };
+  // `sweep` is returned alongside the built rows so the "important tweets" traction track
+  // (virality.js) can look for an outlier post in it -- posts already paid for here, not a
+  // second purchase.
+  return { social: rows, sector: sectorRows, sweep };
+}
+
+// The "important tweets" feed (D-122). Two tracks converge here: named people
+// (notable-accounts.js) and traction (virality.js, run over the sweep collectSocial() already
+// bought). Both produce the same shape -- a discrete EVENT, never a vote averaged into anything
+// (that rule lives in synthesis.js and is enforced by never wiring this into fuse()).
+function loadSeenNotableIds() {
+  try { return new Set(JSON.parse(fs.readFileSync(path.join(DATA, 'notable-seen.json'), 'utf8'))); }
+  catch { return new Set(); }
+}
+function saveSeenNotableIds(ids) {
+  // Capped, not because memory matters at this size, but so the file cannot grow forever --
+  // the last 1000 post ids is far more than one run could ever re-surface.
+  const arr = [...ids].slice(-1000);
+  try { fs.writeFileSync(path.join(DATA, 'notable-seen.json'), JSON.stringify(arr)); } catch {}
+}
+
+async function collectNotableTweets(tokens, sweep) {
+  if (!process.env.TWITTERAPI_KEY) { log('  no X key configured, skipping notable tweets'); return { events: [], byCa: {} }; }
+
+  const raw = [];
+
+  // Track A -- named people. Cheap: we already know whose feed to read.
+  for (const account of notableAccounts.loadAccounts(DATA)) {
+    const q = notableAccounts.queryFor(account);
+    try {
+      const r = await tw.searchPosts(q.q, { maxPosts: q.maxPosts });
+      const kept = r.posts.filter((p) => notableAccounts.looksCryptoRelevant(p.text));
+      raw.push(...kept.map((post) => ({ track: 'named-person', handle: account.handle, name: account.name, post })));
+      log(`  @${account.handle}: ${r.posts.length} post(s), ${kept.length} crypto-relevant`);
+    } catch (e) {
+      log(`  @${account.handle}: ${e.message}`);
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
+  // Track B -- traction. No new fetch: reads the sweep collectSocial() already paid for.
+  const { candidates, stats } = virality.flagViral(sweep || []);
+  log(`  traction: ${candidates.length} outlier post(s) of ${stats.n} swept (threshold ${stats.threshold ?? '—'})`);
+  raw.push(...candidates.map((post) => ({ track: 'traction', handle: post.handle, name: null, post })));
+
+  // Coin-matching. Only against the watchlist -- an "important tweet" that names some other coin
+  // entirely is still worth showing (see below), but it cannot vote on a coin it never mentioned.
+  const lex = resolve.buildLexicon(tokens);
+  const seen = loadSeenNotableIds();
+  const events = [];
+  const byCa = {};
+
+  for (const { track, handle, name, post } of raw) {
+    if (!post.id || seen.has(post.id)) continue;
+    seen.add(post.id);
+
+    const hits = resolve.mentions(post.text, lex).sort((a, b) => resolve.CONFIDENCE.indexOf(a.confidence) - resolve.CONFIDENCE.indexOf(b.confidence));
+    const best = hits[0] || null;
+    const event = {
+      ts: post.createdAt || Date.now(),
+      track, handle: handle || null, name,
+      text: String(post.text || '').slice(0, 280),
+      url: post.url || null,
+      matchesCoin: best ? { ca: best.ca, sym: best.sym, confidence: best.confidence } : null,
+      why: post.why || (track === 'named-person' ? `@${handle} posted about crypto` : null),
+    };
+    events.push(event);
+    append('notable-posts.jsonl', [event]);
+
+    if (event.matchesCoin && event.matchesCoin.ca && resolve.atLeast(event.matchesCoin.confidence, 'strong')) {
+      byCa[event.matchesCoin.ca] = event;
+      try {
+        signalstore.record({ kind: 'notable-tweet', ca: event.matchesCoin.ca, sym: event.matchesCoin.sym, ts: event.ts,
+          source: 'cloud', reasons: [event.why || `named in a ${track} post`], evidence: { track, handle, text: event.text, url: event.url } });
+      } catch (e) { log(`  notable-tweet signalstore write failed — ${e.message}`); }
+    }
+
+    try {
+      const r = await alertsPush.pushNotableTweetEvent(event);
+      if (r.error) log(`  notable-tweet push failed — ${r.error}`);
+    } catch (e) { log(`  notable-tweet push failed — ${e.message}`); }
+  }
+
+  saveSeenNotableIds(seen);
+  return { events, byCa };
 }
 
 // When each search last ran. Kept in a file rather than in memory because the job is a fresh
@@ -691,7 +777,7 @@ function writeGrowthQuality(tokens) {
 // here: they only exist on Connal's own Mac (`fomonotifications.js`), so the cloud rescore uses
 // market + news + growth and says so, rather than silently scoring as if a sensor were negative
 // when it is really just unavailable (D-29). The app-side rescore can add FOMO.
-function writeRescore(tokens, marketRows) {
+function writeRescore(tokens, marketRows, notableByCa = {}) {
   const history = readJsonl('market.jsonl');
   const byCa = {};
   for (const r of history) if (r.ca) (byCa[r.ca] ||= []).push(r);
@@ -720,6 +806,7 @@ function writeRescore(tokens, marketRows) {
       fomo: [],                                   // not visible from here, by design -- see above
       social: null,
       news: confirmedNews.find((n) => n.ca === t.ca) || null,
+      notable: notableByCa[t.ca] || null,
       history: byCa[t.ca] || [],
     });
   });
@@ -760,17 +847,34 @@ async function main() {
     if (!rows.length) log('  no coin has enough holder history yet');
   } catch (e) { log(`  growth quality failed — ${e.message}`); }
 
+  // D-122 (superseding D-121): the old "how many people are talking about this coin" mentions/
+  // sentiment average is retired for good -- averaging it into a score never showed it predicted
+  // anything. The sweep itself is resumed here because the "important tweets" feed's TRACTION
+  // track (virality.js) has no cheap way to find an unknown viral post without one; nothing reads
+  // the per-coin sentiment/tone this produces for scoring (rescore.js's `social` stays null,
+  // synthesis.js's `fuse()` is untouched) -- only the discrete events below feed anything.
+  log('social sweep:');
+  let sweepResult = { social: [], sector: [], sweep: [] };
+  try {
+    sweepResult = await collectSocial(tokens);
+    append('social.jsonl', sweepResult.social);
+    append('sector.jsonl', sweepResult.sector);
+    writeSocialLatest(sweepResult.social);
+    log(`  ${sweepResult.sweep.length} posts swept, ${sweepResult.sector[0]?.important?.length ?? 0} worth reading`);
+  } catch (e) { log(`  social sweep failed — ${e.message}`); }
+
+  log('notable tweets:');
+  let notable = { events: [], byCa: {} };
+  try {
+    notable = await collectNotableTweets(tokens, sweepResult.sweep);
+    log(`  ${notable.events.length} qualifying post(s) — ${notable.events.filter((e) => e.matchesCoin).length} name a tracked coin`);
+  } catch (e) { log(`  notable tweets failed — ${e.message}`); }
+
   log('rescore:');
   try {
-    const scored = writeRescore(tokens, marketRows);
+    const scored = writeRescore(tokens, marketRows, notable.byCa);
     for (const s of scored) log(`  ${s.sym}: ${s.tier}${s.entryWorthy ? ' (entry-worthy)' : ''} — ${s.reasons[0] || ''}`);
   } catch (e) { log(`  rescore failed — ${e.message}`); }
-
-  log('chatter sweep:');
-  const chatter = await collectSocial(tokens);
-  append('social.jsonl', chatter.social);
-  append('sector.jsonl', chatter.sector);
-  writeSocialLatest(chatter.social);
 
   log('holder ground truth:');
   append('holders-onchain.jsonl', await verifyHolders(tokens));

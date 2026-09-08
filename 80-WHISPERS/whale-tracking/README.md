@@ -210,6 +210,19 @@ whale tracking (build-order steps 4-5) stops here. ! the SELL side (a followed w
 held coin) and the wash-trade filter itself are UNAFFECTED — this kill is specifically about
 deriving a "smart wallet" candidate list, not about wallet tracking as a whole.
 
+## !! STEP 3 PARTIALLY MET A DIFFERENT WAY, 2026-09-07 — READ BEFORE ASSUMING IT'S STILL OPEN
+Build-order step 3 ("whale SELL detection on held coins → straight onto the alert path") was
+approached via the FOMO-followed-trader data source, NOT the on-chain `walletflow.js` this file
+researched. Connal asked for "fomo notifications on whale activity" — turned out he means his 60
+followed FOMO traders (`fomonotifications.js`) ARE his whale data, not literal on-chain wallets.
+! D-124 pushed a sell-only fomo reading to the phone as a Telegram alert — WRONG, corrected same
+day by D-125: he already gets FOMO's own native phone alerts and does not want a duplicate. What
+survives (D-125): the fact is now RECORDED (`signalstore`) instead of silently discarded, but
+nothing pushes to a screen or phone. What he actually wants is ANALYSIS of the trades, surface and
+content still open. ! `walletflow.js`/`washtrade.js` (the on-chain mechanism this file spent most
+of its research validating) are UNCHANGED by any of this — still built, still tested, still not
+wired to anything user-facing.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.

@@ -15,7 +15,14 @@ machine: connal
 `~` approx | `@` source | `Δ` change/velocity | `σ` volatility | `→` maps to | `[[x]]` vault link | `TODO:` needs work
 conf=N% = my calibrated confidence. Every claim in this vault carries one or is marked `fact:`.
 
-## LOAD ORDER (read top-down on cold start)
+## CONTEXT ROUTING
+On a cold start, read `10-CTX/operator-profile.md` and `10-CTX/mandate.md`, then use Graphify to
+locate task-specific sources. The numbered list below is the order for widening the read when more
+context is needed; it is not a requirement to load all fourteen items for every task. Accuracy wins
+over token savings: widen immediately for conflicts, important uncertainty, money decisions,
+project direction, or anything a narrow read cannot support.
+
+## LOAD ORDER (when widening is needed)
 1. [[10-CTX/operator-profile|operator-profile]] — project identity + how to solve every task. NON-NEGOTIABLE.
 2. [[mandate]]      — who I am here. NON-NEGOTIABLE. read every time.
 3. [[ops]]          — who I'm working with, skill level, failure modes

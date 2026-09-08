@@ -3,16 +3,23 @@
 This file is auto-loaded every session. It is deliberately short: it exists to point at the vault
 and to carry the few rules that must hold BEFORE the vault has been read.
 
-! Read `10-CTX/operator-profile.md` first. It defines MCII's lasting identity, how to solve tasks,
-and how to spend tokens. It applies to every task and may not be skipped for a narrow request.
+! Read `10-CTX/operator-profile.md` and `10-CTX/mandate.md` first. They define MCII's lasting
+identity and the standard of analysis. They apply to every task and may not be skipped.
 
-## 1. READ THE VAULT
-**[[00-INDEX.md]] is the entrypoint. Read it before proposing anything.** It carries the load
-order — mandate, ops, constraints, the as-built overview, base rates, decisions. The vault is
-written for Claude, not for humans: the shorthand is intentional, do not "clean it up" into prose.
+## 1. LOAD CONTEXT WITHOUT LOSING IT
+`00-INDEX.md` is the vault map, not a command to load every linked file into every chat. The vault
+is written for Claude: keep its shorthand.
 
-! `50-LOG/decisions.md` is a LOCKED ledger. A decision there is closed and is only reopened by its
-own listed trigger firing. Read it before proposing anything that sounds new.
+For substantive MCII work, use Graphify first with a specific question and a starting budget of
+700-1200 tokens. Its output chooses what to inspect; it is not evidence by itself. Open the exact
+source sections it identifies and keep expanding until the answer is supported. Never force an
+answer to fit a token budget. If sources conflict, the question is broad, or a missing detail could
+change a financial or project decision, read the full relevant area files.
+
+! `50-LOG/decisions.md` is a LOCKED ledger. Search it for the task's concepts before proposing
+anything new. Read the full ledger when changing project direction, setting financial/trading
+rules, or when a narrow search could miss a related decision. A closed decision is only reopened
+by its own listed trigger firing.
 
 ## 2. ! WHEN CONNAL WRITES `whisper:` — SAVE IT, IMMEDIATELY
 Any message starting with `whisper:` (or `/whisper`) is a thought to capture, not a request to
@@ -69,7 +76,9 @@ this vault; provenance is not optional.
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
 Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- For every substantive project or codebase question, first run `graphify query "<specific question>" --budget 1000` when graphify-out/graph.json exists. Narrow and retry if it returns unrelated nodes. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts.
+- Graphify selects sources; it does not replace reading them. Read the cited sections, then widen to complete relevant files whenever accuracy, conflicts, money, safety, or a new decision requires it.
+- Do not reread unchanged background already established in the current conversation. Do reread a source when the task depends on its exact current wording.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

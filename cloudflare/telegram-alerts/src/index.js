@@ -50,7 +50,7 @@ export default {
     // Two independent jobs. The collector watchdog runs even if the holdings check throws --
     // ! the watchdog is the thing that reports everything else being broken, so it must never be
     // downstream of anything that can break.
-    ctx.waitUntil(Promise.allSettled([run(env), watchCollector(env), sendDiscoveryEvents(env)]));
+    ctx.waitUntil(Promise.allSettled([run(env), watchCollector(env), sendDiscoveryEvents(env), sendNotableTweetEvents(env)]));
   },
 
   // Test hook for `wrangler dev` only. The deployed worker sets `workers_dev = false` and declares
@@ -97,6 +97,32 @@ async function sendDiscoveryEvents(env) {
   }
   if (unsent.length) await env.ALERTS_KV.put('discovery-events', JSON.stringify(unsent));
   else await env.ALERTS_KV.delete('discovery-events');
+  return { sent, retrying: unsent.length };
+}
+
+// --- NOTABLE TWEET EVENTS ----------------------------------------------------------------------
+// "Important tweets" feed (D-122): a named person's post or a viral post about crypto, pushed the
+// moment the collector finds one, via alerts-push.js: pushNotableTweetEvent(). Same drain-on-send
+// shape as sendDiscoveryEvents() above, and the same reason it is never a directive: this reports
+// that a post exists and what it says, never what to do about it.
+async function sendNotableTweetEvents(env) {
+  const raw = await env.ALERTS_KV.get('notable-tweet-events');
+  if (!raw) return { sent: 0 };
+  const events = safeParse(raw, []);
+  if (!Array.isArray(events) || !events.length) { await env.ALERTS_KV.delete('notable-tweet-events'); return { sent: 0 }; }
+
+  const unsent = [];
+  let sent = 0;
+  for (const e of events) {
+    const who = e.track === 'named-person' ? `@${e.handle}` : `a post (@${e.handle || 'unknown'})`;
+    const coin = e.matchesCoin ? `Names ${e.matchesCoin.sym || 'a coin'} you track (${e.matchesCoin.confidence} match).\n\n` : '';
+    const why = e.track === 'traction' && e.why ? `${e.why}\n\n` : '';
+    const ok = await sendTelegram(env,
+      `📣 ${who} posted about crypto\n\n${coin}${why}"${(e.text || '').slice(0, 240)}"${e.url ? `\n${e.url}` : ''}\n\nNot advice, and not a suggestion to do anything.`);
+    if (ok) sent++; else unsent.push(e);
+  }
+  if (unsent.length) await env.ALERTS_KV.put('notable-tweet-events', JSON.stringify(unsent));
+  else await env.ALERTS_KV.delete('notable-tweet-events');
   return { sent, retrying: unsent.length };
 }
 

@@ -2,7 +2,7 @@
 id: whisper.analysis-algorithm
 t: whisper-topic
 v: 3
-upd: 2026-09-05
+upd: 2026-09-07
 whispers: 5
 machine: connal
 ---
@@ -214,6 +214,13 @@ Measured, not assumed. The four findings in one line each:
 ## CONSEQUENCES ALREADY TAKEN
 - ✓ social sweep widened 2 → 6 queries for discovery (reopened D-81 by its own trigger). shipped.
 - ✓ MAX_LOOKUPS 8 → 12 so the wider sweep is not throttled at the resolver.
+- ✓ 09-07, from the docx read above: `data/notable-accounts.json` grown from 2 → 5. Added
+  @MustStopMurad, @blknoiz06 (Ansem), @Pumpfun — Connal's pick from the doc's candidate list,
+  chosen specifically for lowest added cost (each handle is ~$3.24/mo at 30-min cadence, measured
+  from `data/x-spend.json`: 2 handles already ~$6/mo of the $24 X cap). ! the other 9 candidates
+  (moonshot, notthreadguy, frankdegods, JupiterExchange, phantom, lookonchain, whale_alert,
+  CoinbaseAssets, binance) were NOT added — Connal chose cost over coverage this round. They stay
+  logged above as a bench if the cap ever grows or a cheaper cadence is found.
 - X "can you still exit" as an alert trigger — REJECTED by w-001 before it was built. keeping the
   receipt: it was my proposal, and it measured a risk their position sizes do not carry.
 
@@ -244,6 +251,54 @@ trigger that started it. Tested live against real CATE data before trusting it. 
   only the trigger source does.
 - ! n=0 until real FOMO buy signals actually fire while this is running. Same "walk-forward has no
   lookahead, the record starts from here" shape as everything else built this week.
+
+## MY READ ON THE EXTERNAL X-ALGORITHM DOC (docx, sent 09-07, source: another AI, unvetted)
+Connal forwarded a doc — another AI's answer to "how would you redesign the X tracker for
+memecoins." Compared against D-122/D-123, which shipped THE SAME DAY. ! its own anecdotes (an AURA/
+Binance move, a 2026 $ANSEM example) are unsourced in the doc — treat as illustrative, not `fact:`.
+
+**AGREES WITH WORK ALREADY DONE, no action needed:**
+- its "don't wait for the literal ticker" push is the coordination/wording-fingerprint machinery
+  `postfacts.js` already runs, and matches this thread's own "strongest unused signal" finding
+  (time-synced posting across accounts, [[60-KB/social-signal-research]]).
+- its social→narrative→onchain-confirm→trade funnel IS D-117 (wallet + social + market, three
+  inputs, none alone triggers a trade). Already the shape.
+- wanting more names on `data/notable-accounts.json` is exactly D-123's own open item — Connal
+  said he wanted more than Elon/Trump but didn't have names yet.
+
+**NEW, buildable, worth doing:**
+- ! cross-account timing correlation SPECIFICALLY for the notable/traction tracks — did several
+  watched/high-traction accounts touch the same coin inside a tight window, not just one loud
+  post. `data/notable-posts.jsonl` already timestamps every event on both tracks, so this is
+  arithmetic on data already paid for, not a new purchase. Same shape as the bulk-track
+  coordination check, just applied to the small curated list.
+- a candidate account list, specific enough to be a real decision rather than a guess:
+  @MustStopMurad, @blknoiz06, @Pumpfun, @moonshot, @notthreadguy, @frankdegods,
+  @JupiterExchange, @phantom (memecoin-culture reach); @lookonchain, @whale_alert,
+  @CoinbaseAssets, @binance (confirmation-tier, not primary catalysts). ! stays Connal's editorial
+  call per `notable-accounts.js`'s own design — I present candidates, I do not add them.
+- ! cost is not free: each handle added is one more paid search every collection cycle
+  (twice-hourly). Adding all 12 at once should be checked against the $30 cap first, same
+  caution D-65 set for coins.
+
+**CONTRADICTS A DECISION MADE THE SAME DAY, do NOT build:**
+- ! its `AttentionScore = Σ(weight × strength × relevance × novelty × recency)` and its
+  40/25/15/10/5/5 category split are both an averaged, weighted, blended score — exactly what
+  D-122 killed hours earlier (averaging social into a coin's score never showed it predicted
+  anything) and what [[60-KB/signal-architecture-research]] separately found fails at this sample
+  size (fitted/weighted blends are noise; non-compensatory gates generalise better; a
+  Dempster-Shafer-style collapse into one number was rejected for the same reason). Same mistake,
+  different vocabulary.
+- its "let the algorithm learn who matters from 100–300 accounts + return correlation" is
+  directionally RIGHT — it's the same empirical-weighting conclusion this thread already reached
+  (HALF A above, `est:` conf 75%) — but it is a far bigger build than it reads as: full post
+  history plus minute-level price for every one of 100–300 accounts, and the 09-01 audit found we
+  do not keep that resolution even for the 2 accounts already watched. Not wrong, just not paid
+  for yet. Log as a future direction, do not start it now.
+
+∴ what I'd actually do with this doc: bring Connal the account list as a decision, build the
+cross-account timing check (free, reuses existing data), and leave the scoring-formula half on
+the floor where D-122/D-123 already put it.
 
 ## OPEN `?`
 - `?` does rising attention actually precede price moves for coins this small? ! UNKNOWN, and the

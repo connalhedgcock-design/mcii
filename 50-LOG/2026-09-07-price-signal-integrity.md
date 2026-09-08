@@ -41,7 +41,10 @@ A save failure stops delivery and is tested; a muted-by-cooldown phone event rem
   spending examples now reflect the current discovery ordering, $24 cap and D-103 depth. The
   complete app test run is green.
 
-## LIMIT
-fact: local code and the external collection timer were verified; production activation still
-requires the normal code sync and Cloudflare worker release. Do not call the running services
-fixed until those revisions are live.
+## LIVE VERIFICATION — 2026-09-07
+fact: production activation complete. GitHub holds the fix; the collection server runs it and its
+timer is active; its save script includes `50-LOG/signals-*.jsonl`; Cloudflare phone-alert version
+`f7a26afd-516e-400e-bce1-3a75e61c3d0f` is live on the five-minute schedule.
+
+fact: the first server signal record contains 1,421 rows: 1,410 observed prices, 11 honestly marked
+unavailable, 0 incomplete. Every row has coin, time, price state and reasoning.

@@ -100,3 +100,41 @@ thirds of all spend, buying expensive coverage of a base rate already establishe
 - `shared/resolve.js` — ticker/address → coin, and `unknownTickers()` discovery.
 - `main/adapters/twitterapi.js` — the six queries and their depths.
 - `data/post-facts.jsonl` — the bulk record.
+
+## D-122/D-123 — THE OLD MENTIONS-COUNT SIGNAL IS GONE. THIS IS THE REPLACEMENT
+09-07: everything above this section describes the sweep and its filter, which still run and are
+unchanged. What changed is what the sweep's output is ALLOWED to do. `shared/hype.js`'s
+sentiment/breadth reading (the "how many people are talking about this coin" number) is retired
+outright (D-122) — averaging it into a coin's score never showed it predicted anything, so
+`admission.js`, `rescore.js` and `synthesis.js: fuse()` no longer read it and must not be wired
+back to it without a new decision.
+
+In its place, D-123 built a small, separate "important tweets" feed — discrete EVENTS, never an
+averaged score:
+
+- **Track A, named people.** `data/notable-accounts.json` is a plain, human-edited list (seeded
+  with just `elonmusk` and `realDonaldTrump` — Connal wants more on it eventually but didn't have
+  specific names yet, and this is not something to guess at on his behalf). `from:<handle>`
+  searches, cheap regardless of the sweep's own budget. `main/adapters/notable-accounts.js` also
+  filters to posts that look crypto-relevant — Elon and Trump post about many things that are not.
+- **Track B, traction.** `shared/virality.js` looks for a reach outlier INSIDE THE SAME SWEEP
+  already bought for the discussion-classification above — no second purchase. The bar is median +
+  6×MAD of that sweep's own reach numbers (never a fixed guessed number), with a bot-likelihood
+  filter so a botnet-juiced post cannot register as organic traction.
+- Both tracks write to `data/notable-posts.jsonl`. A `strong`-or-better coin match (same
+  `resolve.js` confidence ladder as everywhere else) also casts one vote in `admission.js`/
+  `rescore.js` — same strictness as the news sensor, and never averaged, matching D-122's rule.
+- ! **RESUMED SPEND.** Track B has no cheap way to find an unknown viral post without the sweep
+  running, so `collectSocial()`'s call in `cloud-collect.js` — paused by D-122 — is back on,
+  restoring roughly the ~$18/mo this file's BUDGET section describes below. This is a deliberate,
+  logged cost decision (D-123), not a quiet reversal.
+- `?` **NOT PROVEN**, same caveat this file already gives `emerging`: nothing here has been
+  checked against what a coin's price actually did afterwards. Log it, then look at the record.
+
+## FILES, CONTINUED
+- `data/notable-accounts.json` — the curated named-people list.
+- `main/adapters/notable-accounts.js` — queries for Track A + the crypto-relevance filter.
+- `shared/virality.js` — Track B's outlier detection.
+- `data/notable-posts.jsonl` — both tracks' event record, newest read by `sector:latest`/
+  `notable:token` (IPC) and rendered in `room-sector.js` ("notable posts") and `room-watch.js`
+  ("notable posts — <coin>").

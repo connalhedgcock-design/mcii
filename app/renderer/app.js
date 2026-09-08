@@ -137,7 +137,6 @@ function card(t, i) {
         <span class="v">${fmtUsd(x?.usd)}</span>
         <div class="s">${x ? fmtNum(x.tokens) + ' tokens' : 'not simulated'}</div></div>
     </div>
-    <div class="social"><span class="lab">Social</span></div>
     <div class="chartwrap">
       ${priceChart((t.history && t.history.days) || [])}
     </div>
@@ -189,7 +188,6 @@ function render(tokens) {
       load();
     });
   });
-  tokens.forEach((t) => loadSocial(t.ca));
   document.querySelectorAll('.nick').forEach((b) => {
     b.addEventListener('click', async () => {
       const ca = b.closest('.card').dataset.ca;

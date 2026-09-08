@@ -38,8 +38,8 @@ export function initWatchRoom(root) {
   let sel = null;            // ca of the coin the detail boards are reading
   let days = 1;              // chart window
   let series = null;         // dense price+volume series for `sel`
-  let social = null;         // socialFor(sel)
   let loadingDetail = false;
+  let notable = [];          // this coin's "important tweets" events (D-122), newest first
 
   function berths() {
     const shown = tokens.slice(0, 12);
@@ -60,7 +60,7 @@ export function initWatchRoom(root) {
   function row(t) {
     const g = t.gate, m = t.market, x = t.exit;
     const chg = chg24Of(t);
-    const reading = readCoin(t, t.ca === sel ? social : null, null);
+    const reading = readCoin(t, null, null);
     // ! "no reading" is not "neutral". A coin nothing has been measured on must
     // not sit in the same column state as one measured and found unremarkable.
     const none = reading.label === 'no reading';
@@ -99,6 +99,24 @@ export function initWatchRoom(root) {
       ${posts}`;
   }
 
+  /** The real-world-event board this room's own header used to flag as unbuilt
+   *  ("no event source exists, so no star is drawn") -- D-122's replacement.
+   *  A named person's post or a viral post naming this coin, never a sentiment
+   *  reading: each one is a fact that this post happened, not a vote. */
+  function notableBoard(t) {
+    if (!notable.length) {
+      return `<div class="st-flatempty">${loadingDetail ? 'reading…' : 'No notable posts about this coin yet.'}</div>`;
+    }
+    return notable.slice(0, 5).map((e) => `<div class="st-post">
+        <div class="h">
+          <b>${esc(e.handle ? '@' + e.handle : 'unknown')}</b>
+          <span class="chip is-${e.track === 'named-person' ? 'up' : 'flat'}">${esc(e.track === 'named-person' ? 'named person' : 'went viral')}</span>
+        </div>
+        <div class="t">${esc(e.text)}</div>
+        ${e.why ? `<div class="w">${esc(e.why)}</div>` : ''}
+      </div>`).join('');
+  }
+
   function render() {
     const withGate = tokens.filter((t) => t.gate);
     const pass = withGate.filter((t) => t.gate.verdict === 'PASS').length;
@@ -117,7 +135,7 @@ export function initWatchRoom(root) {
     berths();
 
     const t = tokens.find((x) => x.ca === sel) || null;
-    const reading = t ? readCoin(t, social, null) : null;
+    const reading = t ? readCoin(t, null, null) : null;
     const chg = t ? chg24Of(t) : null;
 
     const tableBody = tokens.length
@@ -157,8 +175,9 @@ export function initWatchRoom(root) {
           ? verdictPanel(reading, { missing: missingFor(reading) })
             + `<button class="st-verdict-why" data-war="${esc(t.ca)}">How was this read? →</button>`
           : `<div class="st-flatempty">Pick a coin above.</div>` }) +
-      board({ label: t ? `social — ${esc(t.nick || t.sym)}` : 'social', tag: 'SIG-1', wide: true, body: t ? socialBoard(t) : `<div class="st-flatempty">Pick a coin above.</div>` }) +
-      board({ label: `alerts — ${alerts.length} open`, tag: 'WCH-5', wide: true, body: alertBody });
+      board({ label: `alerts — ${alerts.length} open`, tag: 'WCH-5', wide: true, body: alertBody }) +
+      board({ label: t ? `notable posts — ${esc(t.nick || t.sym)}` : 'notable posts', tag: 'WCH-6', wide: true,
+        body: t ? notableBoard(t) : `<div class="st-flatempty">Pick a coin above.</div>` });
 
     wall.querySelectorAll('[data-war]').forEach((el) => el.addEventListener('click', () => {
       document.dispatchEvent(new CustomEvent('mcii:open-room', { detail: { view: 'war', ca: el.dataset.war } }));
@@ -189,32 +208,32 @@ export function initWatchRoom(root) {
    *  visible as gaps rather than quietly vanishing from the room. */
   function missingFor(reading) {
     const have = new Set(reading.votes.map((v) => v.key));
-    return ['market', 'safety', 'social', 'trader'].filter((k) => !have.has(k));
+    return ['market', 'safety', 'trader'].filter((k) => !have.has(k));
   }
 
   function select(ca) {
     if (ca === sel) return;
-    sel = ca; series = null; social = null;
+    sel = ca; series = null; notable = [];
     render();
     loadDetail();
   }
 
-  /** The two per-coin calls, made ONLY for the selected coin. A watchlist of
-   *  thirty coins must not fire sixty IPC calls to draw one table. */
+  /** The per-coin calls, made ONLY for the selected coin. A watchlist of
+   *  thirty coins must not fire IPC calls thirty times over to draw one table. */
   async function loadDetail() {
     const ca = sel;
     if (!ca) return;
     loadingDetail = true;
     const windowDays = days;
-    const [price, vol, soc] = await Promise.all([
+    const [price, vol, notableRows] = await Promise.all([
       window.mcii.historySeries(ca, 'price', windowDays).catch(() => []),
       window.mcii.historySeries(ca, 'v24', windowDays).catch(() => []),
-      window.mcii.socialFor(ca).catch(() => null),
+      window.mcii.notableFor(ca).catch(() => []),
     ]);
     if (!active || sel !== ca || days !== windowDays) return;   // a later pick already won
     const volAt = new Map((vol || []).map((p) => [p.ts, p.v]));
     series = (price || []).map((p) => ({ ts: p.ts, v: p.v, vol: volAt.get(p.ts) || 0 }));
-    social = soc;
+    notable = notableRows || [];
     loadingDetail = false;
     render();
   }
@@ -227,7 +246,7 @@ export function initWatchRoom(root) {
     tokens = next;
     if (!sel || !tokens.some((t) => t.ca === sel)) {
       sel = tokens[0]?.ca || null;
-      series = null; social = null;
+      series = null;
       render();
       loadDetail();
       return;

@@ -46,7 +46,6 @@ export function initMarketRoom(root) {
   let active = false;
   let data = { tokens: [] };
   let sel = null;
-  let social = null;
 
   // Both motifs live INSIDE .fl-band, which is exactly --fl-band tall and
   // clips. The sweep is a 340px circle centred 60px down: left loose in the
@@ -202,8 +201,6 @@ export function initMarketRoom(root) {
     if (!r) return `<div class="st-flatempty">Pick a body in the field.</div>`;
     const stat = (k, v, cls = '') => `<div class="st-stat"><span class="k">${esc(k)}</span><span class="v ${cls}">${v}</span></div>`;
     const shock = r.volShockPct;
-    const b = social?.latest, rel = social?.reliability || {};
-    const tone = !b || b.sentiment == null ? null : b.sentiment > 0.2 ? 'positive' : b.sentiment < -0.2 ? 'negative' : 'mixed';
     return `<div class="st-stats">
         ${stat('market cap', fmtUsd(r.mcap))}
         ${stat('liquidity', fmtUsd(r.liq))}
@@ -212,9 +209,7 @@ export function initMarketRoom(root) {
         ${stat('price 24h', r.chg24 == null ? '—' : (r.chg24 >= 0 ? '+' : '') + Math.round(r.chg24) + '%', r.chg24 > 0 ? 'is-up' : r.chg24 < 0 ? 'is-down' : '')}
         ${stat('age', ageStr(r.ageH))}
         ${stat('seen in', (r.scans || 0) + ' scans')}
-        ${stat('social today', tone || 'nothing collected', tone === 'positive' ? 'is-up' : tone === 'negative' ? 'is-down' : '')}
       </div>
-      ${b ? `<p class="st-say ${rel.manipulated ? 'is-warn' : ''}">${esc(rel.verdict || `${b.uniqueAuthors} different people posted in the last reading${social.breadth?.value != null ? `, ${social.breadth.value >= 0 ? 'wider' : 'narrower'} than this coin's usual` : ''}.`)}</p>` : ''}
       <div class="st-actrow">
         ${r.onWatchlist ? `<span class="chip is-flat">already yours</span>`
           : `<button class="btn sm accent" data-track="${esc(r.ca)}" data-sym="${esc(r.sym || '')}">track this</button>`}
@@ -262,7 +257,7 @@ export function initMarketRoom(root) {
       market: { priceUsd: r.price, priceChange: { h24: r.chg24 } },
       trend: { recorded: r.scans || 0 },
       gate: r.verdict ? { verdict: r.verdict, findings: new Array(r.flags || 0) } : null,
-    }, social, null) : null;
+    }, null, null) : null;
 
     const tableBody = tokens.length
       ? `<div class="st-flathead"><span class="name">ticker</span><span class="grow">status</span><span class="v">volume</span><span class="v">mcap</span><span class="v">liq</span><span class="v">24h</span><span class="v">age</span><span class="v"></span></div>`
@@ -301,19 +296,8 @@ export function initMarketRoom(root) {
 
   function select(ca) {
     if (!ca || ca === sel) return;
-    sel = ca; social = null;
+    sel = ca;
     render();
-    loadSocial(ca);
-  }
-
-  // ! separate from select() on purpose: refresh() picks the first selection
-  // itself, and routing that through select() would hit its own "already
-  // selected" guard and silently never load the social reading for it.
-  function loadSocial(ca) {
-    window.mcii.socialFor(ca).then((s) => {
-      if (!active || sel !== ca) return;
-      social = s; render();
-    }).catch(() => {});
   }
 
   async function refresh() {
@@ -328,9 +312,7 @@ export function initMarketRoom(root) {
       const loudest = [...tokens].filter((t) => t.volShockPct != null)
         .sort((a, b) => Math.abs(b.volShockPct) - Math.abs(a.volShockPct))[0];
       sel = (loudest || tokens[0])?.ca || null;
-      social = null;
       render();
-      if (sel) loadSocial(sel);
       return;
     }
     render();

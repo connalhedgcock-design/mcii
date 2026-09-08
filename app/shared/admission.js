@@ -15,7 +15,8 @@
 // this testable against fixed, known inputs rather than only against whatever the market is doing
 // right now (D-85's lesson, applied to code review instead of to a running app).
 
-const MIN_SOCIAL_WEIGHTED = 3;      // D-100's own bar: "three plausible people", not head count
+const resolve = require('./resolve');
+
 const MIN_FOMO_TRADERS = 2;         // one trader flipping fast is not corroboration, D-105's logic
 const MIN_LIQUIDITY_USD = 15000;    // base-rates.md: a pool this thin is not a real exit either way
 const BUY_SELL_RATIO_MIN = 1.3;     // meaningfully more buying than selling, not a coin-flip ratio
@@ -28,9 +29,19 @@ const BUY_SELL_RATIO_MIN = 1.3;     // meaningfully more buying than selling, no
 // evidence exists, just not enough of it yet. `admit` (unchanged, still boolean) stays the only
 // thing that triggers an actual watchlist add (`main/index.js`) -- 'yellow' is for display only,
 // never for action, exactly the "show it, labelled, never act on it alone" split D-119 asked for.
-function evaluateCandidate({ ca, sym, chain, market, fomo = [], social, news } = {}) {
+// Shared with `main/index.js`'s tracked-coin alert path: "your own followed traders are selling
+// this and none of them are buying" is the same fact whether it's blocking a NEW admission or
+// warning about a coin already on the watchlist -- one gate, reused, not two copies that could
+// silently drift apart.
+function fomoSentiment(fomo = []) {
+  const buyers = new Set(fomo.filter((f) => f.direction === 'buy').map((f) => f.handle));
+  const sellers = new Set(fomo.filter((f) => f.direction === 'sell').map((f) => f.handle));
+  return { buyers, sellers, sellOnly: buyers.size === 0 && sellers.size > 0 };
+}
+
+function evaluateCandidate({ ca, sym, chain, market, fomo = [], news, notable } = {}) {
   const reasons = [];
-  const evidence = { market: null, fomo: null, social: null, news: null };
+  const evidence = { market: null, fomo: null, news: null, notable: null };
 
   // --- GATES -----------------------------------------------------------------------------------
   if (!market) {
@@ -49,11 +60,10 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social, news } =
   const noSafetyCoverage = market.verdict == null;
   if (noSafetyCoverage) reasons.push('no safety check exists for this chain -- unverified structurally');
 
-  const fomoBuyers = new Set(fomo.filter((f) => f.direction === 'buy').map((f) => f.handle));
-  const fomoSellers = new Set(fomo.filter((f) => f.direction === 'sell').map((f) => f.handle));
+  const { buyers: fomoBuyers, sellers: fomoSellers, sellOnly } = fomoSentiment(fomo);
   // A followed list net-selling something is not a moment to newly admit it -- your own trusted
   // traders are the ones telling you to stay away, and a fresh admission is not a rescue.
-  if (fomoBuyers.size === 0 && fomoSellers.size > 0) {
+  if (sellOnly) {
     return { admit: false, tier: 'red', reasons: [`followed traders are selling this, not buying (${fomoSellers.size} seller(s), 0 buyers)`], evidence };
   }
 
@@ -77,17 +87,6 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social, news } =
     }
   }
 
-  if (social) {
-    possible++;
-    evidence.social = { people: social.people ?? social.weighted, mentions: social.mentions };
-    const weighted = social.weighted ?? social.people ?? 0;
-    if (weighted >= MIN_SOCIAL_WEIGHTED) {
-      votes++; reasons.push(`${weighted} weighted people discussing it independently`);
-    } else {
-      reasons.push(`only ${weighted} weighted people discussing it -- below the ${MIN_SOCIAL_WEIGHTED} bar`);
-    }
-  }
-
   // 4th sensor, added 2026-09-05 (`newsfeed.js`) -- a CONFIRMED real-world-story or crypto-media
   // hit for this coin. ! `confirmed` only -- an unreviewed self-name candidate (`kind:
   // 'self-name-candidate'`, `confirmed: false`) must never cast a vote here, that is exactly the
@@ -97,6 +96,20 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social, news } =
     possible++;
     evidence.news = { source: news.source, title: news.title };
     votes++; reasons.push(`confirmed real-world news hit: ${news.title}`);
+  }
+
+  // 5th sensor -- the "important tweets" feed (D-122). A specific named-person post or a viral
+  // post naming THIS coin, treated as a discrete event exactly like a confirmed news hit, never
+  // as an averaged sentiment score (D-122's hard rule -- see synthesis.js). Same caution as the
+  // news gate: only a strong-or-better match (cashtag or address, not a bare word that happens to
+  // spell a ticker) casts a vote. A weaker match is real evidence but not corroboration on its own.
+  if (notable && notable.matchesCoin && resolve.atLeast(notable.matchesCoin.confidence, 'strong')) {
+    possible++;
+    evidence.notable = { track: notable.track, handle: notable.handle, confidence: notable.matchesCoin.confidence };
+    votes++;
+    reasons.push(notable.track === 'named-person'
+      ? `@${notable.handle} posted about this coin`
+      : `a post about this coin went viral (@${notable.handle || 'unknown'})`);
   }
 
   // ! market alone is NEVER enough, however positive -- it is one leg, not corroboration, and
@@ -115,4 +128,4 @@ function evaluateCandidate({ ca, sym, chain, market, fomo = [], social, news } =
   return { admit, tier, reasons, evidence };
 }
 
-module.exports = { evaluateCandidate, MIN_SOCIAL_WEIGHTED, MIN_FOMO_TRADERS, MIN_LIQUIDITY_USD, BUY_SELL_RATIO_MIN };
+module.exports = { evaluateCandidate, fomoSentiment, MIN_FOMO_TRADERS, MIN_LIQUIDITY_USD, BUY_SELL_RATIO_MIN };

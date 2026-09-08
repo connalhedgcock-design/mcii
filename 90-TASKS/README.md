@@ -7,6 +7,10 @@ machine: connal
 ---
 # TASKS — who does what next, and why that order
 
+Human work order: [[90-TASKS/ROADMAP|ROADMAP.md]]. The roadmap says which milestone is active;
+the queues hold the individual jobs. If they appear to compete, finish the active milestone first
+unless a P0 or P1 item interrupts it.
+
 !! SAME PRINCIPLE AS [[80-WHISPERS/README|80-WHISPERS]]: capture is free, organizing is MY job.
 Connal and Austin dump plain lines. I assign ids, priorities, lanes, and keep the board honest.
 ! if either of them has to think about format to add a task, this system has failed.

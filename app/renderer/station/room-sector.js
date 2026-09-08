@@ -73,12 +73,9 @@ export function initSectorRoom(root) {
     const toneWord = tone == null ? (s && s.sentimentThin ? 'too few posts to call' : 'no clear tone')
       : tone > 0.15 ? 'positive' : tone < -0.15 ? 'negative' : 'mixed';
 
-    pill.innerHTML =
-      `<span class="p">tone: <b>${esc(toneWord)}</b></span>` +
-      (s ? `<span class="p"><b>${fmtNum(s.uniqueAuthors)}</b> people posting</span>` : '') +
-      `<span class="p">${d.collectedAt ? 'read ' + ago(d.collectedAt) : 'no chatter yet'}</span>`;
+    pill.innerHTML = `<span class="p"><b>${d.funnel?.survivors ?? 0}</b> passed the last market scan</span>`;
 
-    backdrop(d);
+    backdrop({});
 
     const f = s?.filter || null;
     const important = s?.important || [];
@@ -165,13 +162,23 @@ export function initSectorRoom(root) {
     const j7Body = `<p class="st-note">Their bot-check blocks embedded windows, so this opens in your regular browser.</p>
       <div class="st-actrow"><button class="btn sm accent" data-j7>Open j7tracker.io</button></div>`;
 
+    // ── notable posts: the real-world-event tracker this room's own header used
+    // to flag as missing (D-122). A named person's post or a viral post, kept
+    // separate from the "worth reading" panel above -- that one classifies posts
+    // ABOUT a coin from the old broad sweep; this one is discrete events from
+    // either a curated person or raw reach, never averaged into anything. ──
+    const notablePosts = d.notablePosts || [];
+    const notableBody = notablePosts.length
+      ? notablePosts.slice(0, 8).map((e) => postCard({
+          handle: e.handle, text: e.text,
+          kind: e.track === 'named-person' ? 'held' : 'flat',
+          why: (e.matchesCoin ? `names ${e.matchesCoin.sym || 'a coin you track'} — ` : '') + (e.why || (e.track === 'named-person' ? 'a tracked person posted about crypto' : 'went viral')),
+        })).join('')
+      : `<div class="st-flatempty">No notable posts collected yet.</div>`;
+
     wall.innerHTML =
-      board({ label: "what's happening in memecoins", tag: 'SIG-1', wide: true, body: headBody }) +
       board({ label: 'the market as a whole', tag: 'MKT-6', body: marketBody }) +
-      (sharedBody ? board({ label: 'one of your coins shares its name', tag: 'SYS-3', full: true, body: sharedBody }) : '') +
-      board({ label: 'worth reading', tag: 'SIG-2', wide: true, body: readBody }) +
-      board({ label: 'the conversation', tag: 'SIG-3', body: moodBody }) +
-      board({ label: 'coins people are naming', tag: 'SIG-4', wide: true, body: tickerBody }) +
+      board({ label: 'notable posts', tag: 'SIG-6', full: true, body: notableBody }) +
       board({ label: 'j7 tracker', tag: 'EXT-3', body: j7Body }) +
       (recentBody ? board({ label: 'coins the scanner found', tag: 'SIG-5', full: true, body: recentBody }) : '');
 

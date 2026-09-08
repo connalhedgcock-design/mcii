@@ -60,6 +60,7 @@ const { Notification } = require('electron');
 const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
 const sector = require('../shared/sector');
+const evidencepacket = require('../shared/evidencepacket');
 
 // Seeds only. The watchlist is user-managed and lives in the sidecar -- any Solana token can be
 // added by address or by search. Nothing about this app is specific to these two.
@@ -451,7 +452,21 @@ ipcMain.handle('sector:latest', () => {
     recent: sector.latestPerToken(obs).sort((a, b2) => b2.ts - a.ts).slice(0, 12),
     ...sector.synthesize({ breadth: b, cohort: co, funnel: fun, social, tickers: tk }),
     collectedAt: social ? social.ts : null,
+    // The "important tweets" feed (D-122) -- named-person and viral-post events, newest first.
+    // Kept separate from `social` above: that field is the retired broad-mentions design, this is
+    // the discrete-event replacement, and the two answer different questions.
+    notablePosts: readJsonl('notable-posts.jsonl').sort((a, b2) => b2.ts - a.ts).slice(0, 20),
   };
+});
+
+// One coin's "important tweets" events (D-122) -- read on demand for the selected coin only, same
+// reason social:token is per-coin: a watchlist of thirty coins must not mean thirty events lists
+// loaded to draw one table.
+ipcMain.handle('notable:token', (_e, ca) => {
+  return readJsonl('notable-posts.jsonl')
+    .filter((r) => r.matchesCoin && r.matchesCoin.ca === ca)
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 10);
 });
 
 // !! AUTOMATIC DISCOVERY -- Connal, 2026-09-04: "we need a system where you can pick coins
@@ -499,15 +514,28 @@ function runDiscovery() {
     } catch (e) { console.error(`pumpcapture: ${e.message}`); }
   }
 
-  const social = readJsonl('sector.jsonl').filter((r) => r.kind === 'sector').pop() || null;
-  const tickers = social ? (social.tickers || []) : [];
   // Only CONFIRMED news counts as a vote -- an unreviewed self-name candidate must never feed
   // admission, same reasoning as `admission.js`'s own comment on this (the Cate-Blanchett/microduck
   // false positives are exactly what an unconfirmed hit voting here would risk).
   const confirmedNews = readJsonl('news.jsonl').filter((r) => r.confirmed);
 
   for (const [ca, { sym, fomo }] of byCoin) {
-    if (store.watchlist.some((w) => w.ca === ca)) continue; // already tracked -- nothing to decide
+    if (store.watchlist.some((w) => w.ca === ca)) {
+      // Already tracked -- not a new-admission decision. D-125: NOT a phone alert -- Connal
+      // already gets FOMO's own native notifications for these trades and does not want a second,
+      // duplicate ping. This just RECORDS the fact (same gate `evaluateCandidate` uses for new
+      // coins, `shared/admission.js: fomoSentiment`) so an in-app analysis surface has the data to
+      // read from. What that surface shows is still open -- see D-125.
+      if (fomo.length) {
+        const { buyers, sellers, sellOnly } = admission.fomoSentiment(fomo);
+        signalstore.record({ kind: 'fomo-trade-read', ca, sym,
+          reasons: [sellOnly
+            ? `${sellers.size} followed trader(s) sold ${sym || ca.slice(0, 8)}, 0 buying`
+            : `${buyers.size} bought, ${sellers.size} sold ${sym || ca.slice(0, 8)}`],
+          evidence: { fomo, held: !!store.positions[ca], sellOnly } });
+      }
+      continue;
+    }
 
     (async () => {
       let market = null;
@@ -522,11 +550,9 @@ function runDiscovery() {
       } catch (e) { /* no market read yet -- evaluateCandidate() rejects cleanly on null */ }
 
       const bareSym = String(sym || '').split(' ')[0]; // "SLINK at $30m MC" -> "SLINK"
-      const socialMatch = tickers.find((t) => t.ticker?.toUpperCase() === bareSym.toUpperCase());
-      const socialEvidence = socialMatch ? { weighted: socialMatch.people, mentions: socialMatch.mentions } : null;
       const newsHit = confirmedNews.find((n) => n.ca === ca) || null;
 
-      const result = admission.evaluateCandidate({ ca, sym: bareSym, market, fomo, social: socialEvidence, news: newsHit });
+      const result = admission.evaluateCandidate({ ca, sym: bareSym, market, fomo, news: newsHit });
       console.log(`discovery: ${bareSym} (${ca.slice(0, 8)}...) -> ${result.admit ? 'ADMIT' : 'reject'} -- ${result.reasons[0] || ''}`);
       const recordedSignal = signalstore.record({ kind: 'admission', ca, sym: bareSym,
         market: marketReading, reasons: result.reasons, evidence: { ...result, fomo } });
@@ -799,6 +825,48 @@ function liveContext() {
   ].join('\n');
 }
 ipcMain.handle('orion:login', () => orion.login());
+
+// Evidence packets -- `90-TASKS/TRACKING-BUILD-PLAN.md` Build Step 1. One frozen, reproducible
+// snapshot of what is already collected about one coin, then an on-demand Orion read of it.
+// ! `evidence:analyze` calls `orion.ask(prompt, null)` -- the `null` is deliberate. `orion:ask`
+// above always attaches `liveContext()` (today's live prices); reusing that path here would leak
+// information from AFTER the frozen cutoff into the read, defeating the whole point of freezing a
+// snapshot. This call gets ONLY the packet's own frozen text.
+const EVIDENCE_REPO_ROOT = path.join(__dirname, '..', '..');
+ipcMain.handle('evidence:build', async (_e, { ca, cutoff }) => {
+  const chain = store.tokens[ca]?.chain || 'solana';
+  const sym = store.tokens[ca]?.sym || store.watchlist.find((w) => w.ca === ca)?.sym || null;
+  return evidencepacket.buildPacket(ca, {
+    chain, sym, cutoff: Number.isFinite(cutoff) ? cutoff : Date.now(),
+    userDataPath: app.getPath('userData'), repoRoot: EVIDENCE_REPO_ROOT,
+  });
+});
+ipcMain.handle('evidence:latest', (_e, { ca, chain }) =>
+  evidencepacket.loadLatestPacket(app.getPath('userData'), chain || store.tokens[ca]?.chain || 'solana', ca));
+ipcMain.handle('evidence:analyze', async (_e, { ca, chain, version }) => {
+  const userDataPath = app.getPath('userData');
+  const useChain = chain || store.tokens[ca]?.chain || 'solana';
+  const packet = version
+    ? evidencepacket.loadPacket(userDataPath, useChain, ca, version)
+    : evidencepacket.loadLatestPacket(userDataPath, useChain, ca);
+  if (!packet) return { ok: false, code: 'no-packet', error: 'No evidence packet built yet for this coin.' };
+  const prompt = evidencepacket.buildOrionPrompt(packet);
+  const result = await orion.ask(prompt, null);
+  const analysis = { ts: Date.now(), packetId: packet.packetId, packetVersion: packet.version,
+    packetHash: packet.hash, ok: result.ok, reply: result.reply || null, error: result.error || null,
+    code: result.code || null };
+  evidencepacket.saveAnalysis(userDataPath, packet, analysis);
+  return { ...result, packet: { packetId: packet.packetId, version: packet.version, hash: packet.hash } };
+});
+ipcMain.handle('evidence:analyses', (_e, { ca, chain, version }) => {
+  const userDataPath = app.getPath('userData');
+  const useChain = chain || store.tokens[ca]?.chain || 'solana';
+  const packet = version
+    ? evidencepacket.loadPacket(userDataPath, useChain, ca, version)
+    : evidencepacket.loadLatestPacket(userDataPath, useChain, ca);
+  if (!packet) return [];
+  return evidencepacket.loadAnalyses(userDataPath, useChain, ca, packet.version);
+});
 
 ipcMain.handle('update:check', () => updater.checkForUpdates());
 ipcMain.handle('update:apply', () => updater.applyUpdate());

@@ -111,10 +111,15 @@ confidence, horizon, why` — the Insight shape already adopted from QuantConnec
    and whale buy (low confidence, admission-tiebreaker only). ! UPDATED 09-05: the flow READ
    (`walletflow.js`) and the wash-trade FILTER (`shared/washtrade.js`) are both built and tested
    against real chain data — see [[80-WHISPERS/whale-tracking/README]]. Sell/buy detection on top
-   of the filtered flow (build-order steps 3-5) is NOT built yet, and nothing from this sensor
-   reaches a screen or notification. The premise itself (persistent "smart money") is still
-   UNPROVEN — [[whale-tracking/README]] rates it below a coin flip and says so plainly, twice, so
-   it does not get quietly assumed true by a later session.
+   of the on-chain filtered flow (build-order steps 3-5) is still NOT built, and nothing from
+   `walletflow.js` reaches a screen or notification. ! UPDATED 09-07: tried routing a sell-only
+   reading from Connal's 60 followed FOMO traders (`fomonotifications.js`, a different data source
+   from on-chain wallets) to a phone alert (D-124) — wrong, he already gets FOMO's own native phone
+   alerts and doesn't want a duplicate; corrected same day (D-125). What he actually wants is
+   ANALYSIS of these trades, not a notification; the fomo buy/sell fact is now recorded
+   (`admission.js: fomoSentiment`, `signalstore`) but surfaces nowhere yet. The premise itself
+   (persistent "smart money") is still UNPROVEN — [[whale-tracking/README]] rates it below a coin
+   flip and says so plainly, twice, so it does not get quietly assumed true by a later session.
 
 **SYNTHESIS, in two stages, never one:**
 - Stage 1, GATES — non-compensatory, run first, can each alone stop everything: structural safety

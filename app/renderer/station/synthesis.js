@@ -29,7 +29,7 @@
 /** Weight of each input in the fused score. Safety and trader outweigh social:
  *  a failed safety gate or a whale exiting is a fact about the asset; sentiment
  *  is a fact about a conversation. */
-export const WEIGHTS = { safety: 1.0, market: 1.0, trader: 1.0, social: 0.7 };
+export const WEIGHTS = { safety: 1.0, market: 1.0, trader: 1.0 };
 
 /** hype.reliability()'s own confidence words → a number the needle can point at. */
 export const CONF = { none: 0, low: 0.25, moderate: 0.6, good: 0.9 };
@@ -185,11 +185,10 @@ export function fuse({ market = null, safety = null, social = null, trader = nul
 
 /** Everything the rooms need for one coin, in one call. `soc` and `flow` are
  *  optional — absent means absent (law 1), never neutral. */
-export function readCoin(t, soc = null, flow = null) {
+export function readCoin(t, _soc = null, flow = null) {
   return fuse({
     market: marketVote(t),
     safety: safetyVote(t),
-    social: socialVote(soc),
     trader: traderVote(flow),
   });
 }

@@ -104,3 +104,36 @@ async function pushDiscoveryEvent({ ca, sym, reasons, evidence, signal }) {
 
 module.exports.pushDiscoveryEvent = pushDiscoveryEvent;
 
+// Push an "important tweet" event (D-122) so the Telegram worker can tell the phone immediately --
+// same trick, same reason as pushDiscoveryEvent() above, and a SEPARATE key for the same reason:
+// the worker drains and deletes what it has sent, so this key only ever holds events nobody has
+// been told about yet.
+async function pushNotableTweetEvent(event) {
+  const token = process.env.CLOUDFLARE_KV_TOKEN;
+  if (!token) return { skipped: 'no CLOUDFLARE_KV_TOKEN set' };
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/storage/kv/namespaces/${NAMESPACE_ID}/values/notable-tweet-events`;
+  try {
+    let existing = [];
+    try {
+      const got = await getJSON(url, {
+        timeoutMs: 10000, retries: 1, headers: { Authorization: `Bearer ${token}` },
+      });
+      if (Array.isArray(got)) existing = got;
+    } catch (e) { /* key not created yet on first-ever push -- start from empty, not an error */ }
+
+    existing.push(event);
+    await getJSON(url, {
+      method: 'PUT', timeoutMs: 15000, retries: 1,
+      headers: { Authorization: `Bearer ${token}`, 'content-type': 'text/plain' },
+      body: JSON.stringify(existing),
+    });
+    return { pushed: true };
+  } catch (e) {
+    console.error('[alerts-push] could not push notable-tweet event:', e.message);
+    return { error: e.message };
+  }
+}
+
+module.exports.pushNotableTweetEvent = pushNotableTweetEvent;
+
