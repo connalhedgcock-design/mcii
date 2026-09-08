@@ -1,8 +1,8 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1788864202015,
-    "people": 1,
+    "at": 1788867811830,
+    "people": 2,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
@@ -37,7 +37,7 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788864202034,
+    "at": 1788867811853,
     "people": 3,
     "tone": 0.151,
     "confidence": "low",
@@ -46,7 +46,7 @@
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788864202027,
+    "at": 1788867811847,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -64,11 +64,11 @@
   },
   "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
     "sym": "GPRO",
-    "at": 1788776011284,
+    "at": 1788867811851,
     "people": 1,
     "tone": null,
-    "confidence": "none",
-    "manipulated": true,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   }
 }
