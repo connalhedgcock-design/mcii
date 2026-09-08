@@ -1,7 +1,7 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1788896642906,
+    "at": 1788900203187,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -37,16 +37,16 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1788896642931,
-    "people": 6,
-    "tone": 0.342,
+    "at": 1788900203205,
+    "people": 4,
+    "tone": 0.151,
     "confidence": "low",
     "manipulated": false,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1788896642923,
+    "at": 1788900203199,
     "people": 1,
     "tone": null,
     "confidence": "low",
