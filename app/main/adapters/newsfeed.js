@@ -60,8 +60,14 @@ const CRYPTO_FEEDS = [
 // ! checked live 2026-09-08 via plain `getText` (same as CRYPTO_FEEDS, no anti-bot issue found):
 // CNBC 30 items, TechCrunch 20 items, Yahoo Finance 50 items. MarketWatch's public feed URL is
 // dead (0 items) -- left out rather than shipped broken.
+// !! CNBC REMOVED 2026-09-09: fine from a laptop, but the collection host (a Hetzner datacenter
+// IP) gets a flat 403 -- confirmed live with `curl`, both this file's own User-Agent AND a real
+// browser one, so it is not a header problem. Same shape as D-93's Solana RPC block: a site
+// blocking datacenter IPs outright, not something to route around. TechCrunch and Yahoo Finance
+// were re-checked from the same host at the same time and both still return 200 -- this is CNBC
+// specifically, not the host in general. Dropped rather than left silently failing every cycle,
+// same call already made for MarketWatch above.
 const GENERAL_FEEDS = [
-  { name: 'CNBC Business', url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html' },
   { name: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
   { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
 ];
