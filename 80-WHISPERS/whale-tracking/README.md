@@ -255,6 +255,18 @@ server's own first cycle will only see whatever is new since 2026-09-09, not red
 headroom holds up at whatever wallet count and cadence get chosen, and whether the free RPC starts
 throttling under sustained, more-frequent load rather than one single burst.
 
+## !! MOVED TO ITS OWN 90-SECOND CLOCK AND INSTALLED ON THE SERVER, 2026-09-09 — SEE D-131
+The headroom above got used the same day: Connal asked to check every 90 seconds. `walletwatch.js`
+itself is unchanged; the polling loop that used to live inside `cloud-collect.js`'s 30-minute pass
+moved out to its own file (`app/main/wallet-collect.js`) on its own systemd service, so it no
+longer shares a clock with the paid Twitter/social collection. Market data got the same treatment
+(`app/main/live-collect.js`, wraps the desktop app's own already-proven `LiveMonitor`, now running
+on the server all the time) and news moved to a 5-minute timer. Full build, the race condition
+found and fixed (four processes doing `git pull` at once), and the sustained-load evidence this
+section's own "untested" line asked for: D-131 in `decisions.md`.
+! still collect-and-label only — none of this pushes anywhere. Still an unverified third-party
+wallet list (same caveat as the section above). Still not the killed derivation idea.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.
