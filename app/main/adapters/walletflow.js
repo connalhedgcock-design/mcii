@@ -194,4 +194,15 @@ async function walletHistory(walletAddress, { limit = 40 } = {}) {
   return rows;
 }
 
-module.exports = { rpc, poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow, walletActivity, walletHistory };
+// A wallet's own native SOL balance -- nothing above reads this; walletActivity/poolFlow only see
+// TOKEN balance changes. Needed for the HUD's top-5-holder diversity check (`tradepatterns.js`):
+// several holder wallets all sitting on a similar, low SOL balance is Connal's own tell for
+// freshly-funded, purpose-made wallets rather than independent real holders. Verified live
+// 2026-09-09: `getBalance` answers from this same host/RPC the rest of this file already trusts.
+async function getBalance(address) {
+  const r = await rpc('getBalance', [address]);
+  const lamports = typeof r === 'object' && r !== null ? r.value : r;
+  return Number(lamports || 0) / 1e9;
+}
+
+module.exports = { rpc, poolSignatures, poolSignaturesPaged, flowForTransaction, poolFlow, walletActivity, walletHistory, getBalance };

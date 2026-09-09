@@ -39,4 +39,14 @@ async function fetchHistory(ca, network = 'solana') {
   ]);
   return { pool, days, hours, fetchedAt: Date.now() };
 }
-module.exports = { fetchHistory };
+
+// Minute-resolution candles for a coin's first hours -- day/hour candles say nothing about a coin
+// that is two hours old. `ohlcv()` already accepted `timeframe: 'minute'`, just never called with
+// it. Verified live 2026-09-09 against a real pool -- real 1-minute OHLCV rows come back.
+// `limit` default of 180 covers a bonding coin's first three hours at one-minute resolution.
+async function fetchRecentMinutes(ca, network = 'solana', limit = 180) {
+  const pool = await mainPool(ca, network);
+  const minutes = await ohlcv(pool, network, 'minute', limit).catch(() => []);
+  return { pool, minutes, fetchedAt: Date.now() };
+}
+module.exports = { fetchHistory, fetchRecentMinutes };

@@ -52,6 +52,10 @@ function findIncomingTransfer(tx, walletAddress) {
 
 // Earliest SOL-funding transfer found for `walletAddress` within the last `lookback` signatures.
 // null means "no funding transfer found in the window" -- UNCHECKED, not "self-funded" or "clean".
+// ! `ts` (the funding transaction's own `blockTime`) rides along -- confirmed live 2026-09-09 that
+// `getTransaction` returns it on the same call already being made here, so this is free: no extra
+// RPC call. It is what lets a caller check FUNDING-DATE clustering (several wallets funded within
+// minutes of each other), not just same-funder clustering, without a second pass.
 async function findFunder(walletAddress, { lookback = FUNDER_LOOKBACK } = {}) {
   const sigs = await poolSignatures(walletAddress, { limit: lookback }); // newest-first
   for (const sig of sigs.slice().reverse()) { // walk oldest-of-the-window first
@@ -59,7 +63,7 @@ async function findFunder(walletAddress, { lookback = FUNDER_LOOKBACK } = {}) {
       const tx = await rpc('getTransaction', [sig, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]);
       if (!tx) continue;
       const found = findIncomingTransfer(tx, walletAddress);
-      if (found) return { ...found, signature: sig };
+      if (found) return { ...found, signature: sig, ts: tx.blockTime ? tx.blockTime * 1000 : null };
     } catch (e) {
       // D-29: a failed read of ONE signature is skipped, never treated as "no funder found".
     }

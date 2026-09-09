@@ -26,6 +26,34 @@ function createStore(root = path.join(__dirname, '../..'), machine = os.hostname
     fs.appendFileSync(file, JSON.stringify(row) + '\n'); // failure propagates, never reports success
     return row;
   }
+  // Every machine's own signals file, read together -- `50-LOG/signals-*.jsonl` is git-shared (each
+  // machine writes only its own file, per `machine` above), so this sees what EITHER operator's
+  // machine has recorded, not just this one. Used by the HUD's creator-rug-history check: was any
+  // one of a creator's other coins ever flagged by this project's own alerts. Bounded by `limit`.
+  function readForCa(ca, { kinds = null, sinceMs = null, limit = 200 } = {}) {
+    if (!ca) return [];
+    const dir = path.dirname(file);
+    let names = [];
+    try { names = fs.readdirSync(dir).filter((n) => /^signals-.*\.jsonl$/.test(n)); } catch { return []; }
+    const cutoff = sinceMs ? Date.now() - sinceMs : 0;
+    const kindSet = kinds ? new Set(kinds) : null;
+    const out = [];
+    for (const name of names) {
+      let text;
+      try { text = fs.readFileSync(path.join(dir, name), 'utf8'); } catch { continue; }
+      for (const line of text.trim().split('\n')) {
+        if (!line) continue;
+        let row;
+        try { row = JSON.parse(line); } catch { continue; }
+        if (row.ca !== ca) continue;
+        if (kindSet && !kindSet.has(row.kind)) continue;
+        if (row.ts < cutoff) continue;
+        out.push(row);
+        if (out.length >= limit) return out.sort((a, b) => b.ts - a.ts);
+      }
+    }
+    return out.sort((a, b) => b.ts - a.ts);
+  }
   function scan(result, source = 'scanner') {
     return [...result.survivors, ...result.rejectedStage1, ...result.rejectedStage2].map((c) => record({
       kind: 'scan', ca: c.ca, sym: c.symbol, ts: c.fetchedAt || result.scannedAt, source,
@@ -33,6 +61,6 @@ function createStore(root = path.join(__dirname, '../..'), machine = os.hostname
       evidence: c,
     }));
   }
-  return { file, record, scan };
+  return { file, record, scan, readForCa };
 }
 module.exports = { createStore, ...createStore() };

@@ -76,6 +76,7 @@ export function initWatchRoom(root) {
       <span class="v ${pctCls(chg)}">${pctStr(chg)}</span>
       <span class="v">${x?.usd != null ? fmtUsd(x.usd) : '—'}</span>
       <button class="btn sm" data-open="${esc(t.ca)}">detail</button>
+      <button class="btn sm" data-pin="${esc(t.ca)}" title="pin to the live trading HUD">pin</button>
     </div>`;
   }
 
@@ -193,6 +194,7 @@ export function initWatchRoom(root) {
     wall.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
       document.dispatchEvent(new CustomEvent('mcii:open-flat', { detail: { view: 'watch', ca: b.dataset.open } }));
     }));
+    wall.querySelectorAll('[data-pin]').forEach((b) => b.addEventListener('click', () => window.mcii.pinToHud(b.dataset.pin)));
     wall.querySelectorAll('[data-rename]').forEach((b) => b.addEventListener('click', async () => {
       const ca = b.dataset.rename;
       const tok = tokens.find((x) => x.ca === ca);

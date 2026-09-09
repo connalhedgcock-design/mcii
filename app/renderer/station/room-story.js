@@ -165,7 +165,11 @@ export function initStoryRoom(root) {
           <div class="st-stat"><span class="k">market cap</span><span class="v">${result.marketCap ? fmtUsd(result.marketCap) : '—'}</span></div>
           <div class="st-stat"><span class="k">visibility</span>
             <span class="v">${result.boost ? (result.boost.active ? 'boosted (paid)' : 'organic') : '—'}</span></div>
-        </div>` });
+        </div>
+        <div class="st-actrow"><button class="btn sm accent" data-pin="${esc(ca)}">pin to live trading HUD</button></div>
+        <p class="st-flatempty">Opens a small always-on-top window with this coin's opening-minutes
+          shape, top-5 holder wallet checks and creator history -- built for watching a fast-moving
+          coin while you trade, not for reading the whole story.</p>` });
 
       // What the project itself has posted -- not verified, just what's on record. Folds in
       // pump.fun's own description/links for coins launched there, additively alongside whatever
@@ -241,6 +245,7 @@ export function initStoryRoom(root) {
       el.addEventListener('click', (e) => { e.preventDefault(); if (el.dataset.open) window.mcii.openExternal(el.dataset.open); }));
     wall.querySelector('[data-setmeta]')?.addEventListener('click', setMeta);
     wall.querySelector('[data-ask-orion]')?.addEventListener('click', askOrion);
+    wall.querySelector('[data-pin]')?.addEventListener('click', () => window.mcii.pinToHud(ca));
   }
 
   async function setMeta() {

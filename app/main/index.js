@@ -63,6 +63,8 @@ const { evaluateSafety, verdictSentence } = require('../shared/safety');
 const collection = require('../shared/collection');
 const sector = require('../shared/sector');
 const evidencepacket = require('../shared/evidencepacket');
+const tradehud = require('./tradehud');
+const hud = require('./hud');
 
 // Seeds only. The watchlist is user-managed and lives in the sidecar -- any Solana token can be
 // added by address or by search. Nothing about this app is specific to these two.
@@ -795,6 +797,14 @@ ipcMain.handle('portfolio:series', async (_e, { days }) => {
 
 ipcMain.handle('history:series', (_e, { ca, field, days }) =>
   history.series(ca, field, (days || 30) * 864e5));
+
+// The live trading HUD -- see `tradehud.js` for the read, `hud.js` for the floating window.
+// Deliberately its own IPC pair rather than reusing evidence:build/analyze: this is a fast,
+// on-demand descriptive read (shape indicators, wallet forensics, creator history), never an
+// Orion call, so it has none of that path's minute-plus latency.
+ipcMain.handle('tradehud:build', (_e, ca) => tradehud.buildHudRead(String(ca || '').trim()));
+ipcMain.handle('hud:pin', (_e, ca) => hud.pin(String(ca || '').trim()));
+ipcMain.handle('hud:unpin', () => hud.unpin());
 ipcMain.handle('tokens:setPosition', (_e, { ca, tokens }) => {
   store.positions[ca] = tokens ? { tokens: Number(tokens) } : null;
   save();

@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld('mcii', {
   evidenceAnalyze: (ca, chain, version) => ipcRenderer.invoke('evidence:analyze', { ca, chain, version }),
   evidenceAnalyses: (ca, chain, version) => ipcRenderer.invoke('evidence:analyses', { ca, chain, version }),
   historySeries: (ca, field, days) => ipcRenderer.invoke('history:series', { ca, field, days }),
+  // The live trading HUD -- a small always-on-top window, pinned to one coin at a time.
+  tradeHud: (ca) => ipcRenderer.invoke('tradehud:build', ca),
+  pinToHud: (ca) => ipcRenderer.invoke('hud:pin', ca),
+  unpinHud: () => ipcRenderer.invoke('hud:unpin'),
+  onHudCoin: (cb) => ipcRenderer.on('hud:coin', (_e, ca) => cb(ca)),
   growthQuality: () => ipcRenderer.invoke('growth:quality'),
   calendarList: () => ipcRenderer.invoke('calendar:list'),
   calendarUpcoming: (withinDays) => ipcRenderer.invoke('calendar:upcoming', withinDays),

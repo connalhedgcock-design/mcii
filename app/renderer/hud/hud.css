@@ -1,0 +1,65 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0B0E13; color: #E7ECF3;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; }
+#root { display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+
+.hud-bar { -webkit-app-region: drag; display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; background: #12161F; border-bottom: 1px solid #232838; flex: 0 0 auto; }
+.hud-title { font-weight: 600; letter-spacing: .02em; text-transform: uppercase; font-size: 12px; opacity: .9; }
+.hud-x { -webkit-app-region: no-drag; background: none; border: none; color: #9AA4B2; cursor: pointer;
+  font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+.hud-x:hover { background: #232838; color: #fff; }
+
+.hud-error { margin: 8px 10px; padding: 8px; background: #3A1620; border: 1px solid #6b2333; border-radius: 6px; font-size: 12px; }
+.hud-empty { padding: 10px; color: #7E8A9C; font-size: 12px; }
+
+.hud-price { display: flex; align-items: baseline; gap: 8px; padding: 10px 10px 4px; }
+.hud-price b { font-size: 20px; }
+.hud-sub { color: #9AA4B2; font-size: 11px; }
+
+.hud-chartwrap { padding: 0 6px; }
+
+.hud-section { padding: 8px 10px; border-top: 1px solid #1B2030; }
+.hud-sec-h { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #7E8A9C; margin-bottom: 6px; }
+
+.hud-ind { padding: 6px 0; border-top: 1px solid #171B27; }
+.hud-ind:first-child { border-top: none; }
+.hud-ind-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hud-ind-l { font-size: 12px; font-weight: 600; }
+.hud-ind-d { font-size: 11.5px; color: #AEB7C4; margin-top: 2px; }
+
+.hud-chip { font-size: 10px; font-weight: 700; letter-spacing: .03em; padding: 1px 6px; border-radius: 999px; white-space: nowrap; }
+.hud-chip.is-yes { background: #1c2f22; color: #7CDB9A; }
+.hud-chip.is-no { background: #3a1620; color: #f08a99; }
+.hud-chip.is-partial { background: #3a2e12; color: #e8c46a; }
+.hud-chip.is-na { background: #1b2030; color: #7E8A9C; }
+
+.hud-newsrow { display: flex; flex-direction: column; gap: 1px; padding: 5px 0; border-top: 1px solid #171B27;
+  color: inherit; text-decoration: none; }
+.hud-newsrow:first-child { border-top: none; }
+.hud-newsrow .t { font-size: 12px; color: #E7ECF3; }
+.hud-newsrow .s { font-size: 10.5px; color: #7E8A9C; }
+.hud-newsrow:hover .t { text-decoration: underline; }
+
+.hud-foot { padding: 8px 10px 12px; font-size: 10.5px; color: #5C6577; }
+
+/* readouts.js: stripChart()'s own markup, restyled small -- station.css is not loaded in this
+   window (it assumes the full 3D station shell this small window doesn't have). */
+.st-chart { position: relative; }
+.st-chart.is-empty { display: flex; align-items: center; justify-content: center; height: 130px;
+  color: #7E8A9C; font-size: 12px; }
+.st-chart svg { width: 100%; height: auto; display: block; }
+.st-chart .g { stroke: #1B2030; stroke-width: 1; }
+.st-chart .gt { fill: #5C6577; font-size: 9px; }
+.st-chart .xt { fill: #5C6577; font-size: 9px; }
+.st-chart .ln { fill: none; stroke-width: 1.5; }
+.st-chart .ar { opacity: .12; }
+.st-chart.is-up .ln, .st-chart.is-up .ar, .st-chart.is-up .dot { stroke: #4ADE80; fill: #4ADE80; }
+.st-chart.is-down .ln, .st-chart.is-down .ar, .st-chart.is-down .dot { stroke: #F87171; fill: #F87171; }
+.st-chart .base { stroke: #232838; stroke-width: 1; }
+.st-chart .vb { fill: #2A3142; }
+.st-chart .cross { stroke: #5C6577; stroke-width: 1; stroke-dasharray: 2 2; }
+.st-chart-read { display: flex; justify-content: space-between; padding: 2px 4px 0; font-size: 11px; }
+.st-chart-read b { color: #E7ECF3; }
+.st-chart-read i { color: #7E8A9C; font-style: normal; }

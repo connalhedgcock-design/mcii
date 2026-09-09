@@ -22,10 +22,33 @@ async function fetchPumpFunInfo(ca) {
     telegram: d.telegram || null,
     website: d.website || null,
     imageUri: d.image_uri || null,
+    // The deploying wallet -- confirmed live 2026-09-09 on a real coin (CATE). This is the
+    // creator/deployer field the HUD's rug-history check needs; no on-chain derivation required,
+    // pump.fun's own API already names it for anything launched there.
+    creator: d.creator || null,
     source: 'pump.fun',
   };
-  const hasAnything = info.description || info.twitter || info.telegram || info.website;
+  const hasAnything = info.description || info.twitter || info.telegram || info.website || info.creator;
   return hasAnything ? info : null;
 }
 
-module.exports = { fetchPumpFunInfo };
+// Every coin a wallet has deployed on pump.fun, newest first as the API returns them. Confirmed
+// live 2026-09-09: `/coins?creator=<addr>` genuinely filters (checked against a real creator with
+// 10+ coins, every row's own `creator` field matched the query). Bounded by `limit` -- this feeds
+// the HUD's rug-history check, which caps how many of a creator's past coins it will cross-check
+// against MCII's own recorded signals, same RPC/call-budget discipline as `washtrade.js`.
+async function fetchCoinsByCreator(creator, limit = 15) {
+  if (!creator) return [];
+  let list;
+  try {
+    list = await getJSON(`https://frontend-api-v3.pump.fun/coins?creator=${encodeURIComponent(creator)}&limit=${limit}`,
+      { retries: 1, timeoutMs: 8000 });
+  } catch { return []; } // best-effort, same contract as fetchPumpFunInfo
+  if (!Array.isArray(list)) return [];
+  return list.map((c) => ({
+    ca: c.mint, symbol: c.symbol || null, name: c.name || null,
+    createdAt: c.created_timestamp || null, complete: !!c.complete,
+  }));
+}
+
+module.exports = { fetchPumpFunInfo, fetchCoinsByCreator };
