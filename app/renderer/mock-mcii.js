@@ -91,6 +91,16 @@
       items: [
         { title: 'Mock Coin meme token surges after community post', source: 'Example Times', link: '#', ts: now - 1000 * 60 * 40 },
       ],
+      xPosts: {
+        posts: [
+          { text: 'anyone else in $MOCK, this thing is moving', handle: 'exampleuser', url: '#',
+            createdAt: now - 1000 * 60 * 12, likes: 14, reposts: 3, kind: 'cashtag' },
+        ],
+        truncated: false, skipped: false, reason: null,
+        budget: { usd: 0.03, capUsd: 24, remainingUsd: 23.97 },
+      },
+      pumpfun: { description: 'a mock coin for testing the story room', twitter: '#', telegram: null, website: null, source: 'pump.fun' },
+      boost: { active: false, totalAmount: null },
       confirmed: false,
     }),
     collectionHealth: async () => ({ state: 'ok' }),

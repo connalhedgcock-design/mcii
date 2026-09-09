@@ -191,5 +191,21 @@ async function discoverLatest() {
   ]);
   return { profiles: profiles.slice(0, 30), boosts: boosts.slice(0, 30), fetchedAt: Date.now() };
 }
+// Is this specific coin's visibility currently paid-boosted, or organic? Reuses the same two
+// boost endpoints discoverLatest already calls, just checked against one address instead of
+// listed wholesale. "not boosted" here means "not on either list right now" -- a boost that
+// expired minutes ago won't show, and that's an honest gap, not a bug to chase.
+async function checkBoost(ca, chain) {
+  const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+  const [top, latest] = await Promise.all([
+    getJSON('https://api.dexscreener.com/token-boosts/top/v1').catch(() => []),
+    getJSON('https://api.dexscreener.com/token-boosts/latest/v1').catch(() => []),
+  ]);
+  const hit = [...(top || []), ...(latest || [])]
+    .find((b) => b.tokenAddress && same(b.tokenAddress, ca) && (!chain || same(b.chainId, chain)));
+  return hit ? { active: true, totalAmount: hit.totalAmount ?? null } : { active: false, totalAmount: null };
+}
+
 module.exports.searchTokens = searchTokens;
 module.exports.discoverLatest = discoverLatest;
+module.exports.checkBoost = checkBoost;

@@ -29,6 +29,16 @@
  *     never guesses one), purely descriptive, never scored or compared across
  *     coins -- see `50-LOG/2026-09-09-*` for why a cross-coin version of this
  *     is deliberately NOT what this is.
+ *
+ * Extended again 2026-09-09b, after the news-only version kept coming back empty:
+ * most memecoins have never been in the news at all -- the story lives on X, not
+ * in an article. Added a one-time, on-demand X search (one click = one search for
+ * one coin, never a sweep, never a timer) plus pump.fun's own coin description and
+ * DexScreener's boost status. The X posts get EXACTLY the same treatment as the
+ * news headlines above: raw, `confirmed: false`, no score or sentiment number
+ * attached to any of it -- read it, don't trust it. That "no score" property is
+ * also what keeps this a one-coin lookup rather than the broad X mood-tracking
+ * D-122 killed on Connal's own instruction; see 50-LOG/decisions.md.
  */
 import { mountRoom, board, esc, fmtUsd, ago, askText } from './rooms.js';
 
@@ -37,7 +47,7 @@ export function initStoryRoom(root) {
   let active = false;
   let ca = '';
   let loading = false;
-  let result = null;   // shape: { ca, name, symbol, chain, priceUsd, marketCap, info, items, confirmed }
+  let result = null;   // shape: { ca, name, symbol, chain, priceUsd, marketCap, info, items, xPosts, pumpfun, boost, confirmed }
   let error = null;
   let tracked = null;  // the matching entry from cachedTokens(), if this coin is already on the watchlist
   let holders = { top1: [], top10: [] };
@@ -48,11 +58,33 @@ export function initStoryRoom(root) {
     return { last, diff: last - first };
   }
 
+  // Raw posts, one-time search for one coin, no score or sentiment number attached to any of
+  // it -- read it, don't trust it. Same framing as the news board below, deliberately.
+  function xPostsBody(xPosts) {
+    if (!xPosts || xPosts.skipped) {
+      return `<div class="st-flatempty">${esc((xPosts && xPosts.reason) || 'X search not available.')}</div>`;
+    }
+    if (!xPosts.posts.length) {
+      return `<div class="st-flatempty">${xPosts.reason ? esc(xPosts.reason)
+        : "No posts found mentioning this coin's address or cashtag right now."}</div>`;
+    }
+    return xPosts.posts.map((p) => `
+        <div class="st-flatrow">
+          <span class="grow"><a href="#" data-open="${esc(p.url || '')}">${p.handle ? '@' + esc(p.handle) + ' — ' : ''}${esc((p.text || '').slice(0, 180))}</a></span>
+          <span class="n">${p.likes ?? 0}♥ ${p.reposts ?? 0}↻</span>
+          <span class="n">${p.createdAt ? ago(p.createdAt) : ''}</span>
+        </div>`).join('')
+      + (xPosts.truncated ? `<p class="st-flatempty">More posts exist than shown — capped for this lookup.</p>` : '')
+      + `<p class="st-flatempty">Raw posts mentioning this coin's address or cashtag, not confirmed and not
+         scored — read them yourself before trusting any of it as the coin's actual story.</p>`;
+  }
+
   function render() {
     pill.innerHTML = result
       ? `<span class="p">looked up <b>${esc(result.symbol || result.name || '?')}</b></span>
          <span class="p">on <b>${esc(result.chain || '?')}</b></span>
-         <span class="p">${result.items.length} headline${result.items.length === 1 ? '' : 's'} under that name</span>`
+         <span class="p">${result.items.length} headline${result.items.length === 1 ? '' : 's'} under that name</span>
+         <span class="p">${result.xPosts?.posts.length || 0} X post${result.xPosts?.posts.length === 1 ? '' : 's'}</span>`
       : `<span class="p">paste a contract address to start</span>`;
 
     const boxBody = `
@@ -73,16 +105,25 @@ export function initStoryRoom(root) {
           <div class="st-stat"><span class="k">chain</span><span class="v">${esc(result.chain || '—')}</span></div>
           <div class="st-stat"><span class="k">price</span><span class="v">${result.priceUsd ? fmtUsd(result.priceUsd) : '—'}</span></div>
           <div class="st-stat"><span class="k">market cap</span><span class="v">${result.marketCap ? fmtUsd(result.marketCap) : '—'}</span></div>
+          <div class="st-stat"><span class="k">visibility</span>
+            <span class="v">${result.boost ? (result.boost.active ? 'boosted (paid)' : 'organic') : '—'}</span></div>
         </div>` });
 
-      // What the project itself has posted -- not verified, just what's on record.
+      // What the project itself has posted -- not verified, just what's on record. Folds in
+      // pump.fun's own description/links for coins launched there, additively alongside whatever
+      // DexScreener already carries -- either source filling a gap the other left empty counts.
       const websites = result.info?.websites || [];
       const socials = result.info?.socials || [];
+      const pf = result.pumpfun;
       out += board({ label: 'what the project says about itself', tag: 'STO-4', wide: true, body:
-        (websites.length || socials.length)
-          ? `<div class="st-actrow" style="flex-wrap:wrap; gap:8px">
+        (websites.length || socials.length || pf)
+          ? `${pf?.description ? `<p class="st-flatempty" style="opacity:.85; margin-top:0">${esc(pf.description)}</p>` : ''}
+            <div class="st-actrow" style="flex-wrap:wrap; gap:8px">
               ${websites.map((w) => `<a href="#" data-open="${esc(w.url)}" class="chip is-flat">${esc(w.label || 'website')}</a>`).join('')}
               ${socials.map((s) => `<a href="#" data-open="${esc(s.url)}" class="chip is-flat">${esc(s.type || 'social')}</a>`).join('')}
+              ${pf?.website ? `<a href="#" data-open="${esc(pf.website)}" class="chip is-flat">website (pump.fun)</a>` : ''}
+              ${pf?.twitter ? `<a href="#" data-open="${esc(pf.twitter)}" class="chip is-flat">twitter (pump.fun)</a>` : ''}
+              ${pf?.telegram ? `<a href="#" data-open="${esc(pf.telegram)}" class="chip is-flat">telegram (pump.fun)</a>` : ''}
             </div>`
           : `<div class="st-flatempty">This coin hasn't posted a website or social link on its DexScreener listing.</div>` });
 
@@ -115,6 +156,8 @@ export function initStoryRoom(root) {
                 rising or falling — a fact about who owns it, not a buy or sell signal on its own.</p>`
             : `<div class="st-flatempty">No holder history recorded yet for this coin.</div>` });
       }
+
+      out += board({ label: 'what X is saying', tag: 'STO-7', full: true, body: xPostsBody(result.xPosts) });
 
       out += board({ label: "what's published under that name", tag: 'STO-3', full: true, body:
         (result.items.length

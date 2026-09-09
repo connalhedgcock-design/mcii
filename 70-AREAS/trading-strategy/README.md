@@ -350,6 +350,17 @@ Requested by Connal directly as a standalone reference: every currently-undecide
 the algorithm, how it shows up in the app, and what's being tracked, in one place, for him to
 answer over time. Read that file, not this section, for the live list.
 
+## !! DEV-BUY → DEV-SELL → REAL-VOLUME → RUG SHAPE, TESTED — 2026-09-09
+Connal's own question: does the chart-reading story (insiders buy first, sell a bit, real buyers
+pile in, then it gets rugged) actually predict a rug? Outside research confirms the general
+mechanism is real (bonding-curve creator advantage, insiders liquidate into real demand, pool
+drained later) but does not isolate the middle dip as its own validated signal. Tested on our own
+coin history two ways (holder-growth proxy, volume/liquidity proxy) across 13 deeply-tracked coins
+plus 104 broader scanner-survivor coins: the exact shape matched only 2 coins and neither rugged —
+n far too small to trust either way. Full write-up, caveats, and a real bug found along the way
+(a bad price quote that slipped past the T-037 filter) → [[60-KB/memecoin-lifecycle-pattern-research]].
+Not wired into anything live — this is a tested finding, not a decision.
+
 ## READ NEXT
 - `LOG.md` — the full conversation, in order, including the exact exchanges behind every decision
   and open question above.

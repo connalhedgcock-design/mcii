@@ -1213,9 +1213,9 @@ async function search() {
 }
 
 // --- updates ------------------------------------------------------------
-// Only ever informs and, on request, fast-forwards -- it refuses (rather than guessing) when
-// there's anything uncommitted here, and points at share.sh, which is the tool that knows how
-// to combine two people's edits.
+// Only ever fast-forwards -- it refuses (rather than guessing) when there's anything uncommitted
+// here. When blocked, the click runs the same save-and-share flow as the button below in-app,
+// then retries the update -- no Terminal required.
 const updateBtn = $('#update');
 function renderUpdateStatus(r) {
   updateBtn.disabled = false;
@@ -1235,9 +1235,8 @@ function renderUpdateStatus(r) {
 updateBtn.addEventListener('click', async () => {
   const state = updateBtn.dataset.state;
   if (state === 'blocked') {
-    alert('You (or Connal) have edits that have not been saved and shared yet.\n\n'
-      + 'Open Terminal and run:\n  cd ~/Documents/MCII && ./share.sh "describe your changes"\n\n'
-      + 'Then click Check for updates again.');
+    const shared = await doShareChanges({ thenCheckUpdate: true });
+    if (shared && updateBtn.dataset.state === 'available') updateBtn.click();
     return;
   }
   if (state === 'available') {
@@ -1245,8 +1244,7 @@ updateBtn.addEventListener('click', async () => {
     updateBtn.textContent = 'Installing update…';
     const res = await window.mcii.applyUpdate();
     if (!res.ok) {
-      alert('Could not install the update (' + res.reason + ').\n\n'
-        + 'Open Terminal and run:\n  cd ~/Documents/MCII && git pull\nto see why, or ask Connal.');
+      alert('Could not install the update (' + res.reason + ').\n\nAsk Connal to take a look.');
       renderUpdateStatus(await window.mcii.checkForUpdates());
       return;
     }
@@ -1260,16 +1258,18 @@ updateBtn.addEventListener('click', async () => {
 });
 window.mcii.onUpdateStatus(renderUpdateStatus);
 
-const shareBtn = $('#share');
-shareBtn.addEventListener('click', async () => {
+// Shared by both the "blocked" update button and the Save & share button -- same flow either
+// way, so a click never has to be redirected out to Terminal to get unblocked.
+async function doShareChanges({ thenCheckUpdate = false } = {}) {
   const message = await askText('What did you change?', { placeholder: 'a few words', ok: 'Save & share' });
-  if (message === null) return;
-  shareBtn.disabled = true;
-  const original = shareBtn.textContent;
-  shareBtn.textContent = 'Saving & sharing…';
+  if (message === null) return false;
+  const btn = updateBtn.dataset.state === 'blocked' ? updateBtn : shareBtn;
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Saving & sharing…';
   const res = await window.mcii.shareChanges(message);
-  shareBtn.disabled = false;
-  shareBtn.textContent = original;
+  btn.disabled = false;
+  btn.textContent = original;
   if (!res.ok) {
     const msgs = {
       'no-message': 'You have changes to save — type a few words describing them and try again.',
@@ -1279,15 +1279,19 @@ shareBtn.addEventListener('click', async () => {
       'push-failed': 'Could not upload your changes' + (res.detail ? ': ' + res.detail : '') + '.',
     };
     alert(msgs[res.reason] || 'Something went wrong sharing your changes.');
-    return;
+    return false;
   }
   if (res.ranNpmInstall && confirm('Shared. Connal had changes that need a restart to fully take effect — restart now?')) {
     window.mcii.restartApp();
-    return;
+    return true;
   }
-  alert(res.saved ? 'Saved and shared with Connal.' : 'Nothing of yours to save — already in sync.');
+  if (!thenCheckUpdate) alert(res.saved ? 'Saved and shared with Connal.' : 'Nothing of yours to save — already in sync.');
   renderUpdateStatus(await window.mcii.checkForUpdates());
-});
+  return true;
+}
+
+const shareBtn = $('#share');
+shareBtn.addEventListener('click', () => doShareChanges());
 
 // Redraw with the fresh numbers, without asking main to refresh again -- that would loop.
 window.mcii.onRefreshed(async () => { render(await window.mcii.getTokens()); });

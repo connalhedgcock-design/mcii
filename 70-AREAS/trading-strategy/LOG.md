@@ -515,3 +515,28 @@ times across an 8.5-day span**, measured live, not assumed. The trend record was
      one cycle stale. News now runs before scoring.
   - ∴ DOGE-1 now scores **green and entry-worthy** on real data — market + a confirmed real-world
     news hit, with the growth shape supporting it. The first coin to clear the new bar honestly.
+
+## 2026-09-09 — 12. THE DEV-BUY → DEV-SELL → REAL-VOLUME → RUG SHAPE, TESTED
+- machine: connal
+- Connal asked for research on strategies that tie a chart READING to what actually happened
+  afterward — specifically the story of an early spike from developers buying up shares, a slight
+  drop as they sell some off, real volume/real buyers coming in, then a rug — tested across a
+  number of different coins, not eyeballed on one.
+- Outside research found the general MECHANISM is real and documented (bonding-curve creator
+  advantage → insiders liquidate into the rising price → pool drained later — Solidus Labs:
+  98.6% of pump.fun tokens end under $1,000 liquidity, 93% of ~361k Raydium V4 pools studied showed
+  soft-rug characteristics). The specific middle DIP as its own measured, useful stage is NOT
+  something the literature isolates or tests — only asserted in unsourced trader blog posts.
+- Built `app/tools/backtest-lifecycle-pattern.js` and ran it for real, two ways (holder-count proxy
+  on the 13 coins with holder history; volume/liquidity proxy on those 13 plus 104 broader
+  `candidates.jsonl` coins). **The exact 4-stage shape matched only 2 of 13 coins (DOGE-1, OTC) and
+  neither rugged** — if anything the opposite of the story, though n=2 proves nothing either way.
+  The volume/liquidity version couldn't run at all — MCII's volume field is a 24h rolling total on a
+  30min-2h scan cycle, the same granularity wall `marketmanip.js`'s own detector already hit.
+- **Real bug found along the way**: ZCAT carries one impossible price/liquidity reading that slipped
+  past the existing T-037 bad-quote filter because the bad liquidity figure happened to "corroborate"
+  the bad price. Excluded from results; the filter gap itself is unfixed.
+- Full write-up, all caveats (survivorship bias in the 13-coin sample, the literature's 93-98%
+  figures measuring a different population than our post-safety-filter sample, trial count = 1 per
+  proxy) → [[60-KB/memecoin-lifecycle-pattern-research]]. Not wired into `rescore.js`/`admission.js`
+  — n=2 is not a foundation for a real gate (D-05).
