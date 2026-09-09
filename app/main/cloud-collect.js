@@ -29,7 +29,6 @@ const { searchTokens } = require('./adapters/dexscreener');
 const screener = require('./screener');
 const onchain = require('./adapters/onchain');
 const scanstore = require('./scanstore');
-const newsfeed = require('./adapters/newsfeed');
 const journal = require('./journal');
 const labels = require('../shared/labels');
 const marketmanip = require('../shared/marketmanip');
@@ -38,7 +37,6 @@ const rescore = require('../shared/rescore');
 const signalstore = require('./signalstore');
 const notableAccounts = require('./adapters/notable-accounts');
 const virality = require('../shared/virality');
-const walletwatch = require('./adapters/walletwatch');
 journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
@@ -687,53 +685,6 @@ function recentScanned() {
   } catch { return []; }
 }
 
-// Connal's own 58 followed FOMO traders, watched directly on-chain -- see `walletwatch.js`'s own
-// header for the full reasoning. `data/fomo-followed-wallets.json` is the (unverified third-party)
-// handle->address list; `data/wallet-watch-state.json` is the per-wallet watermark so the same
-// activity is not re-read and re-recorded every cycle. Runs even without a market key or an X key
-// configured -- it only needs the RPC `walletflow.js` already uses.
-function loadFollowedWallets() {
-  try {
-    const doc = JSON.parse(fs.readFileSync(path.join(DATA, 'fomo-followed-wallets.json'), 'utf8'));
-    return doc.wallets || [];
-  } catch { return []; }
-}
-async function collectWalletSignals() {
-  const followed = loadFollowedWallets();
-  if (!followed.length) return [];
-  const stateFile = path.join(DATA, 'wallet-watch-state.json');
-  return walletwatch.pollFollowedWallets(followed, stateFile, {
-    onError: (w, e) => log(`  wallet watch failed for @${w.handle}: ${e.message}`),
-  });
-}
-
-// Real-world-story news, per coin, only for coins a person opted in with `newsQuery`
-// (`data/watchlist.json`) -- design + the DOGE-1 case: `60-KB/news-catalyst-research.md`.
-// Deduped by article LINK, not appended fresh every run like market/social readings: a headline
-// does not change between scans the way a price does, so re-logging the same 10 links forever
-// would be pure noise, not a time series worth keeping (D-76's "seen-ids" idiom, applied here).
-async function collectNewsEvents(tokens) {
-  const seen = new Set(readJsonl('news.jsonl').map((r) => r.link).filter(Boolean));
-  const withQuery = tokens.filter((t) => t.newsQuery);
-
-  const catalyst = withQuery.length
-    ? await newsfeed.collectNews(withQuery, { onError: (coin, e) => log(`  catalyst news failed for ${coin.sym}: ${e.message}`) })
-    : [];
-  const selfName = await newsfeed.collectSelfNameNews(tokens, {
-    onError: (coin, e) => log(`  self-name news failed for ${coin.sym}: ${e.message}`),
-  });
-  const cryptoMarket = await newsfeed.collectCryptoNews(tokens, {
-    onError: (_, e) => log(`  crypto-outlet news failed: ${e.message}`),
-  });
-  // D-128, pillar 4: general (non-crypto) outlets, read for macro market-movers + the rare tracked-
-  // coin namesake hit. See `newsfeed.js: collectGeneralNews`'s own header for why no cashtag sweep.
-  const general = await newsfeed.collectGeneralNews(tokens, {
-    onError: (feed, e) => log(`  general news failed for ${feed.name}: ${e.message}`),
-  });
-
-  return [...catalyst, ...selfName, ...cryptoMarket, ...general].filter((n) => n.link && !seen.has(n.link));
-}
-
 function readJsonl(name) {
   try {
     return fs.readFileSync(path.join(DATA, name), 'utf8').trim().split('\n')
@@ -859,30 +810,10 @@ async function main() {
     log(`  ${checked} open forecast(s) checked, ${resolved} resolved this run`);
   } catch (e) { log(`  label resolution failed — ${e.message}`); }
 
-  log('wallet watch:');
-  try {
-    const walletSignals = await collectWalletSignals();
-    if (walletSignals.length) {
-      append('wallet-signals.jsonl', walletSignals.map((s) => ({ ts: Date.now(), ...s })));
-      for (const s of walletSignals) {
-        signalstore.record({ kind: `wallet-${s.direction}`, ca: s.mint, sym: null, ts: s.ts,
-          reasons: [`@${s.handle} (on-chain) ${s.direction === 'buy' ? 'bought' : 'sold'}${s.selfTradeFlag ? ' -- also traded the other side of this coin in the same window' : ''}`],
-          evidence: s });
-      }
-    }
-    log(`  ${walletSignals.length} new on-chain signal(s) from ${loadFollowedWallets().length} followed wallet(s)`);
-  } catch (e) { log(`  wallet watch failed — ${e.message}`); }
-
-  log('news:');
-  try {
-    const newsEvents = await collectNewsEvents(tokens);
-    // `n.confirmed === undefined` (never `?? true`): a 'general' market-mover row deliberately
-    // sets `confirmed: null` (not a coin claim, "confirmed" doesn't apply) and `??` would silently
-    // rewrite that null to true -- only a genuinely MISSING field defaults true (the legacy-row
-    // case `writeRescore`'s own comment documents), never an explicit null.
-    append('news.jsonl', newsEvents.map((n) => ({ ts: Date.now(), publishedTs: n.ts, kind: n.kind, confirmed: n.confirmed === undefined ? true : n.confirmed, marketMover: n.marketMover ?? false, priority: n.priority ?? null, ca: n.ca, sym: n.sym, query: n.query, source: n.source, title: n.title, link: n.link })));
-    log(`  ${newsEvents.length} new headline(s)`);
-  } catch (e) { log(`  news failed — ${e.message}`); }
+  // Wallet-watch and news collection moved out to their own always-separate, faster-clocked
+  // processes (`wallet-collect.js` every 90s, `news-collect.js` every 5min) on Connal's request,
+  // 09-09 -- see those files' own headers. Never re-add either step here: two collectors writing
+  // the same rows on overlapping clocks is the exact double-collection risk D-98 already flagged.
 
   log('growth quality:');
   try {

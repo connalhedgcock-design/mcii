@@ -75,6 +75,25 @@ def merge_holder_truth(ours_path, theirs_path, out_path):
     return True
 
 
+def merge_wallet_state(ours_path, theirs_path, out_path):
+    """Per-wallet watermark (address -> last-seen ms). Not a log -- the LATER timestamp wins per
+    wallet, same shape as `merge_holder_truth`. Never take the earlier one: that would replay
+    activity as if it were new on whichever machine runs next."""
+    try:
+        ours = json.load(open(ours_path, encoding='utf-8'))
+        theirs = json.load(open(theirs_path, encoding='utf-8'))
+    except Exception:
+        return False
+    merged = dict(ours)
+    for addr, ts in theirs.items():
+        if ts is not None and (merged.get(addr) is None or ts > merged[addr]):
+            merged[addr] = ts
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(merged, f, indent=1)
+        f.write('\n')
+    return True
+
+
 def main():
     if len(sys.argv) < 5:
         return 1
@@ -83,6 +102,8 @@ def main():
         ok = merge_jsonl(ours, theirs, ours)
     elif path.endswith('holder-truth.json'):
         ok = merge_holder_truth(ours, theirs, ours)
+    elif path.endswith('wallet-watch-state.json'):
+        ok = merge_wallet_state(ours, theirs, ours)
     else:
         ok = False              # not a file this understands -- let git conflict normally
     return 0 if ok else 1

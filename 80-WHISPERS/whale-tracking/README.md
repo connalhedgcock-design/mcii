@@ -238,6 +238,23 @@ already named. Spot-checked live against 4 real handles before trusting the list
 back real, recent, plausible activity. Not yet wired to any alert or to admission; not yet timed at
 full 45-wallet scale on the server.
 
+## !! TIMED, 2026-09-09 — FAR UNDER THE 30-MINUTE BUDGET
+Manual run of the exact same wallet-watch step `cloud-collect.js` runs every cycle, against the
+real 45-wallet list and the real (until-now-empty) `data/wallet-watch-state.json` — a genuine
+first-run backfill, not a synthetic timing test. **61.7 seconds total, 0 errors, 295 real signals
+found** (~1.37s/wallet average) — well under the D-129 estimate of 3–10s/wallet, and about 3% of
+the 30-minute cycle budget. ! that per-wallet estimate in D-129 came from spot-checking individual
+wallets one at a time, not a real batch — some of what looked like per-call latency was probably
+one-time overhead, not a per-wallet cost. This resolves D-129's own reopening trigger ("the full
+45-wallet cycle proves too slow") in the negative: it is not too slow, at this wallet count, on
+this network path. ! run from this Mac, not the Hetzner collector itself — same public RPC, same
+methods `walletflow.js` already proved work from the datacenter IP, so this is a reasonable stand-in,
+not a like-for-like server measurement. The real watermark was updated for real by this run, so the
+server's own first cycle will only see whatever is new since 2026-09-09, not redo this backfill.
+∴ there is real headroom to poll more often than 30 minutes if wanted — untested is how that
+headroom holds up at whatever wallet count and cadence get chosen, and whether the free RPC starts
+throttling under sustained, more-frequent load rather than one single burst.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.
