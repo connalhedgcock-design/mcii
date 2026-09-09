@@ -1,7 +1,7 @@
 ---
 id: task.board
 t: task-board
-v: 7
+v: 8
 upd: 2026-09-09
 machine: connal
 derived: true
@@ -113,6 +113,12 @@ _none._ ✓
       that NEEDS A YES/NO CONTROL · why: real find already sitting in the data (DOGE-1's rocket
       mission may be close to launching) with nowhere to see it. ! WEAK/unconfirmed items must be
       shown YELLOW with a plain-language reason why (Connal, 09-05, D-119) — not hidden.
+- [ ] T-091 @austin · Story room's per-coin research should surface when the coin's OWN CREATOR has
+      a history of rugging other tokens — RugCheck already returns this in its `risks` array but
+      `app/main/adapters/rugcheck.js`'s `fetchSafety()` never reads that field, so it's silently
+      dropped before Story room ever sees it · why: a creator's own rug history is one of the
+      strongest, cheapest-to-check red flags there is; dropping it lets research look clean on a
+      coin whose creator has already done this before · [[app/main/adapters/rugcheck.js]]
 - ~~T-033~~ KILLED 09-05 — Connal: "this idea is dumb i dont want this." Wallet-derivation stopped.
 - [ ] T-034 @connal · BUILT 09-05 (`shared/calendar.js`) — seeded with DOGE-1's sourced, flagged-
       as-estimate launch window · why still open: only one entry exists; Austin needs the screen.

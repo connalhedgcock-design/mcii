@@ -35,7 +35,7 @@ contextBridge.exposeInMainWorld('mcii', {
   orionStatus: () => ipcRenderer.invoke('orion:status'),
   orionAsk: (text) => ipcRenderer.invoke('orion:ask', text),
   orionLogin: () => ipcRenderer.invoke('orion:login'),
-  evidenceBuild: (ca, cutoff) => ipcRenderer.invoke('evidence:build', { ca, cutoff }),
+  evidenceBuild: (ca, cutoff, narrative) => ipcRenderer.invoke('evidence:build', { ca, cutoff, narrative }),
   evidenceLatest: (ca, chain) => ipcRenderer.invoke('evidence:latest', { ca, chain }),
   evidenceAnalyze: (ca, chain, version) => ipcRenderer.invoke('evidence:analyze', { ca, chain, version }),
   evidenceAnalyses: (ca, chain, version) => ipcRenderer.invoke('evidence:analyses', { ca, chain, version }),

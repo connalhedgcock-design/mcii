@@ -70,7 +70,7 @@ function hashPacket(packet) {
 function assemblePacket({
   chain, ca, sym = null, decisionCutoff,
   rawTrades = [], rawPosts = [], rawMarket = [], rawNews = [],
-  rugCheck = null, previousPacketRef = null, version = 1,
+  rugCheck = null, narrative = null, previousPacketRef = null, version = 1,
 } = {}) {
   if (!chain) throw new Error('assemblePacket: chain is required');
   if (!ca) throw new Error('assemblePacket: ca is required');
@@ -178,6 +178,37 @@ function assemblePacket({
     missingData.push({ stream: 'rugCheck', why: 'no rug-check result available' });
   }
 
+  // --- NARRATIVE -- on-demand research (news under the coin's name, X posts, project links,
+  // pump.fun description, DexScreener boost status) fetched fresh at build time. Same "single
+  // frozen snapshot, never a stream" treatment as the rug check just above: there is no earlier
+  // history to filter by decisionCutoff, only what a fresh look found right now. This is what lets
+  // a coin that was never on the watchlist -- and so has no rows in the four streams above -- still
+  // get a real read instead of an all-missing packet. Passed in already-fetched (Story room's own
+  // lookup), never fetched again here: refetching would spend the shared X budget (narrative.js)
+  // a second time for the same click.
+  let narrativeOut = null;
+  if (narrative) {
+    narrativeOut = {
+      name: narrative.name || null, symbol: narrative.symbol || null,
+      news: (narrative.items || []).map((i) => ({
+        title: i.title, link: i.link || null, source: i.source || null, ts: i.ts || null })),
+      xPosts: (narrative.xPosts?.posts || []).map((p) => ({
+        text: p.text, handle: p.handle || null, url: p.url || null,
+        createdAt: p.createdAt || null, likes: p.likes ?? null })),
+      xSkipped: !!narrative.xPosts?.skipped,
+      xSkipReason: narrative.xPosts?.reason || null,
+      projectSelfDescription: narrative.pumpfun?.description || null,
+      websites: narrative.info?.websites || [],
+      socials: narrative.info?.socials || [],
+      boosted: !!narrative.boost?.active,
+      // Name matches only, same as the Story room's own `confirmed: false` -- never promoted to
+      // a verified link just because it made it into this packet.
+      confirmed: narrative.confirmed === true,
+    };
+  } else {
+    missingData.push({ stream: 'narrative', why: 'no on-demand research (news/X/project links) fetched for this snapshot' });
+  }
+
   const packet = {
     packetId: crypto.randomUUID(),
     version,
@@ -187,6 +218,7 @@ function assemblePacket({
     previousPacketRef: previousPacketRef || null,
     streams: { trades: tb.items, posts: pb.items, market: mb.items, news: nb.items },
     rugCheck: rugCheckOut,
+    narrative: narrativeOut,
     missingData,
     boundsApplied,
   };
@@ -220,6 +252,8 @@ function buildOrionPrompt(packet) {
   lines.push(section('MARKET OBSERVATIONS', packet.streams.market));
   lines.push(section('NEWS', packet.streams.news));
   lines.push('', '--- RUG CHECK ---', packet.rugCheck ? JSON.stringify(packet.rugCheck, null, 1) : '(unavailable)');
+  lines.push('', '--- ON-DEMAND RESEARCH (news / X / project links, fetched fresh at build time) ---',
+    packet.narrative ? JSON.stringify(packet.narrative) : '(not fetched for this snapshot)');
 
   lines.push(
     '',
@@ -299,7 +333,7 @@ function loadAnalyses(userDataPath, chain, ca, v) {
  * packet's rug-check reading when re-building at the exact same cutoff, since rug status cannot
  * be replayed after the fact the way an append-only log can.
  */
-async function buildPacket(ca, { chain = 'solana', sym = null, cutoff, userDataPath, repoRoot } = {}) {
+async function buildPacket(ca, { chain = 'solana', sym = null, cutoff, userDataPath, repoRoot, narrative = null } = {}) {
   if (!Number.isFinite(cutoff)) throw new Error('buildPacket: cutoff (unix ms) is required');
   const dataDir = path.join(repoRoot, 'data');
   const rawTrades = readJsonl(path.join(userDataPath, 'fomo-signals', 'signals.jsonl'));
@@ -318,7 +352,7 @@ async function buildPacket(ca, { chain = 'solana', sym = null, cutoff, userDataP
 
   const packet = assemblePacket({
     chain, ca, sym, decisionCutoff: cutoff,
-    rawTrades, rawPosts, rawMarket, rawNews, rugCheck,
+    rawTrades, rawPosts, rawMarket, rawNews, rugCheck, narrative,
     previousPacketRef: previous ? { packetId: previous.packetId, version: previous.version } : null,
     version: (previous?.version || 0) + 1,
   });

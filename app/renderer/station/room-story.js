@@ -39,6 +39,14 @@
  * attached to any of it -- read it, don't trust it. That "no score" property is
  * also what keeps this a one-coin lookup rather than the broad X mood-tracking
  * D-122 killed on Connal's own instruction; see 50-LOG/decisions.md.
+ *
+ * Extended again 2026-09-09c: an "ask for a read" board that reuses The War Room's evidence-packet
+ * + Orion pipeline (`evidence:build`/`evidence:analyze`), generalized to work on ANY address, not
+ * just watchlist coins -- `evidencepacket.js` falls back to this lookup's own resolved chain/symbol
+ * and folds THIS lookup's already-fetched news/X/project links in as the packet's "narrative"
+ * snapshot, so a fresh coin gets a real AI-written verdict (bull case, bear case, falsifier) without
+ * a second X search. Whatever is already saved about the exact address (past trades, market
+ * history) rides along automatically if it happens to already be tracked.
  */
 import { mountRoom, board, esc, fmtUsd, ago, askText } from './rooms.js';
 
@@ -51,6 +59,7 @@ export function initStoryRoom(root) {
   let error = null;
   let tracked = null;  // the matching entry from cachedTokens(), if this coin is already on the watchlist
   let holders = { top1: [], top10: [] };
+  let ai = { analyzing: false, packet: null, result: null }; // the AI's read, built from this lookup + whatever's saved
 
   function trend(series) {
     if (!series || series.length < 2) return null;
@@ -77,6 +86,55 @@ export function initStoryRoom(root) {
       + (xPosts.truncated ? `<p class="st-flatempty">More posts exist than shown — capped for this lookup.</p>` : '')
       + `<p class="st-flatempty">Raw posts mentioning this coin's address or cashtag, not confirmed and not
          scored — read them yourself before trusting any of it as the coin's actual story.</p>`;
+  }
+
+  // The AI's read on this address -- reuses the same evidence-packet + Orion pipeline The War Room
+  // uses for tracked coins (`evidence:build`/`evidence:analyze`), but works for ANY address: the
+  // packet falls back to this lookup's own resolved chain/symbol when the coin isn't on the
+  // watchlist, and folds in this lookup's already-fetched news/X/project links as the packet's
+  // "narrative" snapshot -- no second X search, no double spend. Whatever else is already saved
+  // about this exact address (past trades, market history, notable posts) rides along for free
+  // if this coin does happen to be one already being tracked.
+  function aiReadBody() {
+    if (!result) return `<div class="st-flatempty">Look up a coin above first.</div>`;
+    if (ai.analyzing) {
+      return `<div class="st-flatempty">${ai.packet ? 'Orion is reading the evidence…' : 'Putting the evidence together…'}</div>`;
+    }
+    if (!ai.result) {
+      return `<div class="st-actrow">
+          <button class="btn sm accent" data-ask-orion>ask for a read</button>
+        </div>
+        <p class="st-flatempty">Pulls together everything already saved about this coin plus what
+          was just looked up above, and asks the AI for an honest read — bull case, bear case, and
+          what would prove it wrong. Nothing is invented: gaps in the data are named, not guessed.</p>`;
+    }
+    const again = `<div class="st-actrow"><button class="btn sm" data-ask-orion>ask again (fresh read)</button></div>`;
+    return ai.result.ok
+      ? `<div class="st-warblind-row">${ai.result.source === 'local'
+          ? '<p class="st-warblind-foot">Claude was unavailable -- answered by the on-Mac model instead.</p>' : ''}
+        <p>${esc(ai.result.reply).replace(/\n/g, '<br>')}</p></div>${again}`
+      : `<div class="st-flatempty">Could not get a read: ${esc(ai.result.error || 'unknown error')}</div>${again}`;
+  }
+
+  async function askOrion() {
+    if (!result) return;
+    ai = { analyzing: true, packet: null, result: null };
+    render();
+    try {
+      ai.packet = await window.mcii.evidenceBuild(ca, undefined, result);
+    } catch (e) {
+      ai = { analyzing: false, packet: null, result: { ok: false, error: `Could not put together the evidence: ${e.message || e}` } };
+      render();
+      return;
+    }
+    render();
+    try {
+      ai.result = await window.mcii.evidenceAnalyze(ca, result.chain);
+    } catch (e) {
+      ai.result = { ok: false, error: String(e.message || e) };
+    }
+    ai.analyzing = false;
+    render();
   }
 
   function render() {
@@ -157,6 +215,8 @@ export function initStoryRoom(root) {
             : `<div class="st-flatempty">No holder history recorded yet for this coin.</div>` });
       }
 
+      out += board({ label: "the AI's read on this", tag: 'STO-8', full: true, body: aiReadBody() });
+
       out += board({ label: 'what X is saying', tag: 'STO-7', full: true, body: xPostsBody(result.xPosts) });
 
       out += board({ label: "what's published under that name", tag: 'STO-3', full: true, body:
@@ -180,6 +240,7 @@ export function initStoryRoom(root) {
     wall.querySelectorAll('[data-open]').forEach((el) =>
       el.addEventListener('click', (e) => { e.preventDefault(); if (el.dataset.open) window.mcii.openExternal(el.dataset.open); }));
     wall.querySelector('[data-setmeta]')?.addEventListener('click', setMeta);
+    wall.querySelector('[data-ask-orion]')?.addEventListener('click', askOrion);
   }
 
   async function setMeta() {
@@ -203,6 +264,7 @@ export function initStoryRoom(root) {
     ca = (input?.value || '').trim();
     if (!ca) return;
     loading = true; error = null; result = null; tracked = null; holders = { top1: [], top10: [] };
+    ai = { analyzing: false, packet: null, result: null }; // never show the old address's AI read against a new one
     render();
     try {
       result = await window.mcii.narrativeLookup(ca);

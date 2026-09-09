@@ -119,5 +119,34 @@ function baseInputs(over = {}) {
   check('the trustworthy row is not flagged', normal.priceSuspect === false);
 }
 
+// ── 6. Narrative snapshot ───────────────────────────────────────────────────────────────────────
+// The Story room's "ask for a read" on an address that isn't tracked at all: no trades/posts/
+// market/news rows exist for it, but the fresh news/X/project-link lookup it just ran should still
+// land in the packet and change the read.
+{
+  const narrative = {
+    name: 'Test Coin', symbol: 'TEST',
+    items: [{ title: 'headline', link: 'https://x', source: 'src', ts: CUTOFF - 10 }],
+    xPosts: { posts: [{ text: 'gm', handle: 'h', url: 'u', createdAt: CUTOFF - 5, likes: 3 }], skipped: false },
+    pumpfun: { description: 'a coin' },
+    info: { websites: [{ url: 'https://site' }], socials: [] },
+    boost: { active: true },
+    confirmed: false,
+  };
+  const withNarrative = assemblePacket(baseInputs({ narrative }));
+  const without = assemblePacket(baseInputs());
+  check('narrative present -> not listed in missingData',
+    !withNarrative.missingData.some((m) => m.stream === 'narrative'));
+  check('narrative absent -> named in missingData, not silently blank',
+    without.missingData.some((m) => m.stream === 'narrative'));
+  check('narrative snapshot lands in the packet',
+    withNarrative.narrative && withNarrative.narrative.name === 'Test Coin'
+    && withNarrative.narrative.news.length === 1 && withNarrative.narrative.xPosts.length === 1
+    && withNarrative.narrative.projectSelfDescription === 'a coin' && withNarrative.narrative.boosted === true);
+  check('narrative is never auto-promoted to confirmed', withNarrative.narrative.confirmed === false);
+  check('narrative changes the hash (it is real evidence, not bookkeeping)',
+    hashPacket(withNarrative) !== hashPacket(without));
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

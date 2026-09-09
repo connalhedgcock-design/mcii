@@ -103,6 +103,33 @@
       boost: { active: false, totalAmount: null },
       confirmed: false,
     }),
+    evidenceBuild: async (ca, cutoff, narrative) => ({
+      packetId: 'mock-packet-1', version: 1, chain: narrative?.chain || 'solana',
+      ca, sym: narrative?.symbol || 'MOCK', decisionCutoff: cutoff || now, builtAt: now,
+      streams: { trades: [], posts: [], market: [], news: [] },
+      rugCheck: null,
+      narrative: narrative ? {
+        name: narrative.name, symbol: narrative.symbol,
+        news: narrative.items || [], xPosts: narrative.xPosts?.posts || [], confirmed: false,
+      } : null,
+      missingData: [
+        { stream: 'trades', why: 'no FOMO trade signals available at all' },
+        { stream: 'market', why: 'no market observations available at all' },
+        { stream: 'rugCheck', why: 'no rug-check result available' },
+      ],
+      boundsApplied: {}, hash: 'mockhash',
+    }),
+    evidenceLatest: async () => null,
+    evidenceAnalyze: async () => ({
+      ok: true, source: 'claude',
+      reply: "Bear case first: there's no on-chain trade history yet and only a couple of X posts, "
+        + "so most of this read leans on the project's own description rather than independent evidence — treat it as early, not settled.\n"
+        + "Bull case: the address resolved to a real, currently-trading pool, and nothing fetched so far flags a known scam pattern.\n"
+        + "Falsifier: if a rug check turns up a live mint or freeze authority, or X mentions stay this thin after another look, that flips this negative.\n"
+        + "Confidence: LOW, explicitly uncalibrated — this is mostly named gaps, not a strong signal either way.",
+      packet: { packetId: 'mock-packet-1', version: 1, hash: 'mockhash' },
+    }),
+    evidenceAnalyses: async () => [],
     collectionHealth: async () => ({ state: 'ok' }),
     sector: async () => ({
       collectedAt: now - 1000 * 60 * 6,

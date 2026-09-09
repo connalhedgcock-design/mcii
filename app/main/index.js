@@ -857,12 +857,15 @@ ipcMain.handle('orion:login', () => orion.login());
 // packet already contains everything needed to answer. `restricted` turns that off (`--tools ''`,
 // `--safe-mode`) and stops the call from riding on the general chat window's session memory too.
 const EVIDENCE_REPO_ROOT = path.join(__dirname, '..', '..');
-ipcMain.handle('evidence:build', async (_e, { ca, cutoff }) => {
-  const chain = store.tokens[ca]?.chain || 'solana';
-  const sym = store.tokens[ca]?.sym || store.watchlist.find((w) => w.ca === ca)?.sym || null;
+ipcMain.handle('evidence:build', async (_e, { ca, cutoff, narrative }) => {
+  // Falls back to what the narrative lookup itself resolved (dexscreener.fetchMarket) for a coin
+  // that isn't on the watchlist at all -- The Story room's "ask for a read" on a fresh address.
+  const chain = store.tokens[ca]?.chain || narrative?.chain || 'solana';
+  const sym = store.tokens[ca]?.sym || store.watchlist.find((w) => w.ca === ca)?.sym || narrative?.symbol || null;
   return evidencepacket.buildPacket(ca, {
     chain, sym, cutoff: Number.isFinite(cutoff) ? cutoff : Date.now(),
     userDataPath: app.getPath('userData'), repoRoot: EVIDENCE_REPO_ROOT,
+    narrative: narrative || null,
   });
 });
 ipcMain.handle('evidence:latest', (_e, { ca, chain }) =>

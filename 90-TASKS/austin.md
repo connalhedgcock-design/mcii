@@ -113,6 +113,18 @@ actually blocking progress — say yes/no on T-036, then T-003/T-004.
       whole real data source with nowhere to look at it; same "no surface = doesn't exist" problem
       D-117 already names for the combined algorithm · [[app/main/adapters/walletflow.js]],
       [[app/shared/washtrade.js]], [[80-WHISPERS/whale-tracking/README]]
+- [ ] T-091 P3 @austin · Story room's per-coin research should surface when the coin's OWN CREATOR
+      has a history of rugging other tokens. RugCheck already returns this as one entry in its
+      `risks` array (e.g. `{name: "Creator history of rugged tokens", level: "danger", score: 7200}`
+      from `/v1/tokens/{ca}/report`) but `fetchSafety()` in `app/main/adapters/rugcheck.js` only
+      reads `mintAuthority`/`freezeAuthority`/`metadataMutable`/`rugged`/`tokenAccounts`/`top1Pct`/
+      `top10Pct`/`insiderCount`/`lpLockedPct` off that response — it never looks inside `risks` for
+      this one, so it gets silently dropped before Story room ever sees it. Found live 09-09
+      researching HdPL4bP6smyfumoQhEPpkrAb4qpz3uvKZH4kdtFQpump ("Schlongberg Sachs"/SST), which
+      RugCheck flagged for exactly this · why: a creator's own rug history is one of the strongest,
+      cheapest-to-check red flags there is — dropping it means Story room's research can look clean
+      on a coin whose creator has already done this before · [[app/main/adapters/rugcheck.js]],
+      [[decisions#D-132]]
 
 ## DONE
 _nothing yet on this board._
