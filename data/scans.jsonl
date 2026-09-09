@@ -503,3 +503,4 @@
 {"ts":1788929039781,"src":"cloud","universe":43,"survivors":13,"tookMs":36947,"rejects":{"liquidity only $X":21,"only Nh old":2,"older than N days":6,"one wallet holds N%":1}}
 {"ts":1788930787138,"src":"cloud","universe":42,"survivors":11,"tookMs":34553,"rejects":{"liquidity only $X":23,"older than N days":6,"one wallet holds N%":1,"Mint Authority still enabled":1}}
 {"ts":1788932644847,"src":"cloud","universe":40,"survivors":11,"tookMs":34897,"rejects":{"liquidity only $X":20,"only Nh old":2,"older than N days":5,"one wallet holds N%":1,"Mint Authority still enabled":1}}
+{"ts":1788934388147,"src":"cloud","universe":41,"survivors":11,"tookMs":35905,"rejects":{"only Nh old":5,"liquidity only $X":18,"older than N days":5,"one wallet holds N%":1,"Mint Authority still enabled":1}}
