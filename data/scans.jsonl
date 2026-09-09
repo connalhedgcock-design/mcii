@@ -519,3 +519,4 @@
 {"ts":1788957836212,"src":"cloud","universe":43,"survivors":12,"tookMs":41479,"rejects":{"only Nh old":4,"liquidity only $X":17,"older than N days":6,"one wallet holds N%":3,"Mint Authority still enabled":1}}
 {"ts":1788959587474,"src":"cloud","universe":45,"survivors":12,"tookMs":42964,"rejects":{"only Nh old":4,"liquidity only $X":19,"older than N days":6,"one wallet holds N%":3,"Mint Authority still enabled":1}}
 {"ts":1788961442027,"src":"cloud","universe":45,"survivors":12,"tookMs":43184,"rejects":{"no trading pairs":1,"only Nh old":4,"liquidity only $X":17,"only $X traded in Nh":1,"older than N days":6,"one wallet holds N%":3,"Mint Authority still enabled":1}}
+{"ts":1788963188117,"src":"cloud","universe":43,"survivors":12,"tookMs":40338,"rejects":{"liquidity only $X":17,"only Nh old":3,"no trading pairs":1,"only $X traded in Nh":1,"older than N days":6,"one wallet holds N%":2,"Mint Authority still enabled":1}}
