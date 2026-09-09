@@ -17,16 +17,36 @@
  * technicality — it is the difference the mandate draws between a fact and a
  * coincidence, and it has to survive into this screen's own words, not just
  * live in a comment.
+ *
+ * Extended same day, after Connal asked how to track a memecoin's narrative in
+ * general (not just one address): three more boards, all free, all reusing
+ * machinery already built rather than a new subsystem --
+ *   - what the project itself claims (DexScreener's own `info.websites`/`socials`,
+ *     already fetched by `fetchMarket` and previously discarded)
+ *   - holder concentration (top1%/top10%) for coins already on the watchlist --
+ *     already collected by `history.js`, never displayed anywhere until now
+ *   - a "meta" tag Connal can set by hand (D-16: a person names it, the app
+ *     never guesses one), purely descriptive, never scored or compared across
+ *     coins -- see `50-LOG/2026-09-09-*` for why a cross-coin version of this
+ *     is deliberately NOT what this is.
  */
-import { mountRoom, board, esc, fmtUsd, ago } from './rooms.js';
+import { mountRoom, board, esc, fmtUsd, ago, askText } from './rooms.js';
 
 export function initStoryRoom(root) {
   const { pill, wall } = mountRoom(root, { beyondClass: 'rm-story', tag: 'STO', title: 'The Story' });
   let active = false;
   let ca = '';
   let loading = false;
-  let result = null;   // shape: { ca, name, symbol, chain, priceUsd, marketCap, items, confirmed }
+  let result = null;   // shape: { ca, name, symbol, chain, priceUsd, marketCap, info, items, confirmed }
   let error = null;
+  let tracked = null;  // the matching entry from cachedTokens(), if this coin is already on the watchlist
+  let holders = { top1: [], top10: [] };
+
+  function trend(series) {
+    if (!series || series.length < 2) return null;
+    const first = series[0].v, last = series[series.length - 1].v;
+    return { last, diff: last - first };
+  }
 
   function render() {
     pill.innerHTML = result
@@ -55,6 +75,47 @@ export function initStoryRoom(root) {
           <div class="st-stat"><span class="k">market cap</span><span class="v">${result.marketCap ? fmtUsd(result.marketCap) : '—'}</span></div>
         </div>` });
 
+      // What the project itself has posted -- not verified, just what's on record.
+      const websites = result.info?.websites || [];
+      const socials = result.info?.socials || [];
+      out += board({ label: 'what the project says about itself', tag: 'STO-4', wide: true, body:
+        (websites.length || socials.length)
+          ? `<div class="st-actrow" style="flex-wrap:wrap; gap:8px">
+              ${websites.map((w) => `<a href="#" data-open="${esc(w.url)}" class="chip is-flat">${esc(w.label || 'website')}</a>`).join('')}
+              ${socials.map((s) => `<a href="#" data-open="${esc(s.url)}" class="chip is-flat">${esc(s.type || 'social')}</a>`).join('')}
+            </div>`
+          : `<div class="st-flatempty">This coin hasn't posted a website or social link on its DexScreener listing.</div>` });
+
+      // Meta: a short, human-set label for what real-world/cultural story this coin is riding.
+      // Only settable for a coin already on the watchlist -- the field lives on the watchlist
+      // entry, same as its nickname.
+      if (tracked) {
+        out += board({ label: 'the meta — what story is this riding', tag: 'STO-5', wide: true, body: `
+          <div class="st-actrow">
+            <span class="grow">${tracked.meta ? esc(tracked.meta) : '<span class="st-flatempty" style="margin:0">not set yet</span>'}</span>
+            <button class="btn sm" data-setmeta="${esc(ca)}">${tracked.meta ? 'edit' : 'set it'}</button>
+          </div>
+          <p class="st-flatempty">Your own call, not a guess the app makes — a short label for what real-world
+            or cultural story this coin is riding (e.g. "AI meme", "TON/Telegram DAO meme").</p>` });
+
+        // Holder concentration -- already collected on-chain for every tracked coin, never shown
+        // anywhere until now. The project's own free substitute for a paid "bubblemaps" tool.
+        const t1 = trend(holders.top1), t10 = trend(holders.top10);
+        out += board({ label: 'who actually holds it', tag: 'STO-6', wide: true, body:
+          (t1 || t10)
+            ? `<div class="st-stats">
+                <div class="st-stat"><span class="k">biggest holder</span>
+                  <span class="v">${t1 ? t1.last.toFixed(1) + '%' : '—'}</span></div>
+                <div class="st-stat"><span class="k">top 10 holders</span>
+                  <span class="v">${t10 ? t10.last.toFixed(1) + '%' : '—'}</span></div>
+                <div class="st-stat"><span class="k">last 30 days</span>
+                  <span class="v">${t1 ? (t1.diff > 0.5 ? 'concentrating' : t1.diff < -0.5 ? 'spreading out' : 'steady') : '—'}</span></div>
+              </div>
+              <p class="st-flatempty">How much of the supply the biggest holders control, and whether that's
+                rising or falling — a fact about who owns it, not a buy or sell signal on its own.</p>`
+            : `<div class="st-flatempty">No holder history recorded yet for this coin.</div>` });
+      }
+
       out += board({ label: "what's published under that name", tag: 'STO-3', full: true, body:
         (result.items.length
           ? result.items.map((item) => `
@@ -75,18 +136,45 @@ export function initStoryRoom(root) {
     wall.querySelector('#story-ca')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') lookup(); });
     wall.querySelectorAll('[data-open]').forEach((el) =>
       el.addEventListener('click', (e) => { e.preventDefault(); if (el.dataset.open) window.mcii.openExternal(el.dataset.open); }));
+    wall.querySelector('[data-setmeta]')?.addEventListener('click', setMeta);
+  }
+
+  async function setMeta() {
+    const value = await askText('What story is this coin riding?', {
+      value: tracked?.meta || '', placeholder: 'e.g. "AI meme", "TON/Telegram DAO meme"', ok: 'Save',
+    });
+    if (value === null) return; // cancelled
+    try { await window.mcii.setMeta(ca, value); } catch { /* the room just re-reads on failure below */ }
+    tracked = (await cachedTokenFor(ca)) || tracked;
+    render();
+  }
+
+  async function cachedTokenFor(ca) {
+    let tokens = [];
+    try { tokens = (await window.mcii.cachedTokens()) || []; } catch { tokens = []; }
+    return tokens.find((t) => t.ca === ca) || null;
   }
 
   async function lookup() {
     const input = wall.querySelector('#story-ca');
     ca = (input?.value || '').trim();
     if (!ca) return;
-    loading = true; error = null; result = null;
+    loading = true; error = null; result = null; tracked = null; holders = { top1: [], top10: [] };
     render();
     try {
       result = await window.mcii.narrativeLookup(ca);
     } catch (e) {
       error = `Could not look that up: ${e.message || e}`;
+    }
+    if (result) {
+      tracked = await cachedTokenFor(ca);
+      if (tracked) {
+        const [top1, top10] = await Promise.all([
+          window.mcii.historySeries(ca, 'top1', 30).catch(() => []),
+          window.mcii.historySeries(ca, 'top10', 30).catch(() => []),
+        ]);
+        holders = { top1: top1 || [], top10: top10 || [] };
+      }
     }
     loading = false;
     render();

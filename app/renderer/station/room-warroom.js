@@ -79,7 +79,9 @@ export function initWarRoom(root) {
       reply = `<div class="st-flatempty">Orion is reading the snapshot…</div>`;
     } else if (lastResult && lastResult.packet && lastResult.packet.packetId === packet.packetId) {
       reply = lastResult.ok
-        ? `<div class="st-warblind-row"><p>${esc(lastResult.reply).replace(/\n/g, '<br>')}</p></div>`
+        ? `<div class="st-warblind-row">${lastResult.source === 'local'
+            ? '<p class="st-warblind-foot">Claude was unavailable -- answered by the on-Mac model instead.</p>' : ''}
+          <p>${esc(lastResult.reply).replace(/\n/g, '<br>')}</p></div>`
         : `<div class="st-flatempty">Orion could not answer: ${esc(lastResult.error || 'unknown error')}</div>`;
     }
     return `<div class="st-stats">${counts}</div>${missing}
@@ -342,7 +344,7 @@ export function initWarRoom(root) {
         const analyses = await window.mcii.evidenceAnalyses(ca, p.chain, p.version);
         if (ca !== sel) return;
         const last = analyses[analyses.length - 1];
-        if (last) lastResult = { ok: last.ok, reply: last.reply, error: last.error,
+        if (last) lastResult = { ok: last.ok, reply: last.reply, error: last.error, source: last.source,
           packet: { packetId: last.packetId, version: last.packetVersion, hash: last.packetHash } };
       } catch { /* no prior analysis -- the board just offers "analyze" for this packet */ }
     }

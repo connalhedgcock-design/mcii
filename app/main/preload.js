@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('mcii', {
   addToken: (ca, sym) => ipcRenderer.invoke('watchlist:add', { ca, sym }),
   removeToken: (ca) => ipcRenderer.invoke('watchlist:remove', ca),
   renameToken: (ca, nick) => ipcRenderer.invoke('watchlist:rename', { ca, nick }),
+  setMeta: (ca, meta) => ipcRenderer.invoke('watchlist:setMeta', { ca, meta }),
   discover: () => ipcRenderer.invoke('discover:latest'),
   collectionHealth: () => ipcRenderer.invoke('collection:health'),
   sector: () => ipcRenderer.invoke('sector:latest'),

@@ -46,6 +46,7 @@ const hype = require('../shared/hype');
 const journal = require('./journal');
 const updater = require('./updater');
 const orion = require('./orion');
+const localmodel = require('./localmodel');
 const portfolio = require('./portfolio');
 const alertsPush = require('./alerts-push');
 const walletAdapter = require('./adapters/wallet');
@@ -237,6 +238,7 @@ async function loadToken(entry) {
   const position = store.positions[ca] || null;
   out.position = position;
   out.nick = (store.watchlist.find((w) => w.ca === ca) || {}).nick || null;
+  out.meta = (store.watchlist.find((w) => w.ca === ca) || {}).meta || null;
 
   // Hour-on-hour holder change, computed on chain by the cloud collector. Read from the shared
   // record rather than recomputed here -- the query costs ~60MB and belongs on the server, not on
@@ -378,7 +380,12 @@ function syncWatchlist({ removed = null } = {}) {
   try { shared = JSON.parse(fs.readFileSync(WATCHLIST_FILE, 'utf8')); } catch {}
   if (!Array.isArray(shared)) shared = [];
   const by = new Map(shared.filter((w) => w && w.ca).map((w) => [w.ca, w]));
-  for (const w of store.watchlist) if (w && w.ca) by.set(w.ca, { ca: w.ca, sym: w.sym, nick: w.nick || null });
+  // ⚠️ SPREAD the existing shared entry first. Overwriting with a bare {ca, sym, nick} silently
+  // dropped any other field the shared file was carrying -- confirmed live in git history:
+  // DOGE-1's `newsQuery` was added by hand once, then wiped the next time this ran. `nick` still
+  // gets explicitly re-set from this machine's own store (the one field this machine can rename),
+  // everything else survives untouched.
+  for (const w of store.watchlist) if (w && w.ca) by.set(w.ca, { ...(by.get(w.ca) || {}), ca: w.ca, sym: w.sym, nick: w.nick || null, meta: w.meta || null });
   if (removed) by.delete(removed);
   const out = [...by.values()];
   try {
@@ -403,6 +410,14 @@ ipcMain.handle('watchlist:add', async (_e, { ca, sym }) => {
 ipcMain.handle('watchlist:rename', (_e, { ca, nick }) => {
   const e = store.watchlist.find((w) => w.ca === ca);
   if (e) { e.nick = String(nick || '').trim().slice(0, 24) || null; save(); syncWatchlist(); }
+  return store.watchlist;
+});
+// The "meta" -- what real-world/cultural story or trend a coin is riding (e.g. "AI meme",
+// "TON/Telegram DAO meme") -- same D-16 pattern as `nick`: a person names it, this app never
+// guesses one. Purely descriptive, never scored or compared across coins.
+ipcMain.handle('watchlist:setMeta', (_e, { ca, meta }) => {
+  const e = store.watchlist.find((w) => w.ca === ca);
+  if (e) { e.meta = String(meta || '').trim().slice(0, 40) || null; save(); syncWatchlist(); }
   return store.watchlist;
 });
 
@@ -860,12 +875,25 @@ ipcMain.handle('evidence:analyze', async (_e, { ca, chain, version }) => {
     : evidencepacket.loadLatestPacket(userDataPath, useChain, ca);
   if (!packet) return { ok: false, code: 'no-packet', error: 'No evidence packet built yet for this coin.' };
   const prompt = evidencepacket.buildOrionPrompt(packet);
-  const result = await orion.ask(prompt, null, { restricted: true });
+
+  let result = await orion.ask(prompt, null, { restricted: true });
+  let source = 'claude';
+  // Claude failed for ANY reason -- not installed, not signed in, out of usage, timed out. Not
+  // trying to tell those apart: every one of them means Claude cannot answer right now, and the
+  // on-Mac model is the same fallback either way. Whatever it says is kept alongside Claude's own
+  // error rather than replacing it, so a real "the model isn't set up" failure is never silently
+  // lost inside a good-looking reply.
+  if (!result.ok) {
+    const local = await localmodel.ask(prompt);
+    if (local.ok) { result = local; source = 'local'; }
+    else result = { ...result, localError: local.error };
+  }
+
   const analysis = { ts: Date.now(), packetId: packet.packetId, packetVersion: packet.version,
     packetHash: packet.hash, ok: result.ok, reply: result.reply || null, error: result.error || null,
-    code: result.code || null };
+    code: result.code || null, source };
   evidencepacket.saveAnalysis(userDataPath, packet, analysis);
-  return { ...result, packet: { packetId: packet.packetId, version: packet.version, hash: packet.hash } };
+  return { ...result, source, packet: { packetId: packet.packetId, version: packet.version, hash: packet.hash } };
 });
 ipcMain.handle('evidence:analyses', (_e, { ca, chain, version }) => {
   const userDataPath = app.getPath('userData');

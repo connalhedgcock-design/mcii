@@ -52,6 +52,9 @@ async function fetchMarket(ca) {
     name: main.baseToken.name,
     symbol: main.baseToken.symbol,
     chain,
+    // What the project itself has posted -- website/social links, if any. Not verified, just
+    // what's on record; DexScreener already fetches this per pair and it was being discarded.
+    info: main.info || null,
     priceUsd: parseFloat(main.priceUsd),
     marketCap: main.marketCap,
     poolCount: mine.length,

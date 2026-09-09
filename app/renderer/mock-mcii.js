@@ -37,7 +37,7 @@
   }, over);
 
   const tokens = [
-    tok({ sym: 'CATE', nick: 'CATE', alerts: [{ severity: 'HIGH', title: 'CATE holder count fell 12% in an hour', detail: 'Checked against the other feed; both agree.' }] }),
+    tok({ sym: 'CATE', nick: 'CATE', meta: 'dog meme', alerts: [{ severity: 'HIGH', title: 'CATE holder count fell 12% in an hour', detail: 'Checked against the other feed; both agree.' }] }),
     tok({ sym: 'WIF', gate: { verdict: 'CAUTION', lpStatus: 'locked', findings: [{ level: 'warn', label: 'Concentration', detail: 'Top 10 hold 38%' }] }, sentence: 'The top ten wallets hold 38% of the supply between them.', exit: { usd: null },
       trend: { price24h: { pct: -6.1, spanHours: 24 }, exitUsd: { pct: -12, spanHours: 24 }, liq: { pct: -9, spanHours: 24 }, holders: { pct: -3, spanHours: 24 }, top10: { pct: 4, spanHours: 24 }, recorded: 30 },
       history: { days: daysOf(30, 2.4, -0.22, 900000) }, market: { priceUsd: 1.9204, marketCap: 1920000000, totalLiquidityUsd: 4200000, poolCount: 6, volume: { h24: 900000 }, priceChange: { h1: -0.4, h24: -6.1 }, txns: { h24: { buys: 50, sells: 90 } }, fetchedAt: now, name: 'dogwifhat' } }),
@@ -83,9 +83,11 @@
     addToken: async () => {},
     removeToken: async () => {},
     renameToken: async () => {},
+    setMeta: async () => {},
     discover: async () => ({}),
-    narrativeLookup: async (ca) => ({
-      ca, name: 'Mock Coin', symbol: 'MOCK', chain: 'solana', priceUsd: 0.00123, marketCap: 512000,
+    narrativeLookup: async () => ({
+      ca: tokens[0].ca, name: 'Mock Coin', symbol: 'MOCK', chain: 'solana', priceUsd: 0.00123, marketCap: 512000,
+      info: { websites: [{ url: '#', label: 'Website' }], socials: [{ url: '#', type: 'twitter' }] },
       items: [
         { title: 'Mock Coin meme token surges after community post', source: 'Example Times', link: '#', ts: now - 1000 * 60 * 40 },
       ],

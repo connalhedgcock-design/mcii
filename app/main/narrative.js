@@ -23,10 +23,11 @@
 // verified link, and the room's own UI says so.
 const { fetchMarket } = require('./adapters/dexscreener');
 const { fetchNewsForQuery } = require('./adapters/newsfeed');
+const signalstore = require('./signalstore');
 
 async function lookupNarrative(ca) {
   const market = await fetchMarket(ca); // throws "token not found in any pool" etc -- let it propagate
-  const { name, symbol, chain, priceUsd, marketCap } = market;
+  const { name, symbol, chain, priceUsd, marketCap, info } = market;
 
   // Only the full resolved NAME, never the bare symbol/ticker on its own. Checked live 2026-09-09
   // against a real case (CATE/Catecoin): searching bare "CATE" returned 10 headlines, 8 of them
@@ -52,7 +53,22 @@ async function lookupNarrative(ca) {
   }
   items.sort((a, b) => (b.ts || 0) - (a.ts || 0));
 
-  return { ca, name, symbol, chain, priceUsd, marketCap, items: items.slice(0, 12), confirmed: false };
+  const result = { ca, name, symbol, chain, priceUsd, marketCap, info, items: items.slice(0, 12), confirmed: false };
+
+  // Record that the lookup happened, so there's a real history to check back against later --
+  // never scored, never fed into admission.js/synthesis.js (a name match is not confirmed
+  // evidence, same discipline as collectSelfNameNews). A failure here must never break the
+  // lookup itself, which is why it's swallowed rather than propagated.
+  try {
+    signalstore.record({
+      kind: 'narrative-lookup', ca, sym: symbol,
+      reasons: [`looked up "${name || symbol}" and found ${result.items.length} headline(s) under that name`],
+      evidence: { name, chain, itemCount: result.items.length, hasProjectInfo: !!info },
+      source: 'story-room',
+    });
+  } catch { /* logging the lookup is best-effort, never blocks the result */ }
+
+  return result;
 }
 
 module.exports = { lookupNarrative };
