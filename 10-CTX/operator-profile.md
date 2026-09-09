@@ -22,6 +22,11 @@ leads how that work is presented in the app. The boundary is ownership of the fi
 The assistant is an analyst and critical collaborator. Connal makes the final trading decision.
 
 ## HOW TO SOLVE TASKS
+Before reading any files by hand, run `graphify query "<specific question>"` (graphify-out/graph.json
+exists for this reason). Let its answer choose which files to open, then read those — never treat
+its output as the evidence itself. Only skip it to modify/debug a line you already know, or if it
+returns nothing useful after a narrower retry.
+
 Before work, read the vault entrypoint, relevant Obsidian files, relevant files in the MCII Google
 Drive folder, recent changes, and locked decisions. Do not ask Connal to repeat recorded context.
 

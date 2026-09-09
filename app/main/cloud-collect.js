@@ -38,6 +38,7 @@ const rescore = require('../shared/rescore');
 const signalstore = require('./signalstore');
 const notableAccounts = require('./adapters/notable-accounts');
 const virality = require('../shared/virality');
+const walletwatch = require('./adapters/walletwatch');
 journal.init(REPO);
 
 // One sweep serves the sector view AND every coin on the watchlist, so these numbers set the
@@ -686,6 +687,26 @@ function recentScanned() {
   } catch { return []; }
 }
 
+// Connal's own 58 followed FOMO traders, watched directly on-chain -- see `walletwatch.js`'s own
+// header for the full reasoning. `data/fomo-followed-wallets.json` is the (unverified third-party)
+// handle->address list; `data/wallet-watch-state.json` is the per-wallet watermark so the same
+// activity is not re-read and re-recorded every cycle. Runs even without a market key or an X key
+// configured -- it only needs the RPC `walletflow.js` already uses.
+function loadFollowedWallets() {
+  try {
+    const doc = JSON.parse(fs.readFileSync(path.join(DATA, 'fomo-followed-wallets.json'), 'utf8'));
+    return doc.wallets || [];
+  } catch { return []; }
+}
+async function collectWalletSignals() {
+  const followed = loadFollowedWallets();
+  if (!followed.length) return [];
+  const stateFile = path.join(DATA, 'wallet-watch-state.json');
+  return walletwatch.pollFollowedWallets(followed, stateFile, {
+    onError: (w, e) => log(`  wallet watch failed for @${w.handle}: ${e.message}`),
+  });
+}
+
 // Real-world-story news, per coin, only for coins a person opted in with `newsQuery`
 // (`data/watchlist.json`) -- design + the DOGE-1 case: `60-KB/news-catalyst-research.md`.
 // Deduped by article LINK, not appended fresh every run like market/social readings: a headline
@@ -704,8 +725,13 @@ async function collectNewsEvents(tokens) {
   const cryptoMarket = await newsfeed.collectCryptoNews(tokens, {
     onError: (_, e) => log(`  crypto-outlet news failed: ${e.message}`),
   });
+  // D-128, pillar 4: general (non-crypto) outlets, read for macro market-movers + the rare tracked-
+  // coin namesake hit. See `newsfeed.js: collectGeneralNews`'s own header for why no cashtag sweep.
+  const general = await newsfeed.collectGeneralNews(tokens, {
+    onError: (feed, e) => log(`  general news failed for ${feed.name}: ${e.message}`),
+  });
 
-  return [...catalyst, ...selfName, ...cryptoMarket].filter((n) => n.link && !seen.has(n.link));
+  return [...catalyst, ...selfName, ...cryptoMarket, ...general].filter((n) => n.link && !seen.has(n.link));
 }
 
 function readJsonl(name) {
@@ -833,10 +859,28 @@ async function main() {
     log(`  ${checked} open forecast(s) checked, ${resolved} resolved this run`);
   } catch (e) { log(`  label resolution failed — ${e.message}`); }
 
+  log('wallet watch:');
+  try {
+    const walletSignals = await collectWalletSignals();
+    if (walletSignals.length) {
+      append('wallet-signals.jsonl', walletSignals.map((s) => ({ ts: Date.now(), ...s })));
+      for (const s of walletSignals) {
+        signalstore.record({ kind: `wallet-${s.direction}`, ca: s.mint, sym: null, ts: s.ts,
+          reasons: [`@${s.handle} (on-chain) ${s.direction === 'buy' ? 'bought' : 'sold'}${s.selfTradeFlag ? ' -- also traded the other side of this coin in the same window' : ''}`],
+          evidence: s });
+      }
+    }
+    log(`  ${walletSignals.length} new on-chain signal(s) from ${loadFollowedWallets().length} followed wallet(s)`);
+  } catch (e) { log(`  wallet watch failed — ${e.message}`); }
+
   log('news:');
   try {
     const newsEvents = await collectNewsEvents(tokens);
-    append('news.jsonl', newsEvents.map((n) => ({ ts: Date.now(), publishedTs: n.ts, kind: n.kind, confirmed: n.confirmed ?? true, ca: n.ca, sym: n.sym, query: n.query, source: n.source, title: n.title, link: n.link })));
+    // `n.confirmed === undefined` (never `?? true`): a 'general' market-mover row deliberately
+    // sets `confirmed: null` (not a coin claim, "confirmed" doesn't apply) and `??` would silently
+    // rewrite that null to true -- only a genuinely MISSING field defaults true (the legacy-row
+    // case `writeRescore`'s own comment documents), never an explicit null.
+    append('news.jsonl', newsEvents.map((n) => ({ ts: Date.now(), publishedTs: n.ts, kind: n.kind, confirmed: n.confirmed === undefined ? true : n.confirmed, marketMover: n.marketMover ?? false, priority: n.priority ?? null, ca: n.ca, sym: n.sym, query: n.query, source: n.source, title: n.title, link: n.link })));
     log(`  ${newsEvents.length} new headline(s)`);
   } catch (e) { log(`  news failed — ${e.message}`); }
 

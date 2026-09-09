@@ -59,6 +59,33 @@ shape, or the Orion-null-live rule differs from the doc.
 - Rug check cannot be replayed for an old cutoff; a same-cutoff rebuild reuses the prior packet's
   frozen reading, a new cutoff always fetches fresh.
 
+## CORRECTION, SAME DAY — WRONG MARKET FILE, AND PROMPT SIZE
+
+fact: Connal reported both the "build" and "analyze" steps as very slow after the first real
+click. Checked directly rather than guessed:
+
+- The market stream was reading `data/candidates.jsonl` — the broad market SCANNER's survivor
+  list (up to 60 random coins per sweep), not any one coin's history. Filtered to CATE's exact
+  address, it returned **zero rows**, despite `data/market.jsonl` (the real per-coin history the
+  cloud collector writes for every watchlist coin) holding 451 real readings for CATE alone. Every
+  packet built so far had a silently empty market stream, not a slow one — a correctness bug, not
+  a performance one. Fixed: `buildPacket()` now reads `market.jsonl`; `assemblePacket()`'s market
+  mapping updated to that file's real field names (`v24`/`buys24`/`sells24`/`exitUsd`/`exitTok`/
+  `pools`/`top10`/`flags` — confirmed by reading the actual file, not the write-side code).
+- Fetching a fresh rug check timed at 582ms live — not the slow part.
+- The real slow part, once market data was actually flowing: 451 readings at ~2/hour serialized
+  as pretty-printed JSON came to ~180,000 characters in Orion's prompt — a huge amount of text for
+  one read. `STREAM_BOUNDS.market` cut from 500 to 150 (still ~3 days of history at this
+  collection rate; `boundsApplied.market.omitted` reports the exact cut, nothing silent), and the
+  prompt serializer switched from pretty to compact JSON (the saved `packet.json` on disk is
+  unaffected — only what Orion reads changed). Measured after the fix, real coin, real files:
+  `buildPacket()` 552ms end to end; prompt ~93,000 characters (~23,000 estimated tokens), down
+  from an unmeasured but clearly much larger figure before.
+
+est: 23,000 tokens is still a genuinely large single read for a model to work through — if it is
+still reported as slow after this fix, the next lever is trimming the market bound further (150 →
+lower) or summarizing older readings instead of passing every raw row, not re-adding what was cut.
+
 ## VERIFICATION DONE
 
 - `npm test` — full suite green, 18/18 new checks pass, no existing test broke.

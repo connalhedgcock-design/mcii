@@ -223,6 +223,21 @@ content still open. ! `walletflow.js`/`washtrade.js` (the on-chain mechanism thi
 of its research validating) are UNCHANGED by any of this — still built, still tested, still not
 wired to anything user-facing.
 
+## !! STEP 3 NOW BUILT FOR REAL, 2026-09-08 — `app/main/adapters/walletwatch.js`, see D-129
+09-07's FOMO-notification route (the section above) turned out to have never actually run on this
+Mac — checked 09-08, the folder that code creates instantly on first run does not exist at all.
+Connal, 09-08: "remeber last night we figured out a way to get the actual wallet address off the
+blockchain and we can move away from using the fomo notifications." `data/fomo-followed-wallets.json`
+(third-party resolved list, captured 09-07, unverified against chain) supplies the addresses;
+`walletflow.js: walletHistory()` — built 09-02 for exactly this, sitting unused until now — reads
+each one's real activity from the always-on collector. Full detail: D-129 in `decisions.md`.
+! this is the SAME idea this file's own build order called step 3, just via a different, better
+data source than the FOMO-notification route tried first. It is NOT the derivation idea Connal
+killed 09-05 (deriving unknown wallets algorithmically) — that stays killed; this reads wallets he
+already named. Spot-checked live against 4 real handles before trusting the list — all four came
+back real, recent, plausible activity. Not yet wired to any alert or to admission; not yet timed at
+full 45-wallet scale on the server.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.

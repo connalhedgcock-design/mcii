@@ -23,7 +23,16 @@ const { markSeries } = require('./pricesanity');
 // Bounded deterministically -- never silently trimmed. When a stream exceeds its cap, the MOST
 // RECENT items (closest to the decision cutoff) are kept: that is what the doc's own "still
 // unresolved" framing needs Orion to see, and the count of what was cut is reported, never hidden.
-const STREAM_BOUNDS = { trades: 200, posts: 200, market: 500, news: 100 };
+// ! market's cap is much lower than the others ON PURPOSE. Measured live 2026-09-07: one real
+// tracked coin (CATE) already has 451 market readings (~2/hour for two weeks) -- at 500 that alone
+// serialized to ~180,000 characters of prompt, which is why Orion's first real run was reported as
+// "very slow". Trades/posts/news are discrete EVENTS and stay rare even over a long history;
+// market is a dense, highly redundant continuous series where the shape of the move matters far
+// more than having every single 30-minute tick. 150 still covers roughly 3 days at that
+// collection rate -- `boundsApplied.market.omitted` reports exactly how many older readings were
+// cut, so nothing is silently lost, and a wider read is always a config change away if a real
+// decision needs it.
+const STREAM_BOUNDS = { trades: 200, posts: 200, market: 150, news: 100 };
 
 function boundStream(rows, cap) {
   const sorted = [...rows].sort((a, b) => a.firstObservedTime - b.firstObservedTime);
@@ -109,7 +118,12 @@ function assemblePacket({
   const pb = boundStream(postRows, STREAM_BOUNDS.posts);
   boundsApplied.posts = { available: pb.available, included: pb.included, omitted: pb.omitted };
 
-  // --- MARKET -- cloud-collector snapshots for this coin. ------------------------------------
+  // --- MARKET -- `data/market.jsonl`'s per-COIN continuous history (NOT `candidates.jsonl`,
+  // which is the broad scanner's survivor list from across the whole market and does not carry a
+  // full history for any one watchlist coin). Row shape confirmed by reading the real file:
+  // {ts, src, ca, sym, price, mcap, liq, pools, v24, buys24, sells24, exitUsd, exitTok, holders,
+  //  top1, top10, verdict, flags} -- no pre-existing priceSuspect flag, so markSeries() here is
+  // doing the real, first check, not a redundant one.
   // ! suspect prices are MARKED, NEVER DROPPED (D-69 via pricesanity.js). Cloned before marking
   // so this stays pure -- markSeries mutates the rows it is given.
   const marketRaw = (rawMarket || [])
@@ -120,9 +134,10 @@ function assemblePacket({
     sourceId: `market:${ca}:${m.ts}`,
     eventTime: m.ts, firstObservedTime: m.ts, savedTime: m.ts,
     sourceLink: null,
-    raw: { price: m.price, rawPrice: m.rawPrice ?? m.price, mcap: m.mcap, liq: m.liq, vol24: m.vol24,
-           chg24: m.chg24, ageH: m.ageH, holders: m.holders, top1: m.top1, verdict: m.verdict, via: m.via },
-    units: { price: 'USD', mcap: 'USD', liq: 'USD', vol24: 'USD' },
+    raw: { price: m.price, rawPrice: m.rawPrice ?? m.price, mcap: m.mcap, liq: m.liq, pools: m.pools,
+           v24: m.v24, buys24: m.buys24, sells24: m.sells24, exitUsd: m.exitUsd, exitTok: m.exitTok,
+           holders: m.holders, top1: m.top1, top10: m.top10, verdict: m.verdict, flags: m.flags },
+    units: { price: 'USD', mcap: 'USD', liq: 'USD', v24: 'USD', exitUsd: 'USD' },
     // Exact contract-address equality -- these rows were only ever fetched FOR this coin.
     identityCertainty: 'certain',
     relatedEventGroup: null,
@@ -186,7 +201,10 @@ function assemblePacket({
 function buildOrionPrompt(packet) {
   const iso = (ms) => (Number.isFinite(ms) ? new Date(ms).toISOString() : 'unknown');
   const section = (title, rows) =>
-    `\n--- ${title} (${rows.length}) ---\n${rows.length ? JSON.stringify(rows, null, 1) : '(none)'}`;
+    // Compact, not pretty -- this text is read by Orion, not a person. Indentation on hundreds of
+    // rows was pure wasted length with no information in it, and length is exactly what was
+    // making the analyze step slow. The saved packet.json on disk keeps its own pretty-printing.
+    `\n--- ${title} (${rows.length}) ---\n${rows.length ? JSON.stringify(rows) : '(none)'}`;
 
   const lines = [
     `FROZEN EVIDENCE PACKET -- ${packet.sym || packet.ca} on ${packet.chain}`,
@@ -286,7 +304,7 @@ async function buildPacket(ca, { chain = 'solana', sym = null, cutoff, userDataP
   const dataDir = path.join(repoRoot, 'data');
   const rawTrades = readJsonl(path.join(userDataPath, 'fomo-signals', 'signals.jsonl'));
   const rawPosts = readJsonl(path.join(dataDir, 'notable-posts.jsonl'));
-  const rawMarket = readJsonl(path.join(dataDir, 'candidates.jsonl'));
+  const rawMarket = readJsonl(path.join(dataDir, 'market.jsonl'));
   const rawNews = readJsonl(path.join(dataDir, 'news.jsonl'));
 
   const previous = loadLatestPacket(userDataPath, chain, ca);

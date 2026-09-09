@@ -52,6 +52,44 @@ const CRYPTO_FEEDS = [
   { name: 'Bitcoin.com News', url: 'https://news.bitcoin.com/feed/' },
 ];
 
+// PILLAR 4, added 2026-09-08 (D-128) -- Connal's own framing: "its honestly unlikely that we will
+// find actual coins in [general news]... in general news we should be looking for things like
+// 'new data center announcments' or more general things that will move the market more as a whole
+// as opposed to looking for the id for specific coins in the general new." General (non-crypto)
+// outlets, read for MACRO/INDUSTRY events that could move the whole market, not for coin identity.
+// ! checked live 2026-09-08 via plain `getText` (same as CRYPTO_FEEDS, no anti-bot issue found):
+// CNBC 30 items, TechCrunch 20 items, Yahoo Finance 50 items. MarketWatch's public feed URL is
+// dead (0 items) -- left out rather than shipped broken.
+const GENERAL_FEEDS = [
+  { name: 'CNBC Business', url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html' },
+  { name: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
+  { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
+];
+
+// !! HEURISTIC, NOT FACT -- est, not proven. There is no reliable programmatic test for "will this
+// move the crypto market"; this is a keyword net, built from the kind of story Connal named
+// (infrastructure/AI capex like a new data center) plus the other macro categories base-rates.md
+// already says drag every memecoin with it (rates, regulation, a broad market shock). It WILL miss
+// real market-movers worded differently and WILL flag some that turn out to be noise -- that is
+// why `marketMover` is stored as a label on the row, never used to silently drop anything, same
+// "show it, don't hide it" discipline as D-119. Revise this list directly when it's wrong, rather
+// than layering a second filter on top.
+const MARKET_MOVER_KEYWORDS = /\b(federal reserve|fed rate|interest rate|rate (?:cut|hike|decision)|inflation|recession|sec\b|regulat(?:ion|or|ory)|etf|data center|data-center|ai chip|semiconductor|nvidia|energy grid|power grid|stock market (?:crash|plunge|sell-?off)|treasury|tariff|trade war|central bank)/i;
+
+function marketMoverHit(title) {
+  return MARKET_MOVER_KEYWORDS.test(title);
+}
+
+// A `$TICKER` cashtag in a crypto-outlet headline -- how memecoin news actually names a coin.
+// Whole cashtag only (never a bare substring), same discipline as `matchWatchlistCoins`.
+function extractCashtags(title) {
+  const out = new Set();
+  const re = /\$([A-Za-z][A-Za-z0-9]{1,9})\b/g;
+  let m;
+  while ((m = re.exec(title))) out.add(m[1].toUpperCase());
+  return [...out];
+}
+
 // !! MEASURED LIVE 2026-09-05: Node's own `fetch` (undici) gets served a well-formed, VALID,
 // EMPTY RSS channel by Google News' edge -- no error, no 403, just zero <item> elements -- on the
 // exact same query `curl` answers correctly and repeatably, from the same machine, same network,
@@ -239,14 +277,72 @@ async function collectSelfNameNews(watchlist, { onError = () => {} } = {}) {
   return out;
 }
 
+// D-128: crypto-specific outlets are checked for BOTH the macro/market-moving read AND specific
+// coin identification -- unlike general news, a crypto site naming a brand-new coin (one not yet
+// on the watchlist) is exactly the ordinary case, so `$CASHTAG`s are pulled here too. A cashtag
+// alone is NOT identity -- this project's whole ticker-collision machinery
+// (`resolve.js`, `ticker-collisions.json`) exists because the same symbol maps to many real
+// coins -- so a candidate row carries a SYMBOL ONLY, `ca: null`, `confirmed: false`, and is not
+// resolved to an address or wired into admission here. That resolution + human review step is
+// later work (D-128's own open item), not guessed at in this pass.
 async function collectCryptoNews(watchlist, { limitPerFeed = 20, onError = () => {} } = {}) {
   let items;
   try { items = await fetchCryptoOutletNews({ limitPerFeed }); }
   catch (e) { onError(null, e); return []; }
-  return items.map((item) => {
+  const out = [];
+  for (const item of items) {
     const matches = matchWatchlistCoins(item.title, watchlist);
-    return { kind: 'crypto', ca: matches[0]?.ca ?? null, sym: matches[0]?.sym ?? null, query: null, ...item };
-  });
+    const marketMover = marketMoverHit(item.title);
+    out.push({ kind: 'crypto', ca: matches[0]?.ca ?? null, sym: matches[0]?.sym ?? null, query: null, marketMover, ...item });
+
+    const matchedSyms = new Set(matches.flatMap((c) => [c.sym, c.nick].filter(Boolean).map((s) => String(s).toUpperCase())));
+    for (const ticker of extractCashtags(item.title)) {
+      if (matchedSyms.has(ticker)) continue; // already identified above, not a "new" candidate
+      out.push({ kind: 'crypto-new-coin-candidate', confirmed: false, ca: null, sym: ticker, query: null, marketMover, ...item });
+    }
+  }
+  return out;
 }
 
-module.exports = { fetchNewsForQuery, collectNews, collectSelfNameNews, fetchCryptoOutletNews, collectCryptoNews, matchWatchlistCoins, parseItems };
+// D-128, PILLAR 4: general (non-crypto) outlets are read primarily for macro/industry events that
+// could move the whole market -- NOT for coin identity, per Connal's own framing (see
+// MARKET_MOVER_KEYWORDS above). The one exception: if a TRACKED coin's own name still turns up
+// here anyway, that is rare precisely because general news doesn't cover coins, and Connal named
+// that explicitly, 09-08: "if a coin IS mentioned in general news that is probably a huge sign of
+// a massive change in price." Flagged `priority: 'high'` for exactly that reason -- but still
+// `confirmed: false`. General news finding a coin's real-world namesake (the DOGE-1 shape) and
+// general news finding an unrelated namesake collision (the Cate Blanchett/microduck shape) read
+// identically at the keyword-match level; only a person telling them apart makes either safe to
+// trust, same rule as every other unvetted candidate in this file.
+// ! no `$CASHTAG` sweep here -- Connal, same message: hunting for brand-new coin IDs in general
+// news specifically is not worth building, that's what the crypto-outlet sweep above is for.
+// Pure noise (no coin match, no market-mover keyword hit) is dropped, not stored -- these feeds
+// run ~100 headlines/cycle and most of it (sports, celebrity, real estate) has no bearing here.
+async function collectGeneralNews(watchlist, { limitPerFeed = 30, onError = () => {} } = {}) {
+  const results = await Promise.allSettled(
+    GENERAL_FEEDS.map(async (feed) => {
+      const xml = await getText(feed.url);
+      return parseItems(xml).slice(0, limitPerFeed).map((item) => ({ ...item, source: item.source || feed.name }));
+    })
+  );
+  const items = [];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') items.push(...r.value);
+    else onError(GENERAL_FEEDS[i], r.reason);
+  });
+
+  const out = [];
+  for (const item of items) {
+    const matches = matchWatchlistCoins(item.title, watchlist);
+    const marketMover = marketMoverHit(item.title);
+    if (matches.length) {
+      out.push({ kind: 'general-coin-candidate', confirmed: false, priority: 'high',
+        ca: matches[0].ca, sym: matches[0].sym, query: null, marketMover, ...item });
+    } else if (marketMover) {
+      out.push({ kind: 'general', confirmed: null, ca: null, sym: null, query: null, marketMover: true, ...item });
+    }
+  }
+  return out;
+}
+
+module.exports = { fetchNewsForQuery, collectNews, collectSelfNameNews, fetchCryptoOutletNews, collectCryptoNews, collectGeneralNews, matchWatchlistCoins, parseItems, extractCashtags, marketMoverHit };
