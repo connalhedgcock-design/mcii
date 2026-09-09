@@ -1,8 +1,8 @@
 ---
 id: task.board
 t: task-board
-v: 6
-upd: 2026-09-07
+v: 7
+upd: 2026-09-09
 machine: connal
 derived: true
 ---
@@ -65,8 +65,15 @@ _none._ ✓
       out-of-sample persistence test (build order step 4) and deriving which wallets to follow.
 
 ## P3 · BUILD — real improvements, nothing broken
-- [ ] T-005 @connal · the entry signal — what actually picks a coin to buy, and when to sell
-      · why: the stated focus of the next session, and the piece the whole strategy waits on.
+- [ ] T-005 @connal · IN PROGRESS · the entry signal — what actually picks a coin to buy, and when
+      to sell · why: the piece the whole strategy waits on. Step 1 of the build order — one real
+      coin, one frozen evidence packet, one honest Orion read, no combined score — is BUILT AND
+      VERIFIED LIVE 09-09 (War Room screen). Step 2 onward (wallet group on server, trader records,
+      the actual human-vs-AI test) is still open · [[90-TASKS/TRACKING-BUILD-PLAN]]
+- [ ] T-042 @connal · Orion's evidence analysis is genuinely slow (65-115s+ per read) · why: a real
+      fix shipped 09-09 (no more vault-wandering, no more shared session memory) but measured NOT to
+      be the actual cause — real cause looks like prompt size (~93k chars) + a deliberately thorough
+      required answer. Three untried options, his call · [[90-TASKS/TRACKING-BUILD-PLAN]]
 - [ ] T-006 @connal · define what counts as the strategy working, and against what baseline
       · why: the current bar can't be proven wrong, and profit in a rising market proves nothing.
 - [ ] T-007 @connal · position sizing across the $100 paper budget — NO hard cap per Connal 09-05

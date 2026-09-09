@@ -143,8 +143,21 @@ const SYSTEM = [
  * Ask Orion something. Resolves { ok, reply } or { ok:false, error, code }.
  * `code` lets the renderer tell "not installed" from "not signed in" from
  * "it broke" — three different things that must never look the same.
+ *
+ * `restricted: true` (used only for evidence-packet analysis) turns off every
+ * lever that made that specific call slow and, worse, not actually independent:
+ * `--tools ''` stops it wandering off into the vault for "more context" -- the
+ * whole design point of a frozen packet is that the packet IS the evidence, and
+ * a live filesystem read could pull in something written after the cutoff,
+ * which is exactly the leak the hash/replay tests exist to catch. `--safe-mode`
+ * drops this repo's own CLAUDE.md/hooks from the call, which that mode of call
+ * never needed anyway. And it neither reads nor writes the shared `sessionId` --
+ * evidence analysis sharing session memory with the general chat window meant
+ * an unrelated conversation's history was silently riding along, which is both
+ * a second way old context could leak into a "frozen" read and, as that history
+ * grew, a second real reason calls got slower over a long-running session.
  */
-function ask(text, live, { retrying = false } = {}) {
+function ask(text, live, { retrying = false, restricted = false } = {}) {
   return new Promise((resolve) => {
     const s = status();
     if (!s.installed) {
@@ -169,7 +182,8 @@ function ask(text, live, { retrying = false } = {}) {
     // what makes the resumed session line up with the same conversation instead
     // of a different one per directory.
     const args = ['-p', prompt, '--append-system-prompt', SYSTEM, '--output-format', 'json'];
-    if (sessionId) args.push('--resume', sessionId);
+    if (restricted) args.push('--tools', '', '--safe-mode');
+    if (sessionId && !restricted) args.push('--resume', sessionId);
 
     const child = execFile(s.path, args,
       { cwd: REPO, timeout: 180000, maxBuffer: 8 * 1024 * 1024,
@@ -186,7 +200,7 @@ function ask(text, live, { retrying = false } = {}) {
         // rather than leaving Orion broken until the app is restarted.
         if (!retrying && NO_SUCH_SESSION.test(msg)) {
           sessionId = null;
-          return resolve(ask(text, live, { retrying: true }));
+          return resolve(ask(text, live, { retrying: true, restricted }));
         }
         // ⚠️ Check the OUTPUT for a login prompt before treating it as an answer.
         if (NOT_SIGNED_IN.test(out) || NOT_SIGNED_IN.test(msg)) {
@@ -194,7 +208,9 @@ function ask(text, live, { retrying = false } = {}) {
             error: 'Not signed in to Claude on this machine.' });
         }
         if (!err && out) {
-          if (parsed?.session_id) sessionId = parsed.session_id;
+          // A restricted (evidence-analysis) call never joins the general chat's
+          // memory -- see the doc comment on `ask` for why that sharing was wrong.
+          if (parsed?.session_id && !restricted) sessionId = parsed.session_id;
           return resolve({ ok: true, reply: out });
         }
         if (err?.killed) {

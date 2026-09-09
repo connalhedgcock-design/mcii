@@ -4,7 +4,7 @@ t: build-plan
 v: 1
 upd: 2026-09-07
 machine: connal
-status: step-1-code-built-app-verification-pending
+status: step-1-verified-live-2026-09-09
 ---
 # MCII — research-to-build plan
 
@@ -123,3 +123,76 @@ Do not publish personal forecasts, holdings, account associations or keys to thi
 **Build Step 1 now as the next implementation task:** one real coin → frozen four-stream evidence packet → Orion analysis in the existing coin view → saved analysis with source links and missing-data labels. Proposed new code boundary: `app/shared/evidencepacket.js`, connected through existing `app/main/orion.js`, main/preload handlers and current coin view. Add focused tests for cutoff leakage, identity collisions, missing data and source disagreement, then verify the running app. Step 2 can follow without blocking this useful first result.
 
 This document is the plan, not evidence of implementation. Mark each finish line complete only after a real demonstration. No application code, subscriptions, collection settings or notifications were changed by this planning task.
+
+## Step 1 — VERIFIED LIVE, 2026-09-09
+
+Driven with a real Electron+Playwright session against the actual running app (not just the unit
+tests, which already passed) — `app/shared/evidencepacket.js`'s 18 tests, plus a live run against
+CATE (`Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump`), both via a direct bridge call and via the real
+"War Room" screen's own analyze button (`renderer/station/room-warroom.js`, wired since a prior
+session — this planning pass did not know it already reached the UI, not just `main/index.js`).
+
+fact: two full runs each produced a real Orion reply — bear case first, a stated falsifier
+("what would change this view"), confidence framed explicitly as an uncalibrated guess, and correct
+handling of zero-data streams (trades/posts/news showed as `0` and named in `missingData`, never
+hidden or silently treated as safe). Hash/replay guarantees (cutoff leakage, same-input same-hash,
+version bump on re-analyze) are covered by the existing test suite and held live too.
+
+est: a single Orion call took ~65-80s in the fastest observed run and did not finish inside 120s in
+two other same-session runs (all under the code's own 180s timeout, so not a hang, just slow and
+variable) — not dug into further; plausible cause is CLI-level contention with other concurrent
+`claude` usage on this machine during testing, not confirmed. Worth watching if it's used live and
+the delay becomes annoying, not worth fixing blind.
+
+Finish line met: real coin, real four-stream packet, real visible Orion analysis, missing data
+labelled not hidden, no aggregate score gating the read. Step 2 (wallet group onto the server) is
+next per the build order above, and is a `[[whale-tracking/README]]`-owned decision, not this one.
+
+## Speed investigation, 2026-09-09 — one real fix shipped, the actual slowness NOT yet solved
+
+Connal asked directly for analysis to be a lot faster. Real work done, honestly reported:
+
+fact: BUILT AND TESTED — `orion.ask()` (`app/main/orion.js`) now takes a `restricted` option, used
+only by `evidence:analyze` (`app/main/index.js`). It passes `--tools ''` and `--safe-mode` (stops
+Orion wandering into the vault for "more context" on its own initiative -- a real risk, since
+anything it reads that way could postdate the frozen cutoff, exactly what the hash/replay tests
+exist to prevent) and it no longer reads or writes the shared `sessionId` (an evidence-analysis call
+was previously riding on the SAME session memory as the general Orion chat window -- an unrelated
+conversation's history silently included in what was supposed to be an independent read, and, as
+that history grew over a session, a second real reason later calls would get slower). This is a real
+correctness fix, worth keeping regardless of speed. All 20 test suites still pass.
+
+est/falsified: my working theory was that tool-call round-trips were the main cost. Measured live,
+twice, with the fix in place, on the same real coin (CATE): 78.8s and 115.1s. That is NOT faster
+than the unrestricted baseline (65-80s best case, 120s+ up to the 180s timeout on slower runs) --
+so tool-wandering was NOT the dominant cost. Theory rejected by its own test; not restated as true.
+
+fact, found while measuring: the actual prompt sent to Orion for a well-populated coin (CATE, 150
+market readings at the current cap) is ~93,000 characters, roughly 20-25k tokens. That is a real,
+substantial input, and combined with the deliberately thorough 8-part required answer shape
+(`buildOrionPrompt`'s "HOW TO READ THIS" section -- disconfirming evidence first, independent vs
+echoed evidence, early/late/reversal read, opposing case, unknowns, forecast window; researched and
+specified in `[[60-KB/human-ai-entry-exit-research]]`, not decoration) produces a genuinely long
+reply (4,400-5,700 characters observed) -- this looks like the real cost: a thorough answer to a
+large amount of evidence, on a subscription CLI call rather than a raw low-latency API, simply takes
+a real amount of time to generate. Not confirmed by a controlled model-vs-model timing test -- that
+test was starting (comparing the default model against an explicit faster tier on the identical real
+prompt) when this session was told to stop spending on it and write up what's known instead.
+
+Three real levers exist, NONE decided or built -- his call, each has a real cost:
+1. **Shrink the market stream further.** `STREAM_BOUNDS.market` is already 150, cut down once
+   before from 500 for this same complaint (`shared/evidencepacket.js` comment, 2026-09-07). Cutting
+   it further (say to 60-80) directly shrinks the prompt and should genuinely help -- cost: less
+   price history in view, coarser trend-reading.
+2. **Ask for a shorter reply.** The 8-part structure is the researched design, not filler --
+   shortening it is exactly the kind of "simplify the analysis, not just the delivery" move the
+   mandate says costs money. Possible middle ground: keep all 8 points, ask for fewer sentences per
+   point -- untested.
+3. **Try a faster model tier for this call specifically** (e.g. `--model haiku` vs the account
+   default). Untested for whether analysis QUALITY holds up on this specific task -- speed without
+   knowing if the read stays trustworthy is not a win. This needs a real side-by-side comparison
+   before trusting it, not a guess.
+
+Not yet measured: how much of the ~80-115s is input processing (prefill) vs the reply being
+generated (decode) -- that split would say whether lever 1 (shrink input) or lever 2/3 (shrink or
+speed up output) matters more, and wasn't isolated before this session stopped.

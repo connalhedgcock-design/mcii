@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('mcii', {
   screenLatest: () => ipcRenderer.invoke('screen:latest'),
   socialFor: (ca) => ipcRenderer.invoke('social:token', ca),
   notableFor: (ca) => ipcRenderer.invoke('notable:token', ca),
+  narrativeLookup: (ca) => ipcRenderer.invoke('narrative:lookup', ca),
   allAlerts: () => ipcRenderer.invoke('alerts:all'),
   cachedTokens: () => ipcRenderer.invoke('tokens:cached'),
   orionStatus: () => ipcRenderer.invoke('orion:status'),

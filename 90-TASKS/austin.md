@@ -1,8 +1,8 @@
 ---
 id: task.austin
 t: task-queue
-v: 4
-upd: 2026-09-05
+v: 5
+upd: 2026-09-09
 machine: connal
 owner: austin
 ---
@@ -15,6 +15,12 @@ Add tasks as plain lines anywhere below; ids and priorities get assigned on the 
 so treat the ordering as a proposal, not an assignment.
 
 ## NOW
+! STATUS, not a task — tell Austin this first: the War Room screen (entry/exit evidence-packet +
+Orion analysis, `90-TASKS/TRACKING-BUILD-PLAN.md` Step 1) is BUILT AND VERIFIED LIVE as of
+2026-09-09 — driven end-to-end against a real coin (CATE), real Orion reply, missing data correctly
+labelled. Nothing to build there right now. The three items below are unchanged and are what's
+actually blocking progress — say yes/no on T-036, then T-003/T-004.
+
 - [ ] T-036 P2 @austin · you're setting up following + notifications for Elon/Trump on your own X
       account (Connal's is suspended) — once that's done, this project wants to read those
       notifications locally off YOUR Mac, the same way it already reads FOMO's trade alerts off

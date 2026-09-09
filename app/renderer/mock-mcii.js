@@ -84,6 +84,13 @@
     removeToken: async () => {},
     renameToken: async () => {},
     discover: async () => ({}),
+    narrativeLookup: async (ca) => ({
+      ca, name: 'Mock Coin', symbol: 'MOCK', chain: 'solana', priceUsd: 0.00123, marketCap: 512000,
+      items: [
+        { title: 'Mock Coin meme token surges after community post', source: 'Example Times', link: '#', ts: now - 1000 * 60 * 40 },
+      ],
+      confirmed: false,
+    }),
     collectionHealth: async () => ({ state: 'ok' }),
     sector: async () => ({
       collectedAt: now - 1000 * 60 * 6,

@@ -1,8 +1,8 @@
 ---
 id: task.connal
 t: task-queue
-v: 4
-upd: 2026-09-07
+v: 5
+upd: 2026-09-09
 machine: connal
 owner: connal
 ---
@@ -72,9 +72,23 @@ and a spot on the board next time we talk.
       and only one of them has a person behind it. Both are now removed again.
 
 ## NEXT
-- [ ] T-005 P3 @connal · the thing that actually picks which coins to buy and when to sell
-      · why: this is the whole point of the trading strategy, and it's the piece that doesn't
-      exist yet · [[70-AREAS/trading-strategy/README]]
+- [ ] T-042 P3 @connal · make Orion's evidence-packet analysis (War Room) actually fast
+      · why: each read takes 65-115s+ measured live; a real fix shipped 09-09 (stopped it wandering
+      the vault, stopped it sharing session memory with general chat) but measured NOT to be the
+      speed cause. Real found cause: the prompt itself runs ~93,000 characters for a well-populated
+      coin, and the required answer is a deliberately thorough 8-part structure — this looks like
+      genuine generation time, not a bug. Three real options, none decided: shrink the market data
+      sent further (already cut once, `STREAM_BOUNDS.market`), ask for a shorter reply (costs real
+      analytical depth, the mandate's line against simplifying content, not delivery), or try a
+      faster model tier for just this call (untested whether quality holds) · [[90-TASKS/TRACKING-BUILD-PLAN]]
+- [ ] T-005 P3 @connal · IN PROGRESS · the thing that actually picks which coins to buy and when to
+      sell · why: this is the whole point of the trading strategy. ! Step 1 of the researched build
+      order (`[[90-TASKS/TRACKING-BUILD-PLAN]]`) — one real coin, one frozen evidence packet, one
+      honest Orion read, no combined score deciding it — is BUILT AND VERIFIED LIVE 2026-09-09
+      (War Room screen, real end-to-end run on CATE, not just unit tests). Still open: Step 2
+      onward (wallet group on the server, trader/large-holder records, timing improvements, the
+      human-vs-AI-vs-market comparison that actually tests whether this helps) — none of that is
+      built yet · [[70-AREAS/trading-strategy/README]]
 - [ ] T-006 P3 @connal · decide what "it worked" actually means before testing it
       · why: "profits when it should be profitable" can't ever be proven wrong, and a rising
       market makes anything look clever · [[70-AREAS/trading-strategy/README]]

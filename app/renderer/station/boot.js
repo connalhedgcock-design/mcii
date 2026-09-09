@@ -18,6 +18,7 @@ import { initSectorRoom } from './room-sector.js'
 import { initJournalRoom } from './room-journal.js'
 import { initFolioRoom } from './room-folio.js'
 import { initWarRoom } from './room-warroom.js'
+import { initStoryRoom } from './room-story.js'
 
 const root = document.getElementById('observatory')
 if (root) {
@@ -40,6 +41,9 @@ if (root) {
     // not a rebuild of an existing tab. It therefore has no FLAT_MAIN_ID entry
     // either: there is nothing to hide when it shows.
     war:     initWarRoom(document.getElementById('room-war')),
+    // The Story has no flat screen behind it either -- same reason as the War Room: it is new,
+    // not a rebuild, so there is nothing in FLAT_MAIN_ID for it to hide.
+    story:   initStoryRoom(document.getElementById('room-story')),
   }
   const FLAT_MAIN_ID = { watch: 'grid', market: 'market', sector: 'sector', journal: 'journal', folio: 'folio' }
 

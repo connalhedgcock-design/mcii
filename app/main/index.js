@@ -37,6 +37,7 @@ const { fetchMarket, searchTokens, discoverLatest } = require('./adapters/dexscr
 const { fetchSafety } = require('./adapters/rugcheck');
 const { fetchTokenMeta, maxExitable } = require('./adapters/jupiter');
 const { fetchHistory } = require('./adapters/geckoterminal');
+const { lookupNarrative } = require('./narrative');
 const history = require('./history');
 const alerts = require('./alerts');
 const { LiveMonitor } = require('./live');
@@ -359,6 +360,9 @@ ipcMain.handle('tokens:search', async (_e, q) => {
   }
   return searchTokens(q);
 });
+// The Story: paste any address, get back what it actually is plus whatever news already exists
+// under that name. On-demand version of `newsfeed.js`'s collectSelfNameNews -- see narrative.js.
+ipcMain.handle('narrative:lookup', (_e, ca) => lookupNarrative(String(ca || '').trim()));
 // !! THE WATCHLIST HAD TO BE WRITTEN INTO THE REPO, AND WAS NOT.
 // The cloud collector reads data/watchlist.json and nothing ever wrote that file, so it fell
 // back to two hardcoded coins forever. Anything either of them added in the app was collected
@@ -828,10 +832,15 @@ ipcMain.handle('orion:login', () => orion.login());
 
 // Evidence packets -- `90-TASKS/TRACKING-BUILD-PLAN.md` Build Step 1. One frozen, reproducible
 // snapshot of what is already collected about one coin, then an on-demand Orion read of it.
-// ! `evidence:analyze` calls `orion.ask(prompt, null)` -- the `null` is deliberate. `orion:ask`
-// above always attaches `liveContext()` (today's live prices); reusing that path here would leak
-// information from AFTER the frozen cutoff into the read, defeating the whole point of freezing a
-// snapshot. This call gets ONLY the packet's own frozen text.
+// ! `evidence:analyze` calls `orion.ask(prompt, null, { restricted: true })` -- the `null` is
+// deliberate. `orion:ask` above always attaches `liveContext()` (today's live prices); reusing that
+// path here would leak information from AFTER the frozen cutoff into the read, defeating the whole
+// point of freezing a snapshot. `restricted: true` closes the other two leaks a live verification
+// found 2026-09-09: with tools and this repo's own CLAUDE.md available, Orion would sometimes go
+// read the vault for "more context" on its own initiative -- possibly pulling in something written
+// after the cutoff, and definitely taking 1-3 extra minutes per read for something the frozen
+// packet already contains everything needed to answer. `restricted` turns that off (`--tools ''`,
+// `--safe-mode`) and stops the call from riding on the general chat window's session memory too.
 const EVIDENCE_REPO_ROOT = path.join(__dirname, '..', '..');
 ipcMain.handle('evidence:build', async (_e, { ca, cutoff }) => {
   const chain = store.tokens[ca]?.chain || 'solana';
@@ -851,7 +860,7 @@ ipcMain.handle('evidence:analyze', async (_e, { ca, chain, version }) => {
     : evidencepacket.loadLatestPacket(userDataPath, useChain, ca);
   if (!packet) return { ok: false, code: 'no-packet', error: 'No evidence packet built yet for this coin.' };
   const prompt = evidencepacket.buildOrionPrompt(packet);
-  const result = await orion.ask(prompt, null);
+  const result = await orion.ask(prompt, null, { restricted: true });
   const analysis = { ts: Date.now(), packetId: packet.packetId, packetVersion: packet.version,
     packetHash: packet.hash, ok: result.ok, reply: result.reply || null, error: result.error || null,
     code: result.code || null };
