@@ -54,6 +54,7 @@ const venues = require('./venues');
 const fomoNotifications = require('./adapters/fomonotifications');
 const admission = require('../shared/admission');
 const labels = require('../shared/labels');
+const traderstats = require('../shared/traderstats');
 const signalstore = require('./signalstore');
 const pumpcapture = require('./pumpcapture');
 const chartfallback = require('../shared/chartfallback');
@@ -456,6 +457,13 @@ function tickerCollisions() {
   } catch { return {}; }
 }
 ipcMain.handle('tickers:collisions', () => tickerCollisions());
+
+// The Traders room (T-025/T-017): how Connal's followed FOMO traders' real on-chain buys have
+// actually resolved. Pure computation over two already-collected files -- no network call, same
+// "opening the tab costs nothing" rule as sector:latest above. See shared/traderstats.js for what
+// this can and cannot honestly claim.
+ipcMain.handle('traders:stats', () =>
+  traderstats.computeTraderStats(readJsonl('wallet-signals.jsonl'), readJsonl('pump-captures.jsonl')));
 
 ipcMain.handle('sector:latest', () => {
   const social = readJsonl('sector.jsonl').filter((r) => r.kind === 'sector').pop() || null;

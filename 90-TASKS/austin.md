@@ -105,11 +105,13 @@ actually blocking progress — say yes/no on T-036, then T-003/T-004.
       specific reason attached (D-119) wherever a coin's status is shown, not just admitted coins
       · why: right now 'yellow' coins are invisible even though real evidence exists on them
       · [[app/shared/admission.js]]
-- [ ] T-025 P3 @austin · a dedicated screen for the wallet tracker itself — not just flags bolted
-      onto other views. Connal, 09-05: "we need a screen itself to show the wallet tracker also."
-      Data already exists to show: who's actually been trading a coin (`walletflow.js`), which of
-      that is flagged as fake (`washtrade.js`, T-021), and — once built — whale sell/buy detection
-      (`80-WHISPERS/whale-tracking/README` build-order steps 3-5, not done yet). · why: this is a
+- [ ] T-025 P3 @austin · BUILT 09-09 (D-134): a dedicated Traders room now exists
+      (`app/renderer/station/room-traders.js`) — real buy/sell activity per followed trader, win
+      rate on resolved buys, self-trade flip rate, all real numbers from `traderstats.js`. Built
+      functionally, not styled/reviewed by Austin yet — worth his pass on layout/visual fit with
+      the rest of the Observatory rooms. Still not shown: `washtrade.js`'s wash-trade flags
+      (T-021, cross-wallet collusion — different from the cheap same-wallet flip flag already
+      shown here) · why this row stays open: needs Austin's design review, not a rebuild · [[80-WHISPERS/whale-tracking/README]]
       whole real data source with nowhere to look at it; same "no surface = doesn't exist" problem
       D-117 already names for the combined algorithm · [[app/main/adapters/walletflow.js]],
       [[app/shared/washtrade.js]], [[80-WHISPERS/whale-tracking/README]]

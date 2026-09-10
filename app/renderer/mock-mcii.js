@@ -130,6 +130,17 @@
       packet: { packetId: 'mock-packet-1', version: 1, hash: 'mockhash' },
     }),
     evidenceAnalyses: async () => [],
+    traderStats: async () => ([
+      { handle: 'wolfoftrades', wallet: '5xJ8...mock1', buys: 14, sells: 6, coins: 9, lastTs: now - HOUR,
+        selfTradeRate: 0.05, resolved: 9, wins: 6, winRate: 0.67, avgRet: 0.081,
+        pending: 3, avgRunningRet: 0.02, trust: 'early read, not reliable yet' },
+      { handle: 'quietaccum', wallet: '9pL2...mock2', buys: 5, sells: 1, coins: 4, lastTs: now - 4 * HOUR,
+        selfTradeRate: 0, resolved: 2, wins: 1, winRate: 0.5, avgRet: -0.03,
+        pending: 2, avgRunningRet: -0.01, trust: 'too little data yet' },
+      { handle: 'flipbot99', wallet: '3qR7...mock3', buys: 22, sells: 20, coins: 6, lastTs: now - HOUR / 2,
+        selfTradeRate: 0.41, resolved: 15, wins: 5, winRate: 0.33, avgRet: -0.06,
+        pending: 4, avgRunningRet: -0.02, trust: 'early read, not reliable yet' },
+    ]),
     collectionHealth: async () => ({ state: 'ok' }),
     sector: async () => ({
       collectedAt: now - 1000 * 60 * 6,

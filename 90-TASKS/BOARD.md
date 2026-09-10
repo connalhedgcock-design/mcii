@@ -60,9 +60,10 @@ _none._ ✓
       · why: `alerts-push.js` reads a variable nothing populates. looks wired, silently no-ops.
 - [ ] T-004 @austin · get `CLOUDFLARE_KV_TOKEN` onto Austin's machine
       · why: otherwise whichever machine last opened the portfolio decides what gets watched.
-- [ ] T-017 @connal · work out what whale wallet tracking watches and what a move MEANS
-      · why: largely answered — see `[[80-WHISPERS/whale-tracking/README]]`; still open: the
-      out-of-sample persistence test (build order step 4) and deriving which wallets to follow.
+- [ ] T-017 @connal · which wallets and what a sell means were answered weeks ago; a first real
+      measurement of whether a followed trader's BUYS pay off is now built (D-134,
+      `traderstats.js` + the new Traders room) · why still open: n is near-zero, no persistence
+      test at real n yet — that's the actual open question, not a build task · `[[80-WHISPERS/whale-tracking/README]]`
 
 ## P3 · BUILD — real improvements, nothing broken
 - [ ] T-005 @connal · IN PROGRESS · the entry signal — what actually picks a coin to buy, and when
@@ -102,9 +103,9 @@ _none._ ✓
 - [ ] T-021 @austin · show wash-trade flags wherever wallet activity reaches a screen
       · why: some wallet "buying" is manufactured (self-trades, linked wallets) — a raw count would
       show fake interest as if it were real.
-- [ ] T-025 @austin · a dedicated screen for the wallet tracker itself, not flags bolted onto
-      other views · why: real wallet data exists (`walletflow.js` + `washtrade.js`) with nowhere to
-      look at it.
+- [ ] T-025 @austin · BUILT 09-09 (D-134, `app/renderer/station/room-traders.js`) — real per-trader
+      buy/sell activity, win rate, self-trade flip rate · why still open: needs Austin's design
+      pass, not a rebuild; wash-trade collusion flags (T-021) still not shown there.
 - [ ] T-026 @austin · show the untracked-coin trend list on screen, labelled UNPROVEN, not a ranked
       leaderboard — Connal, 09-05: still valuable, wants more backtesting and a plain explanation
       of what statistic actually determines "trending" · why: a same-night walk-forward test found
