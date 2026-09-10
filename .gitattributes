@@ -5,6 +5,7 @@
 data/*.jsonl                  merge=mcii-data
 data/holder-truth.json        merge=mcii-data
 data/wallet-watch-state.json  merge=mcii-data
+data/x-spend.json             merge=mcii-data
 
 # ! everything else is deliberately NOT here. A conflict in real code or a vault note is a genuine
 # disagreement between two people and must stop and ask, never be auto-resolved.
