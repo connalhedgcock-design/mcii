@@ -73,11 +73,11 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789109020252,
-    "people": 2,
+    "at": 1789112616401,
+    "people": 1,
     "tone": null,
-    "confidence": "none",
-    "manipulated": true,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   }
 }
