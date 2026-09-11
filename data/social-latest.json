@@ -37,7 +37,7 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1789137817614,
+    "at": 1789145017912,
     "people": 1,
     "tone": null,
     "confidence": "none",
@@ -73,9 +73,9 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789137817618,
-    "people": 1,
-    "tone": null,
+    "at": 1789145017917,
+    "people": 3,
+    "tone": -0.522,
     "confidence": "none",
     "manipulated": true,
     "manipReasons": []
