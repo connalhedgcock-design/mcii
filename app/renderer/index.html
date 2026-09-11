@@ -32,6 +32,7 @@
     <button class="tab" data-view="folio">Portfolio</button>
     <button class="tab" data-view="war">War Room</button>
     <button class="tab" data-view="story">The Story</button>
+    <button class="tab" data-view="traders">Traders</button>
     <button class="tab" data-view="fomo">FOMO</button>
     <button class="tab" data-view="axiom">Axiom</button>
   </nav>
@@ -59,6 +60,8 @@
   <div id="room-war" hidden></div>
   <!-- The Story has no flat main either, same reason as the War Room above. -->
   <div id="room-story" hidden></div>
+  <!-- Traders has no flat main either, same reason as the War Room above. -->
+  <div id="room-traders" hidden></div>
   <!-- fomo/axiom stay flat: the venue's page is a native, pixel-positioned
        view (see venueRect() in app.js), not a DOM node -- it cannot take a
        CSS transform, so these two get the room's atmosphere as a background

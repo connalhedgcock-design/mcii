@@ -267,6 +267,21 @@ section's own "untested" line asked for: D-131 in `decisions.md`.
 ! still collect-and-label only — none of this pushes anywhere. Still an unverified third-party
 wallet list (same caveat as the section above). Still not the killed derivation idea.
 
+## !! BUY-SIDE MEASUREMENT BUILT, 2026-09-09 — SEE D-134
+Connal asked directly for "data to see who is actually good, what they are good at, and why they
+are trading the way they are." The first real piece of that (are their buys paying off) is built:
+every real on-chain buy signal from `walletwatch.js` now starts `pumpcapture.js`'s existing 2h/90s
+price recorder (previously wired only to the dead `fomonotifications.js` trigger, per T-035), and
+`app/shared/traderstats.js` resolves each buy against it using the same triple-barrier rule
+(`labels.js: checkBarrier`) every admission forecast is scored against. Surfaced in a new Traders
+room (`app/renderer/station/room-traders.js`). This answers "are they winning," measured, not
+guessed — it does NOT answer "what they're good at" or "why they trade the way they do": both were
+explicitly declined as unanswerable from on-chain data rather than invented, per the mandate's own
+rule against generating a story the evidence doesn't support. n is near-zero right now (the trigger
+only started firing 09-08/09) — every trader's own row says so, nothing here is a verdict yet.
+! this is a DIFFERENT thing from the derivation idea killed 09-05 (`X KILLED` section above) — it
+measures wallets Connal already named, same distinction D-129 already drew for the read itself.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.

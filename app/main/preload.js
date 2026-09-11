@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('mcii', {
   unpinHud: () => ipcRenderer.invoke('hud:unpin'),
   onHudCoin: (cb) => ipcRenderer.on('hud:coin', (_e, ca) => cb(ca)),
   growthQuality: () => ipcRenderer.invoke('growth:quality'),
+  traderStats: () => ipcRenderer.invoke('traders:stats'),
   calendarList: () => ipcRenderer.invoke('calendar:list'),
   calendarUpcoming: (withinDays) => ipcRenderer.invoke('calendar:upcoming', withinDays),
   // Portfolio. Public wallet addresses in, holdings out -- the renderer never sees a key,

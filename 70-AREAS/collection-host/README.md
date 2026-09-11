@@ -2,7 +2,7 @@
 id: area.collection-host.readme
 t: area-readme
 v: 1
-upd: 2026-09-01
+upd: 2026-09-10
 machine: connal
 ---
 # COLLECTION HOST — the server that actually collects the data
@@ -99,3 +99,11 @@ stopped dead — hit for real on 09-05 with 25 host collection commits against a
   data conflict merges cleanly with every row preserved and correctly interleaved by time, AND a
   conflict in real code or a vault note still stops and asks. Two people editing the same function
   is a genuine disagreement and must never be auto-resolved.
+- ! **`data/x-spend.json` was missed the first time round (hit for real 09-09/09-10) and kept
+  stopping `share.sh` after this was supposedly fixed.** It's a running counter (this machine's own
+  $ spent this month against the shared X budget, D-90), not a log or a snapshot, so it needed its
+  own merge rule rather than reusing an existing one: `merge_spend()` adds back each side's own
+  delta since the last common point (a real 3-way merge), so neither machine's real spend is
+  dropped and neither is double-counted. Taking "whichever number is higher" — what got hand-done
+  09-09 — quietly under-reports true spend, which is the wrong direction to be wrong in for a
+  budget cap. Now covered in `.gitattributes` like the rest.

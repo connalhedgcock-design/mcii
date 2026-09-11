@@ -19,6 +19,7 @@ import { initJournalRoom } from './room-journal.js'
 import { initFolioRoom } from './room-folio.js'
 import { initWarRoom } from './room-warroom.js'
 import { initStoryRoom } from './room-story.js'
+import { initTradersRoom } from './room-traders.js'
 
 const root = document.getElementById('observatory')
 if (root) {
@@ -44,6 +45,8 @@ if (root) {
     // The Story has no flat screen behind it either -- same reason as the War Room: it is new,
     // not a rebuild, so there is nothing in FLAT_MAIN_ID for it to hide.
     story:   initStoryRoom(document.getElementById('room-story')),
+    // Traders: same shape again -- a new capability (T-017/T-025), no flat screen to hide.
+    traders: initTradersRoom(document.getElementById('room-traders')),
   }
   const FLAT_MAIN_ID = { watch: 'grid', market: 'market', sector: 'sector', journal: 'journal', folio: 'folio' }
 

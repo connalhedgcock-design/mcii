@@ -552,3 +552,4 @@
 {"ts":1789086660769,"price":0.1767,"mcap":174642645,"liq":11124857,"pools":30,"v24":2102232,"buys24":2747,"sells24":1700,"exitUsd":null,"exitTok":null,"holders":null,"holdersSuspect":null,"top1":null,"top10":null,"verdict":null,"flags":null}
 {"ts":1789086975558,"price":0.1755,"mcap":173400844,"liq":11031021,"pools":30,"v24":2117527,"buys24":2748,"sells24":1703,"exitUsd":null,"exitTok":null,"holders":null,"holdersSuspect":null,"top1":null,"top10":null,"verdict":null,"flags":null}
 {"ts":1789087275605,"price":0.1744,"mcap":172343004,"liq":10999579,"pools":30,"v24":2141361,"buys24":2735,"sells24":1766,"exitUsd":null,"exitTok":null,"holders":null,"holdersSuspect":null,"top1":null,"top10":null,"verdict":null,"flags":null}
+{"ts":1789087890742,"price":0.1724,"mcap":170343666,"liq":10922829,"pools":30,"v24":2178720,"buys24":2732,"sells24":1896,"exitUsd":null,"exitTok":null,"holders":null,"holdersSuspect":null,"top1":null,"top10":null,"verdict":null,"flags":null}

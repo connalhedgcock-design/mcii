@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1789024394877,
+  "checkedAt": 1789029481211,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -24,7 +24,7 @@
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477170
+          "liquidityUsd": 1477172
         }
       ],
       "rank": 4,
@@ -38,7 +38,7 @@
         {
           "ca": "9BFw5KMWpBfzbEKh7qtp5U6hXRVZ6DqykZGV1BkFpump",
           "name": "DOGE-1",
-          "liquidityUsd": 20443
+          "liquidityUsd": 20421
         }
       ],
       "rank": 1,
@@ -71,7 +71,7 @@
         {
           "ca": "CTuw8xEE15hKi2yB9n8CoLDq8ZhBLVbh8ydcuN11pump",
           "name": "Microduck",
-          "liquidityUsd": 9037
+          "liquidityUsd": 8965
         }
       ],
       "rank": null,
@@ -90,7 +90,7 @@
         {
           "ca": "AUc7hszwXTyRXAkHjjrytyT7sB7r85sc3FxPW5tepump",
           "name": "OTC Sol",
-          "liquidityUsd": 321941
+          "liquidityUsd": 317959
         },
         {
           "ca": "2f3Hdx7HN6ELsNazmQZgJ4j1dpKm2C179bdctFApGiNp",
@@ -100,7 +100,7 @@
         {
           "ca": "4ubjmpgLw6GbG6bnxUDrrLUbHEiAwLdh6dS8djRwpump",
           "name": "OTC",
-          "liquidityUsd": 64169
+          "liquidityUsd": 63778
         }
       ],
       "rank": 2,
@@ -114,7 +114,7 @@
         {
           "ca": "EMyRs7pxz98znYnbzYYqko7eENUa8M8fi3B9MDatL8Sj",
           "name": "GPRO",
-          "liquidityUsd": 18323
+          "liquidityUsd": 18239
         },
         {
           "ca": "3qoQtGhYLoSCh7QQopB1Vr7ux3QgeTLhp6rUJspdr2Sa",
@@ -157,7 +157,7 @@
         {
           "ca": "BpzvZe2MREqJyN22UJetX5mfU1yMJ1hRb2NiCYYipump",
           "name": "Crumbs",
-          "liquidityUsd": 9979
+          "liquidityUsd": 9552
         }
       ],
       "rank": null,
@@ -169,17 +169,17 @@
       "sym": "baton",
       "rivals": [
         {
-          "ca": "294jPQvSEBwuShvmKyYEMsd3ZjNB37ESpsyh3thbYKYz",
+          "ca": "7VA9SbEua2PJtoRKFVznSo6ScvF3L8WYYnbTCRjkZyC5",
           "name": "baton",
-          "liquidityUsd": 243339
+          "liquidityUsd": 1720219
         },
         {
           "ca": "BA5dmnLuTNHNut3i9ZTpAGQ3EL72GRWgTvwetKfibgcB",
           "name": "baton",
-          "liquidityUsd": 222232
+          "liquidityUsd": 190393
         }
       ],
-      "rank": 1,
+      "rank": 2,
       "of": 3
     }
   }

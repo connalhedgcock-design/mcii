@@ -36,11 +36,13 @@ and a spot on the board next time we talk.
       fixture still uses $10,000→$5,000, both above the new cut-off, so the alert correctly does
       not fire and the test calls that a failure. ! a suite that always shows red trains you to
       ignore red, which is how a REAL break gets through · [[decisions]] D-114
-- [ ] T-017 P3 @connal · FIRST · work out what whale wallet tracking watches and what a move MEANS
-      · why: everything below is blocked on it. "track whales" is not yet a spec — which wallets,
-      and whether a whale selling is even bad news, are both unanswered. ! D-93: no free keyless
-      RPC reads a wallet from a datacenter, so anything always-on needs a home that is not the
-      alert worker · [[80-WHISPERS/whale-tracking/README]]
+- [ ] T-017 P3 @connal · largely built, not fully — which wallets (Connal's own 45 followed FOMO
+      traders, D-129) and what a sell means (near-unambiguous risk signal) were answered weeks ago;
+      whether a BUY means anything was the real open half, and a first real measurement of that is
+      now built (D-134: each followed trader's buys resolved against a real 2h price outcome,
+      `app/shared/traderstats.js`, shown in the new Traders room). n is still near-zero — nothing to
+      conclude yet, just a real pipeline collecting the record · why still open: no persistence
+      test yet at real n; that's the actual falsifier, not a build task · [[80-WHISPERS/whale-tracking/README]]
 - [ ] T-016 P3 @connal · THEN · the combined system: whale moves + social + market numbers, scored
       together, picking which coins to track — and the resulting analysis shown BOTH in the app and
       in notifications · why: Connal, 09-01, on it being extremely important: "it synthesizes the

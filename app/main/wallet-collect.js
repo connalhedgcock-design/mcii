@@ -22,6 +22,12 @@ const INTERVAL_MS = 90 * 1000;
 
 const walletwatch = require('./adapters/walletwatch');
 const signalstore = require('./signalstore');
+// Reused, not reinvented -- T-035's 2h/90s price recorder, previously wired only to
+// `fomonotifications.js` (a trigger that has never once fired on this Mac, D-129). Every real
+// on-chain buy signal now starts the same recorder, giving `shared/traderstats.js` something
+// real to resolve a followed trader's buy against. See that file's header for the full reasoning.
+const pumpcapture = require('./pumpcapture');
+pumpcapture.init(REPO);
 
 const log = (...a) => console.log(new Date().toISOString().slice(0, 19).replace('T', ' '), ...a);
 const append = (file, rows) => {
@@ -50,6 +56,15 @@ async function runOnce() {
         signalstore.record({ kind: `wallet-${s.direction}`, ca: s.mint, sym: null, ts: s.ts,
           reasons: [`@${s.handle} (on-chain) ${s.direction === 'buy' ? 'bought' : 'sold'}${s.selfTradeFlag ? ' -- also traded the other side of this coin in the same window' : ''}`],
           evidence: s });
+        // Only buys get measured -- a sell is already the risk signal on its own terms (see
+        // traderstats.js header). A capture already running for this mint (this wallet's buy, or
+        // another followed wallet's) is a no-op inside startCapture -- known, stated limitation.
+        if (s.direction === 'buy') {
+          try {
+            pumpcapture.startCapture(s.mint, null,
+              { type: 'wallet-buy', handle: s.handle, wallet: s.wallet, selfTradeFlag: s.selfTradeFlag });
+          } catch (e) { log(`  price capture failed to start for ${s.mint}: ${e.message}`); }
+        }
       }
     }
     log(`${signals.length} new on-chain signal(s) from ${followed.length} followed wallet(s)`);
