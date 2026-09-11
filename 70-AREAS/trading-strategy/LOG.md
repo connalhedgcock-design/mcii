@@ -540,3 +540,32 @@ times across an 8.5-day span**, measured live, not assumed. The trend record was
   figures measuring a different population than our post-safety-filter sample, trial count = 1 per
   proxy) → [[60-KB/memecoin-lifecycle-pattern-research]]. Not wired into `rescore.js`/`admission.js`
   — n=2 is not a foundation for a real gate (D-05).
+
+## 2026-09-10 — 13. DIP DEPTH, EXIT TIMING, STAGE ID AND PUMP/DUMP TRADING — RESEARCH, BY TIER
+- machine: connal
+- Connal asked for real research (not first-principles reasoning): how big a dip to buy, when to
+  get out, split by market cap AND coin age — then, mid-session, added how to identify what stage a
+  coin is in and how to trade individual pumps/dumps within a coin. Does not reopen D-134 (Claude
+  scores, never names a coin) — general framework research, nothing coin-specific.
+- **Dip depth / exits, by tier** → [[60-KB/dip-buy-exit-tier-research]]. Headline: no published
+  %-dip rule exists for pump.fun-era coins (Tiers 1-2, most of the watchlist) — every citable %
+  number (BTC drawdown history, RSI backtests, ATR multipliers) comes from BTC/ETH/large-cap studies
+  and doesn't transfer without evidence. Pump.fun-specific fact worth remembering on its own: 68.67%
+  of ALL pump.fun tokens die same-day, only 4.55% survive 90+ days — at that age a "dip" and "the
+  coin dying" aren't distinguishable from price alone. The one thing that DOES transfer cleanly
+  cross-tier and has real backtest support: ATR-based stop/target sizing (scale to the coin's own
+  recent swings, not a flat %) — already this vault's recommended default, now with real numbers
+  behind it (2.0x ATR multiplier best-performing across assets tested).
+- **Stage ID / intra-coin pump-dump trading** → [[60-KB/coin-stage-pump-dump-research]]. Two
+  different "stage" questions answered separately: the STRUCTURAL stage (created → curve filling →
+  graduated to a real DEX) is mechanical, cheap, and checkable from data MCII already has. The
+  MANIPULATION stage (accumulation → pump → dump) is real and documented (insiders dump in staged
+  tranches, not all at once — 20% at 50% of peak, 30% at 60%, 50% at 80%, per one studied paper) but
+  every credible detector either needs minute-level data MCII doesn't collect, or only confirms the
+  pump once it's already near the top — nobody has a method that calls it early. Full cycle runs
+  "seconds to minutes," which MCII's 30min-2h collection cadence physically cannot see inside —
+  reinforces D-20/D-36 (no sniping) rather than reopening it. One concretely testable idea flagged,
+  not yet built: a 12-hour-moving-average-based detector (90% price / 400% volume vs. baseline) uses
+  an hourly-scale window close enough to MCII's own cadence to be worth a real backtest.
+- Both docs keep fact/est/vibe separated and name their own falsifiers per the mandate. Nothing
+  wired into `rescore.js` or any live gate — this is sourced research, not a decision or a build.

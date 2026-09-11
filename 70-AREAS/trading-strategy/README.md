@@ -361,6 +361,19 @@ n far too small to trust either way. Full write-up, caveats, and a real bug foun
 (a bad price quote that slipped past the T-037 filter) → [[60-KB/memecoin-lifecycle-pattern-research]].
 Not wired into anything live — this is a tested finding, not a decision.
 
+## !! DIP DEPTH, EXITS, STAGE ID, PUMP/DUMP TRADING — RESEARCH, BY TIER, 2026-09-10
+Connal asked for real research (not reasoned-from-scratch) on how big a dip to buy, when to get out,
+split by market cap and coin age, plus how to identify what stage a coin is in and how to trade its
+individual pumps/dumps. Two write-ups, both sourced and fact/est/vibe-labelled:
+[[60-KB/dip-buy-exit-tier-research]] and [[60-KB/coin-stage-pump-dump-research]]. Headline: no
+published %-dip rule exists for the pump.fun-era coins that are most of this watchlist — only
+BTC/ETH-scale studies give citable numbers, and they don't transfer without evidence. ATR-based
+stop/target sizing (already this vault's recommended default) is the one piece with real cross-tier
+backtest support. Pump/dump cycles run seconds-to-minutes — confirms rather than reopens D-20/D-36
+(no sniping). Full detail, falsifiers, and one concretely-testable-but-not-yet-built idea (a
+12h-moving-average pump detector, closer to MCII's own cadence than anything faster) in `LOG.md`
+entry 13 and the two files themselves. Not wired into anything live.
+
 ## READ NEXT
 - `LOG.md` — the full conversation, in order, including the exact exchanges behind every decision
   and open question above.
