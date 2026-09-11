@@ -1,11 +1,24 @@
 # Two machines collect into these files at the same time, so both sides always have real rows the
 # other doesn't. "Whose lines win" is the wrong question -- both are true. `tools/merge-data.py`
 # keeps every line from both, drops exact duplicates, and re-sorts by time.
-# ! registered automatically by share.sh; nobody has to configure anything by hand.
-data/*.jsonl                  merge=mcii-data
-data/holder-truth.json        merge=mcii-data
-data/wallet-watch-state.json  merge=mcii-data
-data/x-spend.json             merge=mcii-data
+# ! registered automatically by share.sh on the laptop. The collection host does NOT run share.sh,
+# so mcii-collect (on the server) must register the same driver itself -- 2026-09-11: it never
+# did, so the one time a real conflict landed there it stopped dead instead of auto-merging, and
+# stayed stuck for 22h with nothing pushed (see 50-LOG around 2026-09-11).
+# ! `**/*.jsonl` on purpose, not `data/*.jsonl` -- the plain form only matches files directly
+# inside data/, silently missing data/history/*.jsonl and 50-LOG/*.jsonl. Both are real append
+# logs with the same two-machines-writing shape and need the same merge.
+data/**/*.jsonl                merge=mcii-data
+50-LOG/signals-*.jsonl         merge=mcii-data
+50-LOG/forecasts-*.jsonl       merge=mcii-data
+data/holder-truth.json         merge=mcii-data
+data/wallet-watch-state.json   merge=mcii-data
+data/x-spend.json              merge=mcii-data
+# Everything else under data/*.json is a point-in-time snapshot recomputed fresh every collection
+# pass (growth-quality, rescore, query-runs, social-latest, notable-seen, ticker-collisions, ...).
+# Newest-wins is the same rule as holder-truth.json, just without a hardcoded name for every file
+# this shape gets added.
+data/*.json                    merge=mcii-data
 
 # ! everything else is deliberately NOT here. A conflict in real code or a vault note is a genuine
 # disagreement between two people and must stop and ask, never be auto-resolved.

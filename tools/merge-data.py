@@ -2,11 +2,17 @@
 """Merges MCII's data files when two machines collected at the same time.
 
 Registered as a git merge driver (see `.gitattributes` + `share.sh`), so git calls this instead
-of stopping with a conflict whenever `data/*.jsonl`, `data/holder-truth.json`,
-`data/wallet-watch-state.json`, or `data/x-spend.json` differ on both sides. Written 2026-09-05
+of stopping with a conflict whenever any `data/**/*.jsonl`, `50-LOG/signals-*.jsonl` /
+`50-LOG/forecasts-*.jsonl`, or `data/*.json` file differs on both sides. Written 2026-09-05
 after a real conflict: the always-on collection host appended ~25 runs to market.jsonl while
 Connal's laptop appended its own, and git correctly refused to guess. Extended 2026-09-10 after
 the same thing hit `x-spend.json`, which wasn't covered yet and so still stopped `share.sh`.
+Extended again 2026-09-11: the collection host's own checkout never registered this driver at
+all (only `share.sh`, laptop-only, did that), so the first real conflict it hit -- `x-spend.json`
+again, plus several point-in-time snapshot JSONs the driver didn't have a rule for yet -- left it
+stuck mid-rebase for 22h with nothing reaching GitHub. Added `merge_snapshot_json` as a generic
+newest-wins fallback for that whole class of file instead of hardcoding one more filename each
+time a new one appears, and `mcii-collect` now registers the driver itself on every run.
 
 !! THE WHOLE POINT: "whose lines win" IS THE WRONG QUESTION for these files. They are append-only
 logs of things that really happened, on two machines, at different moments. Both sides are true.
@@ -150,6 +156,33 @@ def merge_spend(ancestor_path, ours_path, theirs_path, out_path):
     return True
 
 
+TIMESTAMP_KEYS = ('checkedAt', 'updatedAt', 'generatedAt', 'at', 'ts')
+
+
+def merge_snapshot_json(ours_path, theirs_path, out_path):
+    """Generic fallback for the growing pile of data/*.json files that are a point-in-time
+    snapshot recomputed fresh every collection pass (growth-quality, rescore, query-runs,
+    social-latest, notable-seen, ticker-collisions, ...) rather than a log or a per-key table --
+    same newest-wins rule as merge_holder_truth, just without hardcoding every filename this
+    shape shows up under. Picks whichever side's top-level object carries the later recognized
+    timestamp field; with no such field on either side there is no honest way to tell which is
+    newer, so it takes theirs (documented limitation, not a guess dressed up as a decision)."""
+    try:
+        ours = json.load(open(ours_path, encoding='utf-8'))
+        theirs = json.load(open(theirs_path, encoding='utf-8'))
+    except Exception:
+        return False
+    if not isinstance(ours, dict) or not isinstance(theirs, dict):
+        return False             # not the shape this rule was written for -- ask a person
+    ours_ts = next((ours[k] for k in TIMESTAMP_KEYS if isinstance(ours.get(k), (int, float))), None)
+    theirs_ts = next((theirs[k] for k in TIMESTAMP_KEYS if isinstance(theirs.get(k), (int, float))), None)
+    pick = theirs if ours_ts is None or (theirs_ts is not None and theirs_ts >= ours_ts) else ours
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(pick, f, indent=2)
+        f.write('\n')
+    return True
+
+
 def main():
     if len(sys.argv) < 5:
         return 1
@@ -162,6 +195,8 @@ def main():
         ok = merge_wallet_state(ours, theirs, ours)
     elif path.endswith('x-spend.json'):
         ok = merge_spend(ancestor, ours, theirs, ours)
+    elif path.endswith('.json'):
+        ok = merge_snapshot_json(ours, theirs, ours)
     else:
         ok = False              # not a file this understands -- let git conflict normally
     return 0 if ok else 1
