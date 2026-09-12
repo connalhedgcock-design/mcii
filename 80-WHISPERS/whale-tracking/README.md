@@ -282,6 +282,31 @@ only started firing 09-08/09) — every trader's own row says so, nothing here i
 ! this is a DIFFERENT thing from the derivation idea killed 09-05 (`X KILLED` section above) — it
 measures wallets Connal already named, same distinction D-129 already drew for the read itself.
 
+## !! NEW EVIDENCE, 2026-09-11 — THE LIVE RUG ALERT HAS THE EXACT GAP THIS PAPER DESCRIBES
+fact @"How To Cook The Fragmented Rug Pull?" (arXiv 2511.15463, Nov 2025): studied 303,614 Ethereum
+pools 2018–2025. Rug-pull detectors that fire on "one big sell / sharp liquidity drop" are
+increasingly evaded by splitting the same total extraction into many small sells across many
+wallets over time — same total damage, none of the individual moves trip a one-shot threshold.
+Measured shift: single-wallet exits fell from 57% of cases (2019) to 28.3% (2024); deployer-only
+involvement fell from ~65% to ~24%. 34.7% of short-lived pools in their sample showed this pattern.
+No new detection code released — this is a measurement paper, not a tool. Nothing here is a claim
+about Solana or memecoins specifically; the base mechanism (fragment to dodge a spike check) is
+chain-agnostic and does not need re-proving to be relevant.
+
+- ! `app/main/live.js`'s own `liquidity-pull` alert (L76-81) is EXACTLY the evadable shape this
+  paper describes: fires only on a single poll-to-poll drop of 15%+ (`TIERS.fastMs` window). A
+  drain spread across several smaller pulls — each under 15%, spaced a poll or two apart — would
+  currently produce ZERO alerts while removing the same liquidity. This was true before reading the
+  paper; the paper is what surfaced it as a named, measured failure mode rather than a hypothetical.
+- ∴ we already built the harder, better-evidenced version of this defense for a DIFFERENT surface:
+  `app/shared/washtrade.js`'s funding-link clustering (this file, step 2) is the same "look at the
+  aggregate pattern, not one transaction" fix the paper recommends for fragmented exits. It is not
+  wired to the live liquidity alert — only to wallet-flow analysis.
+- `?` OPEN, not yet decided: add a cumulative/rolling liquidity-loss check (e.g. total lost over a
+  10-15 min window, not just one tick) alongside the existing spike check? This is a real gap with a
+  plausible fix, not yet actioned — needs Connal's call before touching `live.js`'s alert logic,
+  same as any other change to what reaches his phone.
+
 ## OPEN `?` — all of it
 - `?` which wallets. top holders of a held coin? wallets that bought early on coins that later ran?
   a hand-kept list? ! a hand-kept list goes stale silently, which D-93 already rejected once.
