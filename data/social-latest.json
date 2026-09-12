@@ -37,11 +37,11 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1789238622454,
+    "at": 1789242220340,
     "people": 1,
     "tone": null,
-    "confidence": "none",
-    "manipulated": true,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
