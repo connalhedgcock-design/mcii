@@ -1,59 +1,59 @@
 {
- "computedAt": 1789242193075,
+ "computedAt": 1789243992115,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price -30%, holders -52%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.2986462241069973,
-   "holderMove": -0.5244507160609315,
+   "why": "price -32%, holders -52%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": -0.3156091991518513,
+   "holderMove": -0.5247519650551167,
    "top1Move": 0.04757535403539803
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "real-looking-growth",
-   "why": "price +28%, holders +27%, biggest holder's share down 0.6 points -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 0.2818555490311216,
-   "holderMove": 0.26671021119094274,
-   "top1Move": -0.6417068727710395
+   "why": "price +20%, holders +27%, biggest holder's share down 0.5 points -- more people arriving and the biggest wallet's grip loosening",
+   "priceMove": 0.1972988843217851,
+   "holderMove": 0.26730894839973873,
+   "top1Move": -0.4652099895725321
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +184%, holders +94%, biggest holder's share up 0.1 points",
-   "priceMove": 1.8386398763523957,
-   "holderMove": 0.9389944134078212,
-   "top1Move": 0.10634521638055716
+   "why": "price +174%, holders +94%, biggest holder's share up 0.1 points",
+   "priceMove": 1.7394126738794435,
+   "holderMove": 0.9412290502793296,
+   "top1Move": 0.1063796163348032
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price -56%, holders -13%, biggest holder's share up 3.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.5553966189856957,
-   "holderMove": -0.1309350186355534,
-   "top1Move": 3.0011982701862836
+   "why": "price -56%, holders -13%, biggest holder's share up 3.1 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": -0.5550065019505852,
+   "holderMove": -0.1327175498298493,
+   "top1Move": 3.0910557148862354
   },
   {
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
    "sym": "GPRO",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price -43%, holders -11%, biggest holder's share up 7.4 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.432055063913471,
-   "holderMove": -0.11026484334429634,
-   "top1Move": 7.4203407511024295
+   "why": "price -42%, holders -11%, biggest holder's share up 7.1 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": -0.4200589970501475,
+   "holderMove": -0.11061104379435693,
+   "top1Move": 7.094603177559193
   },
   {
    "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
    "sym": "ZCAT",
    "verdict": "mixed",
-   "why": "price +306%, holders +343%, biggest holder's share up 0.0 points",
-   "priceMove": 3.0627362055933482,
-   "holderMove": 3.427372120265521,
-   "top1Move": 0.0013895281208888832
+   "why": "price +286%, holders +347%, biggest holder's share up 0.0 points",
+   "priceMove": 2.8586545729402872,
+   "holderMove": 3.4709098008590393,
+   "top1Move": 0.0016673757466780792
   }
  ]
 }
