@@ -702,3 +702,4 @@
 {"ts":1789267478691,"src":"cloud","universe":47,"survivors":9,"tookMs":35503,"rejects":{"liquidity only $X":23,"only Nh old":1,"no trading pairs":1,"older than N days":9,"one wallet holds N%":2,"Large Amount of LP Unlocked":1,"Creator history of rugged tokens":1}}
 {"ts":1789269205248,"src":"cloud","universe":44,"survivors":10,"tookMs":37238,"rejects":{"liquidity only $X":20,"only Nh old":2,"older than N days":8,"one wallet holds N%":2,"Large Amount of LP Unlocked":1,"Creator history of rugged tokens":1}}
 {"ts":1789271073817,"src":"cloud","universe":46,"survivors":14,"tookMs":51310,"rejects":{"only Nh old":3,"liquidity only $X":19,"older than N days":8,"Large Amount of LP Unlocked":1,"Creator history of rugged tokens":1}}
+{"ts":1789272805695,"src":"cloud","universe":45,"survivors":12,"tookMs":40647,"rejects":{"liquidity only $X":19,"only Nh old":3,"older than N days":8,"one wallet holds N%":1,"Large Amount of LP Unlocked":1,"Creator history of rugged tokens":1}}
