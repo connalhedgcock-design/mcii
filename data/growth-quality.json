@@ -1,13 +1,13 @@
 {
- "computedAt": 1789375393143,
+ "computedAt": 1789377193454,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +20%, holders -51%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.1999673788941444,
-   "holderMove": -0.5058010250393408,
+   "why": "price +22%, holders -51%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.22002935899526996,
+   "holderMove": -0.5057336403959046,
    "top1Move": 0.04762405625855237
   },
   {
@@ -15,27 +15,27 @@
    "sym": "DOGE-1",
    "verdict": "real-looking-growth",
    "why": "price +13%, holders +29%, biggest holder's share down 0.3 points -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 0.12977099236641218,
-   "holderMove": 0.2862508164598302,
-   "top1Move": -0.3336837564305908
+   "priceMove": 0.1303581914268937,
+   "holderMove": 0.2866318310472458,
+   "top1Move": -0.34074708246207397
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +40%, holders +90%, biggest holder's share up 0.1 points",
-   "priceMove": 0.3972179289026274,
-   "holderMove": 0.9049162011173184,
-   "top1Move": 0.11608717327190554
+   "why": "price +44%, holders +90%, biggest holder's share up 0.1 points",
+   "priceMove": 0.44482225656877905,
+   "holderMove": 0.9031284916201118,
+   "top1Move": 0.11618736810536046
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -63%, holders -16%, biggest holder's share up 3.9 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.6296488946684006,
-   "holderMove": -0.1568627450980392,
-   "top1Move": 3.9050942569335954
+   "priceMove": -0.6301690507152147,
+   "holderMove": -0.15702479338842976,
+   "top1Move": 3.9181262323473502
   },
   {
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
