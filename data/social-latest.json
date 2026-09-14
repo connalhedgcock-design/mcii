@@ -37,8 +37,8 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1789375419988,
-    "people": 1,
+    "at": 1789382619394,
+    "people": 2,
     "tone": null,
     "confidence": "none",
     "manipulated": true,
@@ -46,7 +46,7 @@
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1789379015599,
+    "at": 1789382619388,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -55,11 +55,11 @@
   },
   "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18": {
     "sym": "BONER",
-    "at": 1788804821095,
+    "at": 1789382619382,
     "people": 1,
     "tone": null,
-    "confidence": "none",
-    "manipulated": true,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   },
   "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
@@ -73,8 +73,8 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789379015614,
-    "people": 1,
+    "at": 1789382619398,
+    "people": 3,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
