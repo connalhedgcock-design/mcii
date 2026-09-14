@@ -37,16 +37,16 @@
   },
   "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR": {
     "sym": "ZCAT",
-    "at": 1789382619394,
-    "people": 2,
+    "at": 1789386215605,
+    "people": 1,
     "tone": null,
-    "confidence": "none",
-    "manipulated": true,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1789382619388,
+    "at": 1789386215597,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -73,8 +73,8 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789382619398,
-    "people": 3,
+    "at": 1789386215610,
+    "people": 1,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
