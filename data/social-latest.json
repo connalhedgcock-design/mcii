@@ -1,7 +1,7 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1789494217322,
+    "at": 1789497829016,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -19,11 +19,11 @@
   },
   "0x020bfC650A365f8BB26819deAAbF3E21291018b4": {
     "sym": "CASHCAT",
-    "at": 1789494217327,
-    "people": 2,
+    "at": 1789497829021,
+    "people": 1,
     "tone": null,
-    "confidence": "none",
-    "manipulated": true,
+    "confidence": "low",
+    "manipulated": false,
     "manipReasons": []
   },
   "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump": {
@@ -73,7 +73,7 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789490637097,
+    "at": 1789497829037,
     "people": 2,
     "tone": null,
     "confidence": "low",
