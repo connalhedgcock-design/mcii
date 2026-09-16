@@ -46,8 +46,8 @@
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1789512219715,
-    "people": 2,
+    "at": 1789519419982,
+    "people": 1,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
@@ -64,7 +64,7 @@
   },
   "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
     "sym": "GPRO",
-    "at": 1789512219722,
+    "at": 1789519419989,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -73,7 +73,7 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789512219728,
+    "at": 1789519419994,
     "people": 2,
     "tone": null,
     "confidence": "low",
