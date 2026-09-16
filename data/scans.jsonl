@@ -865,3 +865,4 @@
 {"ts":1789560804846,"src":"cloud","universe":37,"survivors":12,"tookMs":31786,"rejects":{"only Nh old":1,"liquidity only $X":15,"no pairs where this is the traded token":1,"only $X traded in Nh":1,"older than N days":7}}
 {"ts":1789562686821,"src":"cloud","universe":36,"survivors":13,"tookMs":33557,"rejects":{"liquidity only $X":14,"only Nh old":1,"only $X traded in Nh":1,"older than N days":7}}
 {"ts":1789564406062,"src":"cloud","universe":37,"survivors":14,"tookMs":36875,"rejects":{"liquidity only $X":14,"only Nh old":1,"only $X traded in Nh":1,"older than N days":7}}
+{"ts":1789566308220,"src":"cloud","universe":38,"survivors":15,"tookMs":38911,"rejects":{"liquidity only $X":14,"only Nh old":1,"only $X traded in Nh":1,"older than N days":7}}
