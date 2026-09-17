@@ -1,7 +1,7 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1789638218759,
+    "at": 1789641827891,
     "people": 1,
     "tone": null,
     "confidence": "none",
@@ -46,8 +46,8 @@
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1789638218769,
-    "people": 1,
+    "at": 1789641827908,
+    "people": 2,
     "tone": null,
     "confidence": "low",
     "manipulated": false,
@@ -64,7 +64,7 @@
   },
   "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
     "sym": "GPRO",
-    "at": 1789634627513,
+    "at": 1789641827914,
     "people": 1,
     "tone": null,
     "confidence": "low",
