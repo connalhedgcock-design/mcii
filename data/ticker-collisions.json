@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1789541024718,
+  "checkedAt": 1789613026349,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -7,19 +7,19 @@
       "sym": "CATE",
       "rivals": [
         {
-          "ca": "DJAEz4HWaBz9q1Kayy6VpMJCF1MC11XqcysmqDga6Qn3",
-          "name": "‮niocetaC",
-          "liquidityUsd": 195214085
+          "ca": "BhEtqvGj9rQStmEwbHoF1YxRD3vfwyMP5EuQ4xsn18Xf",
+          "name": "Catecoin",
+          "liquidityUsd": 288351627
         },
         {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764209
+          "liquidityUsd": 73764225
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477182
+          "liquidityUsd": 1477193
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
@@ -38,12 +38,12 @@
         {
           "ca": "3CnsUqfNCZbUG1XFP9H92b8R9Lqy2facCnXJE6Xopump",
           "name": "Doge-1",
-          "liquidityUsd": 16820
+          "liquidityUsd": 16994
         },
         {
           "ca": "9BFw5KMWpBfzbEKh7qtp5U6hXRVZ6DqykZGV1BkFpump",
           "name": "DOGE-1",
-          "liquidityUsd": 12001
+          "liquidityUsd": 12487
         }
       ],
       "rank": 1,
@@ -57,7 +57,7 @@
         {
           "ca": "3MrwYcAvGNNtMcHwscSqFQJ3qhMpKwxZCbprYrz1RYWi",
           "name": "boner",
-          "liquidityUsd": 8805
+          "liquidityUsd": 8770
         }
       ],
       "rank": null,
@@ -74,23 +74,13 @@
           "liquidityUsd": 30967289
         },
         {
-          "ca": "23TdbCBpGoH2n5gasDJWZzKpoTQQZU4SMcF2hNGXEySi",
-          "name": "Microduck",
-          "liquidityUsd": 7473
-        },
-        {
-          "ca": "GLQvgQzxgD3toBe65jEdAj5JEUXec9KzFb6xSeWqQ39C",
-          "name": "Microduck",
-          "liquidityUsd": 7161
-        },
-        {
           "ca": "CTuw8xEE15hKi2yB9n8CoLDq8ZhBLVbh8ydcuN11pump",
           "name": "Microduck",
-          "liquidityUsd": 6737
+          "liquidityUsd": 6851
         }
       ],
       "rank": null,
-      "of": 4
+      "of": 2
     },
     "OTC": {
       "ticker": "OTC",
@@ -100,21 +90,16 @@
         {
           "ca": "AUc7hszwXTyRXAkHjjrytyT7sB7r85sc3FxPW5tepump",
           "name": "OTC Sol",
-          "liquidityUsd": 282064
+          "liquidityUsd": 287540
         },
         {
           "ca": "7AGUGymgpNLjwCZTUvSd6TFJCXVQmbyCmDP32WsJpump",
           "name": "OTC",
-          "liquidityUsd": 164225
-        },
-        {
-          "ca": "DtYmbbkC8KFmXT2cL3etJ5ZZTtoD33UtSnMBX7Y9gr2K",
-          "name": "OTC",
-          "liquidityUsd": 53722
+          "liquidityUsd": 123168
         }
       ],
       "rank": 1,
-      "of": 4
+      "of": 3
     },
     "GPRO": {
       "ticker": "GPRO",
@@ -124,39 +109,25 @@
         {
           "ca": "EMyRs7pxz98znYnbzYYqko7eENUa8M8fi3B9MDatL8Sj",
           "name": "GPRO",
-          "liquidityUsd": 14549
+          "liquidityUsd": 14962
         }
       ],
       "rank": 1,
       "of": 2
     },
-    "ZCAT": {
-      "ticker": "ZCAT",
-      "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
-      "sym": "ZCAT",
+    "BATON": {
+      "ticker": "BATON",
+      "ca": "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump",
+      "sym": "baton",
       "rivals": [
         {
-          "ca": "8GuEuNiuHHYw3G42h37LXjCaTt31BM3QyHdDohWHdmX1",
-          "name": "Anonymous Cat",
-          "liquidityUsd": 347224596
+          "ca": "A5tX5uzooaZLtaDARK6hcSSQP8xvqY8pPZ32HSmhJTmh",
+          "name": "baton",
+          "liquidityUsd": 568298844
         }
       ],
       "rank": 2,
       "of": 2
-    },
-    "CRUMBS": {
-      "ticker": "CRUMBS",
-      "ca": "0x80baa4b3bfac6f4978700df824b1b3d98e889136",
-      "sym": "CRUMBS",
-      "rivals": [
-        {
-          "ca": "BpzvZe2MREqJyN22UJetX5mfU1yMJ1hRb2NiCYYipump",
-          "name": "Crumbs",
-          "liquidityUsd": 9472
-        }
-      ],
-      "rank": null,
-      "of": 1
     }
   }
 }
