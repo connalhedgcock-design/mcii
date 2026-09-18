@@ -1,40 +1,40 @@
 {
- "computedAt": 1789706593410,
+ "computedAt": 1789708393930,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +18%, holders -51%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.18121024302723854,
-   "holderMove": -0.5052421288790763,
-   "top1Move": 0.04919271300897021
+   "why": "price +17%, holders -51%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.17321807209264378,
+   "holderMove": -0.5054997760451556,
+   "top1Move": 0.04919271300898176
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -55%, holders +20%, biggest holder's share up 1.7 points",
-   "priceMove": -0.5499119201409277,
-   "holderMove": 0.20449597213150447,
+   "priceMove": -0.5508514386376981,
+   "holderMove": 0.20416938819943392,
    "top1Move": 1.6717362499682116
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +74%, holders +85%, biggest holder's share up 0.2 points",
-   "priceMove": 0.7440494590417311,
-   "holderMove": 0.8513966480446927,
-   "top1Move": 0.17051411657689997
+   "why": "price +70%, holders +85%, biggest holder's share up 0.2 points",
+   "priceMove": 0.6992272024729521,
+   "holderMove": 0.8501675977653631,
+   "top1Move": 0.17056264398655063
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -72%, holders -21%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7182704811443433,
-   "holderMove": -0.2101766326365257,
+   "priceMove": -0.7180104031209363,
+   "holderMove": -0.21098687408847835,
    "top1Move": 4.26255499152106
   },
   {
