@@ -959,3 +959,4 @@
 {"ts":1789730006583,"src":"cloud","universe":47,"survivors":9,"tookMs":36072,"rejects":{"no trading pairs":2,"liquidity only $X":22,"only $X traded in Nh":2,"older than N days":8,"Mint Authority still enabled":1,"one wallet holds N%":2,"Large Amount of LP Unlocked":1}}
 {"ts":1789731897729,"src":"cloud","universe":47,"survivors":9,"tookMs":34500,"rejects":{"liquidity only $X":21,"only Nh old":4,"only $X traded in Nh":2,"older than N days":8,"one wallet holds N%":2,"Large Amount of LP Unlocked":1}}
 {"ts":1789733607677,"src":"cloud","universe":46,"survivors":10,"tookMs":36314,"rejects":{"liquidity only $X":19,"only Nh old":5,"only $X traded in Nh":1,"older than N days":8,"one wallet holds N%":2,"Large Amount of LP Unlocked":1}}
+{"ts":1789735487141,"src":"cloud","universe":43,"survivors":11,"tookMs":37338,"rejects":{"liquidity only $X":17,"no trading pairs":1,"only Nh old":4,"older than N days":7,"one wallet holds N%":2,"Large Amount of LP Unlocked":1}}
