@@ -1,13 +1,13 @@
 {
- "computedAt": 1789765993071,
+ "computedAt": 1789767793219,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +58%, holders -50%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.5788615234056433,
-   "holderMove": -0.5034861643471815,
+   "why": "price +56%, holders -50%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.5583102267166856,
+   "holderMove": -0.5024238652624236,
    "top1Move": 0.0491931369651768
   },
   {
@@ -15,8 +15,8 @@
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -55%, holders +20%, biggest holder's share up 1.7 points",
-   "priceMove": -0.5499119201409277,
-   "holderMove": 0.20003265839320705,
+   "priceMove": -0.5545507927187316,
+   "holderMove": 0.19997822773786197,
    "top1Move": 1.6717362988403162
   },
   {
@@ -24,17 +24,17 @@
    "sym": "OTC",
    "verdict": "mixed",
    "why": "price +80%, holders +83%, biggest holder's share up 0.2 points",
-   "priceMove": 0.7978361669242658,
-   "holderMove": 0.8344134078212291,
-   "top1Move": 0.17488781398656972
+   "priceMove": 0.8030911901081915,
+   "holderMove": 0.8345251396648045,
+   "top1Move": 0.1750735124902425
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -74%, holders -22%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7434980494148244,
-   "holderMove": -0.22038567493112948,
+   "priceMove": -0.744148244473342,
+   "holderMove": -0.22087181980230108,
    "top1Move": 4.262555098644804
   },
   {
@@ -42,8 +42,8 @@
    "sym": "GPRO",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -58%, holders -16%, biggest holder's share up 14.5 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.5764011799410029,
-   "holderMove": -0.15804050545265708,
+   "priceMove": -0.5819075712881023,
+   "holderMove": -0.15838670590271767,
    "top1Move": 14.493439526877541
   },
   {
