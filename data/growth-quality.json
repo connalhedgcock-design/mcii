@@ -1,31 +1,31 @@
 {
- "computedAt": 1789837993350,
+ "computedAt": 1789839792104,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "price-up-nobody-arriving",
-   "why": "price +73%, holders -48% -- price rose without new people",
-   "priceMove": 0.7256564997553417,
-   "holderMove": -0.47708723933043445,
+   "why": "price +66%, holders -48% -- price rose without new people",
+   "priceMove": 0.6604142880443646,
+   "holderMove": -0.4767542799158088,
    "top1Move": null
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
-   "why": "price -54%, holders +19%",
-   "priceMove": -0.5421608925425719,
-   "holderMove": 0.19491617679076856,
+   "why": "price -49%, holders +19%",
+   "priceMove": -0.494128009395185,
+   "holderMove": 0.1947528848247333,
    "top1Move": null
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "real-looking-growth",
-   "why": "price +161%, holders +85% -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 1.6095826893353942,
-   "holderMove": 0.8543016759776536,
+   "why": "price +136%, holders +86% -- more people arriving and the biggest wallet's grip loosening",
+   "priceMove": 1.3579598145285936,
+   "holderMove": 0.8576536312849162,
    "top1Move": null
   },
   {
@@ -33,7 +33,7 @@
    "sym": "HeeHaw",
    "verdict": "mixed",
    "why": "price -69%, holders -23%",
-   "priceMove": -0.6881014304291287,
+   "priceMove": -0.6900520156046814,
    "holderMove": -0.23108086209690487,
    "top1Move": null
   },
@@ -41,18 +41,18 @@
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
    "sym": "GPRO",
    "verdict": "mixed",
-   "why": "price -62%, holders -16%",
-   "priceMove": -0.6180924287118977,
-   "holderMove": -0.16150250995326293,
+   "why": "price -64%, holders -16%",
+   "priceMove": -0.6428711897738446,
+   "holderMove": -0.16167561017829324,
    "top1Move": null
   },
   {
    "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
    "sym": "ZCAT",
    "verdict": "real-looking-growth",
-   "why": "price +385%, holders +428% -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 3.845049130763417,
-   "holderMove": 4.2821163607965635,
+   "why": "price +395%, holders +430% -- more people arriving and the biggest wallet's grip loosening",
+   "priceMove": 3.9470899470899465,
+   "holderMove": 4.296563842249121,
    "top1Move": null
   }
  ]
