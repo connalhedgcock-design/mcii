@@ -1,13 +1,13 @@
 {
- "computedAt": 1789917192005,
+ "computedAt": 1789918998912,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
-   "verdict": "price-up-nobody-arriving",
-   "why": "price +74%, holders -46% -- price rose without new people",
-   "priceMove": 0.7435981079758602,
-   "holderMove": -0.4647954876071713,
+   "verdict": "mixed",
+   "why": "price -56%, holders -46%",
+   "priceMove": -0.5581471211874083,
+   "holderMove": -0.4641414601855852,
    "top1Move": null
   },
   {
@@ -15,8 +15,8 @@
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -37%, holders +19%",
-   "priceMove": -0.36876100998238404,
-   "holderMove": 0.18920095797953407,
+   "priceMove": -0.366412213740458,
+   "holderMove": 0.18930981929022425,
    "top1Move": null
   },
   {
