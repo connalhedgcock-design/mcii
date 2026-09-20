@@ -1,7 +1,7 @@
 {
   "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump": {
     "sym": "CATE",
-    "at": 1789890215928,
+    "at": 1789893821231,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -19,7 +19,7 @@
   },
   "0x020bfC650A365f8BB26819deAAbF3E21291018b4": {
     "sym": "CASHCAT",
-    "at": 1789796617349,
+    "at": 1789893821238,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -46,7 +46,7 @@
   },
   "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump": {
     "sym": "OTC",
-    "at": 1789886624646,
+    "at": 1789893821253,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -64,7 +64,7 @@
   },
   "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy": {
     "sym": "GPRO",
-    "at": 1789886624652,
+    "at": 1789893821260,
     "people": 1,
     "tone": null,
     "confidence": "low",
@@ -73,11 +73,11 @@
   },
   "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump": {
     "sym": "baton",
-    "at": 1789857820924,
+    "at": 1789893821272,
     "people": 1,
     "tone": null,
-    "confidence": "low",
-    "manipulated": false,
+    "confidence": "none",
+    "manipulated": true,
     "manipReasons": []
   }
 }
