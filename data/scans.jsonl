@@ -1032,3 +1032,4 @@
 {"ts":1789861474571,"src":"cloud","universe":49,"survivors":16,"tookMs":42895,"rejects":{"liquidity only $X":20,"only Nh old":3,"no trading pairs":2,"older than N days":8}}
 {"ts":1789863203975,"src":"cloud","universe":49,"survivors":15,"tookMs":41326,"rejects":{"liquidity only $X":20,"no trading pairs":3,"only Nh old":3,"older than N days":8}}
 {"ts":1789865063274,"src":"cloud","universe":50,"survivors":13,"tookMs":37153,"rejects":{"liquidity only $X":22,"no trading pairs":4,"only Nh old":3,"older than N days":8}}
+{"ts":1789866804575,"src":"cloud","universe":51,"survivors":12,"tookMs":35105,"rejects":{"liquidity only $X":26,"older than N days":9,"only Nh old":1,"no trading pairs":3}}
