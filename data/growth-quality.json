@@ -1,40 +1,40 @@
 {
- "computedAt": 1789870392627,
+ "computedAt": 1789872193284,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "price-up-nobody-arriving",
-   "why": "price +91%, holders -47% -- price rose without new people",
-   "priceMove": 0.9050725819605284,
-   "holderMove": -0.4670627826686697,
+   "why": "price +87%, holders -47% -- price rose without new people",
+   "priceMove": 0.8724514761050398,
+   "holderMove": -0.4669280133817974,
    "top1Move": null
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
-   "why": "price -45%, holders +19%",
-   "priceMove": -0.4530240751614797,
-   "holderMove": 0.19224907467885913,
+   "why": "price -46%, holders +19%",
+   "priceMove": -0.4620082207868468,
+   "holderMove": 0.19197692140213368,
    "top1Move": null
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "real-looking-growth",
-   "why": "price +111%, holders +84% -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 1.1057187017001546,
-   "holderMove": 0.8391061452513966,
+   "why": "price +103%, holders +84% -- more people arriving and the biggest wallet's grip loosening",
+   "priceMove": 1.0253477588871713,
+   "holderMove": 0.840782122905028,
    "top1Move": null
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "mixed",
-   "why": "price -71%, holders -23%",
-   "priceMove": -0.7103381014304292,
-   "holderMove": -0.23367363474315345,
+   "why": "price -70%, holders -23%",
+   "priceMove": -0.7035760728218466,
+   "holderMove": -0.23415977961432508,
    "top1Move": null
   },
   {
@@ -42,8 +42,8 @@
    "sym": "GPRO",
    "verdict": "mixed",
    "why": "price -67%, holders -16%",
-   "priceMove": -0.6708947885939036,
-   "holderMove": -0.16357971265362645,
+   "priceMove": -0.6710914454277286,
+   "holderMove": -0.16409901332871732,
    "top1Move": null
   },
   {
