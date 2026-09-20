@@ -1,40 +1,40 @@
 {
- "computedAt": 1789890192994,
+ "computedAt": 1789891993189,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +79%, holders -47%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.7860055455879953,
-   "holderMove": -0.46640875524708364,
-   "top1Move": 0.04919860085602501
+   "why": "price +75%, holders -47%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.7517533844397324,
+   "holderMove": -0.46621452892188536,
+   "top1Move": 0.04919860384421337
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
-   "why": "price -48%, holders +19%, biggest holder's share up 1.7 points",
-   "priceMove": -0.47944803288314736,
-   "holderMove": 0.19045286305247114,
+   "why": "price -49%, holders +19%, biggest holder's share up 1.7 points",
+   "priceMove": -0.48555490311215505,
+   "holderMove": 0.1901807097757457,
    "top1Move": 1.6717387614207295
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +93%, holders +83%, biggest holder's share up 0.2 points",
-   "priceMove": 0.9289026275115919,
-   "holderMove": 0.8264804469273743,
-   "top1Move": 0.1841677311726322
+   "why": "price +88%, holders +83%, biggest holder's share up 0.2 points",
+   "priceMove": 0.8816074188562598,
+   "holderMove": 0.825586592178771,
+   "top1Move": 0.18420607923426857
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -71%, holders -24%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.711443433029909,
-   "holderMove": -0.2356182142278399,
+   "priceMove": -0.708777633289987,
+   "holderMove": -0.23594231080862096,
    "top1Move": 4.2626134191110685
   },
   {
