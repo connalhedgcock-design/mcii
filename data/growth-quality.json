@@ -1,13 +1,13 @@
 {
- "computedAt": 1789913592936,
+ "computedAt": 1789915392676,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "price-up-nobody-arriving",
-   "why": "price +84%, holders -46% -- price rose without new people",
-   "priceMove": 0.8430924808351002,
-   "holderMove": -0.46446649199510076,
+   "why": "price +83%, holders -46% -- price rose without new people",
+   "priceMove": 0.826781927907356,
+   "holderMove": -0.46460918888708314,
    "top1Move": null
   },
   {
@@ -15,7 +15,7 @@
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -36%, holders +19%",
-   "priceMove": -0.36347621843805045,
+   "priceMove": -0.361714621256606,
    "holderMove": 0.18925538863487917,
    "top1Move": null
   },
@@ -23,9 +23,9 @@
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "real-looking-growth",
-   "why": "price +100%, holders +81% -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 0.99629057187017,
-   "holderMove": 0.8148603351955307,
+   "why": "price +98%, holders +81% -- more people arriving and the biggest wallet's grip loosening",
+   "priceMove": 0.9777434312210201,
+   "holderMove": 0.8132960893854748,
    "top1Move": null
   },
   {
@@ -33,8 +33,8 @@
    "sym": "HeeHaw",
    "verdict": "mixed",
    "why": "price -74%, holders -24%",
-   "priceMove": -0.7379063719115735,
-   "holderMove": -0.23821098687408848,
+   "priceMove": -0.7413524057217166,
+   "holderMove": -0.23804893858369794,
    "top1Move": null
   },
   {
@@ -42,7 +42,7 @@
    "sym": "GPRO",
    "verdict": "mixed",
    "why": "price -70%, holders -17%",
-   "priceMove": -0.6977384464110129,
+   "priceMove": -0.6976401179941003,
    "holderMove": -0.1651376146788991,
    "top1Move": null
   },
@@ -50,9 +50,9 @@
    "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
    "sym": "ZCAT",
    "verdict": "real-looking-growth",
-   "why": "price +301%, holders +438% -- more people arriving and the biggest wallet's grip loosening",
-   "priceMove": 3.0136054421768708,
-   "holderMove": 4.380905896134323,
+   "why": "price +280%, holders +437% -- more people arriving and the biggest wallet's grip loosening",
+   "priceMove": 2.801965230536659,
+   "holderMove": 4.371339320577899,
    "top1Move": null
   }
  ]
