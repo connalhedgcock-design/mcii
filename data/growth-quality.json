@@ -1,40 +1,40 @@
 {
- "computedAt": 1789963993054,
+ "computedAt": 1789965793034,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +59%, holders -46%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.5912575436307289,
-   "holderMove": -0.46401858230637816,
-   "top1Move": 0.04919960028768999
+   "why": "price +60%, holders -46%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.5989235035067689,
+   "holderMove": -0.46418902581624605,
+   "top1Move": 0.049199631967225876
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -45%, holders +18%, biggest holder's share up 1.7 points",
-   "priceMove": -0.44638872577803873,
-   "holderMove": 0.18381232310037013,
+   "priceMove": -0.4496770405167351,
+   "holderMove": 0.18370346178967994,
    "top1Move": 1.6717391271840816
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +85%, holders +81%, biggest holder's share up 0.2 points",
-   "priceMove": 0.8497681607418855,
-   "holderMove": 0.8108379888268157,
-   "top1Move": 0.18746868297959818
+   "why": "price +87%, holders +81%, biggest holder's share up 0.2 points",
+   "priceMove": 0.8744976816074188,
+   "holderMove": 0.8109497206703911,
+   "top1Move": 0.18749411465294585
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -70%, holders -24%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7005851755526659,
-   "holderMove": -0.24372062874736672,
+   "priceMove": -0.7006501950585177,
+   "holderMove": -0.24388267703775726,
    "top1Move": 4.2626473707283035
   },
   {
