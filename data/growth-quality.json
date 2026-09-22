@@ -1,21 +1,21 @@
 {
- "computedAt": 1790116988678,
+ "computedAt": 1790118793098,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +40%, holders -46%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.3976512803784048,
-   "holderMove": -0.4630593420880519,
-   "top1Move": 0.04920116837460631
+   "why": "price +44%, holders -46%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.4449518838688631,
+   "holderMove": -0.46300781265483604,
+   "top1Move": 0.04920116863769586
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
-   "why": "price -42%, holders +17%, biggest holder's share up 1.7 points",
-   "priceMove": -0.42319436288901935,
+   "why": "price -47%, holders +17%, biggest holder's share up 1.7 points",
+   "priceMove": -0.4650616559013505,
    "holderMove": 0.1726540387546266,
    "top1Move": 1.671739451157495
   },
@@ -23,18 +23,18 @@
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +244%, holders +84%, biggest holder's share up 0.2 points",
-   "priceMove": 2.4404945904173103,
-   "holderMove": 0.8418994413407821,
-   "top1Move": 0.20111860579354435
+   "why": "price +238%, holders +84%, biggest holder's share up 0.2 points",
+   "priceMove": 2.384853168469861,
+   "holderMove": 0.8395530726256983,
+   "top1Move": 0.20123198343098814
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -76%, holders -25%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7572821846553967,
-   "holderMove": -0.25149894668611245,
+   "priceMove": -0.7579323797139141,
+   "holderMove": -0.25198509155728405,
    "top1Move": 4.262647764961421
   },
   {
