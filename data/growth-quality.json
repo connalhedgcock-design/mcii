@@ -1,40 +1,40 @@
 {
- "computedAt": 1790050393101,
+ "computedAt": 1790052193384,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +52%, holders -46%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.5155765780459958,
-   "holderMove": -0.4629642108267303,
-   "top1Move": 0.049200479078686854
+   "why": "price +54%, holders -46%, biggest holder's share up 0.0 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.5397161963790571,
+   "holderMove": -0.4627937673168624,
+   "top1Move": 0.049200479289857046
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -50%, holders +18%, biggest holder's share up 1.7 points",
-   "priceMove": -0.5029947152084556,
-   "holderMove": 0.17651861528412802,
+   "priceMove": -0.5036993540810335,
+   "holderMove": 0.17624646200740257,
    "top1Move": 1.6717394508641483
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +60%, holders +81%, biggest holder's share up 0.2 points",
-   "priceMove": 0.5969088098918082,
-   "holderMove": 0.8052513966480447,
-   "top1Move": 0.19431190873813442
+   "why": "price +64%, holders +80%, biggest holder's share up 0.2 points",
+   "priceMove": 0.6383307573415765,
+   "holderMove": 0.8025698324022347,
+   "top1Move": 0.1943420605768269
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price -77%, holders -25%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7711963589076722,
-   "holderMove": -0.24566520823205315,
+   "why": "price -75%, holders -25%, biggest holder's share up 4.3 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": -0.7522756827048114,
+   "holderMove": -0.2463134013936153,
    "top1Move": 4.262647668849518
   },
   {
