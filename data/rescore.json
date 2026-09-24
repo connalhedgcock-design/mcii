@@ -1,5 +1,5 @@
 {
- "computedAt": 1790235868287,
+ "computedAt": 1790237668747,
  "note": "FOMO sensor not available in cloud collection",
  "coins": [
   {
@@ -10,13 +10,13 @@
    "admit": false,
    "growth": {
     "verdict": "crowd-leaving-whale-staying",
-    "why": "price +54%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows"
+    "why": "price +57%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows"
    },
    "evidence": {
     "market": {
-     "liq": 5014238,
-     "buys24": 6591,
-     "sells24": 4518,
+     "liq": 5047553,
+     "buys24": 6577,
+     "sells24": 4507,
      "ratio": 1.46
     },
     "fomo": null,
@@ -24,11 +24,11 @@
     "notable": null
    },
    "reasons": [
-    "more buying than selling on-chain (6591 vs 4518)",
+    "more buying than selling on-chain (6577 vs 4507)",
     "only 1 of 1 available vote(s) -- needs at least 2, including one non-market",
-    "growth shape says otherwise: price +54%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows"
+    "growth shape says otherwise: price +57%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows"
    ],
-   "scoredAt": 1790235868284
+   "scoredAt": 1790237668745
   },
   {
    "ca": "0x020bfC650A365f8BB26819deAAbF3E21291018b4",
@@ -42,10 +42,10 @@
    },
    "evidence": {
     "market": {
-     "liq": 10783249,
+     "liq": 10730785,
      "buys24": 1294,
-     "sells24": 1469,
-     "ratio": 0.88
+     "sells24": 1373,
+     "ratio": 0.94
     },
     "fomo": null,
     "news": null,
@@ -55,7 +55,7 @@
     "no safety check exists for this chain -- unverified structurally",
     "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868284
+   "scoredAt": 1790237668745
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
@@ -69,10 +69,10 @@
    },
    "evidence": {
     "market": {
-     "liq": 106258,
+     "liq": 106467,
      "buys24": 30,
-     "sells24": 61,
-     "ratio": 0.49
+     "sells24": 58,
+     "ratio": 0.52
     },
     "fomo": null,
     "news": {
@@ -85,7 +85,7 @@
     "confirmed real-world news hit: Dogecoin Targets $0.10 Ahead of DOGE-1 Lunar Launch as Capital Rotates to Maxi Doge Presale - Cryptonews",
     "only 1 of 2 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868285
+   "scoredAt": 1790237668745
   },
   {
    "ca": "0x98096d17e191B3dA1d5f99a6D7b3584351b11E18",
@@ -99,10 +99,10 @@
    },
    "evidence": {
     "market": {
-     "liq": 1467537,
-     "buys24": 288,
+     "liq": 1474433,
+     "buys24": 283,
      "sells24": 164,
-     "ratio": 1.76
+     "ratio": 1.73
     },
     "fomo": null,
     "news": null,
@@ -110,10 +110,10 @@
    },
    "reasons": [
     "no safety check exists for this chain -- unverified structurally",
-    "more buying than selling on-chain (288 vs 164)",
+    "more buying than selling on-chain (283 vs 164)",
     "only 1 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868285
+   "scoredAt": 1790237668745
   },
   {
    "ca": "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725",
@@ -127,9 +127,9 @@
    },
    "evidence": {
     "market": {
-     "liq": 482311,
-     "buys24": 121,
-     "sells24": 334,
+     "liq": 482865,
+     "buys24": 122,
+     "sells24": 335,
      "ratio": 0.36
     },
     "fomo": null,
@@ -140,7 +140,7 @@
     "no safety check exists for this chain -- unverified structurally",
     "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868285
+   "scoredAt": 1790237668745
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
@@ -150,24 +150,24 @@
    "admit": false,
    "growth": {
     "verdict": "mixed",
-    "why": "price +156%, holders +102%, biggest holder's share up 0.2 points"
+    "why": "price +158%, holders +102%, biggest holder's share up 0.2 points"
    },
    "evidence": {
     "market": {
-     "liq": 716502,
-     "buys24": 29103,
-     "sells24": 12336,
-     "ratio": 2.36
+     "liq": 686009,
+     "buys24": 29132,
+     "sells24": 12506,
+     "ratio": 2.33
     },
     "fomo": null,
     "news": null,
     "notable": null
    },
    "reasons": [
-    "more buying than selling on-chain (29103 vs 12336)",
+    "more buying than selling on-chain (29132 vs 12506)",
     "only 1 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868285
+   "scoredAt": 1790237668746
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
@@ -181,10 +181,10 @@
    },
    "evidence": {
     "market": {
-     "liq": 87172,
-     "buys24": 109,
+     "liq": 87632,
+     "buys24": 110,
      "sells24": 139,
-     "ratio": 0.78
+     "ratio": 0.79
     },
     "fomo": null,
     "news": null,
@@ -194,7 +194,7 @@
     "only 0 of 1 available vote(s) -- needs at least 2, including one non-market",
     "growth shape says otherwise: price -76%, holders -26%, biggest holder's share up 6.9 points -- people exiting while the biggest wallet's share grows"
    ],
-   "scoredAt": 1790235868285
+   "scoredAt": 1790237668746
   },
   {
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
@@ -210,19 +210,19 @@
     "market": {
      "liq": 21236,
      "buys24": 1155,
-     "sells24": 379,
-     "ratio": 3.05
+     "sells24": 378,
+     "ratio": 3.06
     },
     "fomo": null,
     "news": null,
     "notable": null
    },
    "reasons": [
-    "more buying than selling on-chain (1155 vs 379)",
+    "more buying than selling on-chain (1155 vs 378)",
     "only 1 of 1 available vote(s) -- needs at least 2, including one non-market",
     "growth shape says otherwise: price -76%, holders -18%, biggest holder's share up 29.5 points -- people exiting while the biggest wallet's share grows"
    ],
-   "scoredAt": 1790235868285
+   "scoredAt": 1790237668746
   },
   {
    "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
@@ -236,20 +236,20 @@
    },
    "evidence": {
     "market": {
-     "liq": 3258938,
-     "buys24": 1312,
+     "liq": 3226245,
+     "buys24": 1315,
      "sells24": 516,
-     "ratio": 2.54
+     "ratio": 2.55
     },
     "fomo": null,
     "news": null,
     "notable": null
    },
    "reasons": [
-    "more buying than selling on-chain (1312 vs 516)",
+    "more buying than selling on-chain (1315 vs 516)",
     "only 1 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868286
+   "scoredAt": 1790237668746
   },
   {
    "ca": "0x80baa4b3bfac6f4978700df824b1b3d98e889136",
@@ -276,7 +276,7 @@
     "no safety check exists for this chain -- unverified structurally",
     "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868286
+   "scoredAt": 1790237668746
   },
   {
    "ca": "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump",
@@ -290,10 +290,10 @@
    },
    "evidence": {
     "market": {
-     "liq": 293048,
-     "buys24": 1292,
-     "sells24": 1029,
-     "ratio": 1.26
+     "liq": 285657,
+     "buys24": 1305,
+     "sells24": 1017,
+     "ratio": 1.28
     },
     "fomo": null,
     "news": null,
@@ -302,7 +302,7 @@
    "reasons": [
     "only 0 of 1 available vote(s) -- needs at least 2, including one non-market"
    ],
-   "scoredAt": 1790235868286
+   "scoredAt": 1790237668746
   }
  ]
 }
