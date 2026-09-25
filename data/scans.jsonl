@@ -1280,3 +1280,4 @@
 {"ts":1790309672684,"src":"cloud","universe":56,"survivors":14,"tookMs":48427,"rejects":{"liquidity only $X":27,"only Nh old":4,"older than N days":7,"only $X traded in Nh":1,"Large Amount of LP Unlocked":1,"one wallet holds N%":2}}
 {"ts":1790311464698,"src":"cloud","universe":56,"survivors":14,"tookMs":46231,"rejects":{"liquidity only $X":27,"only Nh old":4,"older than N days":7,"only $X traded in Nh":1,"Large Amount of LP Unlocked":1,"one wallet holds N%":2}}
 {"ts":1790313273925,"src":"cloud","universe":54,"survivors":15,"tookMs":47743,"rejects":{"liquidity only $X":25,"only Nh old":2,"no trading pairs":1,"older than N days":7,"only $X traded in Nh":1,"Large Amount of LP Unlocked":1,"one wallet holds N%":2}}
+{"ts":1790315065226,"src":"cloud","universe":52,"survivors":16,"tookMs":49226,"rejects":{"liquidity only $X":22,"only Nh old":2,"no trading pairs":1,"older than N days":7,"only $X traded in Nh":1,"Large Amount of LP Unlocked":1,"one wallet holds N%":2}}
