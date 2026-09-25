@@ -1,14 +1,14 @@
 {
- "computedAt": 1790347396281,
+ "computedAt": 1790349195114,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +72%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.7223943891697927,
-   "holderMove": -0.45954344922170737,
-   "top1Move": 0.058245101862827386
+   "why": "price +74%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.7370738868047625,
+   "holderMove": -0.459464173170606,
+   "top1Move": 0.058245114898398676
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
@@ -16,26 +16,26 @@
    "verdict": "mixed",
    "why": "price -47%, holders +16%, biggest holder's share up 2.3 points",
    "priceMove": -0.46911332941867295,
-   "holderMove": 0.16214892227302416,
+   "holderMove": 0.16204006096233398,
    "top1Move": 2.2983464455963585
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +188%, holders +103%, biggest holder's share up 0.2 points",
-   "priceMove": 1.8825347758887172,
-   "holderMove": 1.0329608938547485,
-   "top1Move": 0.24086737699408012
+   "why": "price +180%, holders +103%, biggest holder's share up 0.2 points",
+   "priceMove": 1.8030911901081916,
+   "holderMove": 1.0345251396648045,
+   "top1Move": 0.24088829409302814
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -78%, holders -27%, biggest holder's share up 7.7 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7756176853055917,
-   "holderMove": -0.26835196888672824,
-   "top1Move": 7.7255416064490765
+   "priceMove": -0.7750325097529259,
+   "holderMove": -0.2690001620482904,
+   "top1Move": 7.727679298465442
   },
   {
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
