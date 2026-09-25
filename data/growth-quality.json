@@ -1,32 +1,32 @@
 {
- "computedAt": 1790302389512,
+ "computedAt": 1790304189156,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +52%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.5188386886315445,
-   "holderMove": -0.46136679839703826,
-   "top1Move": 0.0582259814781767
+   "why": "price +55%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.5509704778992006,
+   "holderMove": -0.46129544995104704,
+   "top1Move": 0.058225987248892164
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
-   "why": "price -55%, holders +16%, biggest holder's share up 2.8 points",
-   "priceMove": -0.5464474456840869,
-   "holderMove": 0.16399956455475723,
-   "top1Move": 2.847925784178991
+   "why": "price -55%, holders +16%, biggest holder's share up 2.9 points",
+   "priceMove": -0.5511450381679389,
+   "holderMove": 0.1637818419333769,
+   "top1Move": 2.860482603523071
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +191%, holders +101%, biggest holder's share up 0.2 points",
-   "priceMove": 1.9137557959814528,
-   "holderMove": 1.0112849162011173,
-   "top1Move": 0.2400374375825587
+   "why": "price +198%, holders +102%, biggest holder's share up 0.2 points",
+   "priceMove": 1.9848531684698607,
+   "holderMove": 1.0160893854748603,
+   "top1Move": 0.2400783945602818
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
@@ -50,10 +50,10 @@
    "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
    "sym": "ZCAT",
    "verdict": "mixed",
-   "why": "price +196%, holders +455%, biggest holder's share up 0.0 points",
-   "priceMove": 1.958427815570673,
-   "holderMove": 4.548613822725498,
-   "top1Move": 0.011783807179769568
+   "why": "price +197%, holders +455%, biggest holder's share up 0.0 points",
+   "priceMove": 1.9712773998488282,
+   "holderMove": 4.547637641546271,
+   "top1Move": 0.011815576811832429
   }
  ]
 }
