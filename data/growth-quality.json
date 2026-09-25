@@ -1,13 +1,13 @@
 {
- "computedAt": 1790372590026,
+ "computedAt": 1790374389295,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +85%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.8479856467134235,
-   "holderMove": -0.45744659767007684,
+   "why": "price +88%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.880606752568912,
+   "holderMove": -0.4575615479441738,
    "top1Move": 0.06041452739062736
   },
   {
@@ -15,25 +15,25 @@
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -48%, holders +16%, biggest holder's share up 2.4 points",
-   "priceMove": -0.48420434527304757,
-   "holderMove": 0.1607881558893969,
-   "top1Move": 2.4448917368198417
+   "priceMove": -0.4842630651790957,
+   "holderMove": 0.1608970172000871,
+   "top1Move": 2.445857253946566
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +118%, holders +105%, biggest holder's share up 0.2 points",
-   "priceMove": 1.1789799072642966,
-   "holderMove": 1.0525139664804468,
-   "top1Move": 0.24227503114870697
+   "why": "price +129%, holders +105%, biggest holder's share up 0.2 points",
+   "priceMove": 1.289335394126739,
+   "holderMove": 1.0481564245810056,
+   "top1Move": 0.24233769571638764
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price -78%, holders -27%, biggest holder's share up 7.8 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7762678803641093,
+   "why": "price -77%, holders -27%, biggest holder's share up 7.8 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": -0.7728868660598179,
    "holderMove": -0.2699724517906336,
    "top1Move": 7.78439730443819
   },
@@ -50,10 +50,10 @@
    "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
    "sym": "ZCAT",
    "verdict": "mixed",
-   "why": "price +164%, holders +457%, biggest holder's share up 0.0 points",
-   "priceMove": 1.63567649281935,
-   "holderMove": 4.566770792659118,
-   "top1Move": 0.012044181732356662
+   "why": "price +144%, holders +456%, biggest holder's share up 0.0 points",
+   "priceMove": 1.442554799697657,
+   "holderMove": 4.556618508395158,
+   "top1Move": 0.012058757091902184
   }
  ]
 }
