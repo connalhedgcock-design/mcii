@@ -1,13 +1,13 @@
 {
- "computedAt": 1790419389917,
+ "computedAt": 1790421190024,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price +59%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.5948458652748329,
-   "holderMove": -0.4586000642136014,
+   "why": "price +58%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": 0.5842440058717989,
+   "holderMove": -0.4585961004110463,
    "top1Move": 0.06043564275998614
   },
   {
@@ -15,27 +15,27 @@
    "sym": "DOGE-1",
    "verdict": "mixed",
    "why": "price -49%, holders +16%, biggest holder's share up 2.5 points",
-   "priceMove": -0.4879624192601291,
+   "priceMove": -0.4889606576629477,
    "holderMove": 0.15893751360766384,
-   "top1Move": 2.4646499382498144
+   "top1Move": 2.4670181605774735
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +109%, holders +105%, biggest holder's share up 0.2 points",
-   "priceMove": 1.0942812982998453,
-   "holderMove": 1.0507262569832403,
-   "top1Move": 0.24725388825994177
+   "why": "price +108%, holders +105%, biggest holder's share up 0.2 points",
+   "priceMove": 1.0816074188562597,
+   "holderMove": 1.0491620111731843,
+   "top1Move": 0.24727688348308874
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price -81%, holders -27%, biggest holder's share up 8.7 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.8080624187256177,
-   "holderMove": -0.26916221033868093,
-   "top1Move": 8.704549483049622
+   "priceMove": -0.8086475942782836,
+   "holderMove": -0.26932425862907144,
+   "top1Move": 8.746479405026019
   },
   {
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
