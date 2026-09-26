@@ -1,41 +1,41 @@
 {
- "computedAt": 1790439190289,
+ "computedAt": 1790440990187,
  "coins": [
   {
    "ca": "Ai66LHZG9MCzg1WKdawwqduVAXpNDUuV8M3uyq5ppump",
    "sym": "CATE",
    "verdict": "crowd-leaving-whale-staying",
    "why": "price +55%, holders -46%, biggest holder's share up 0.1 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": 0.5534170608383624,
-   "holderMove": -0.458754652513249,
-   "top1Move": 0.06043591417383842
+   "priceMove": 0.5547219050725819,
+   "holderMove": -0.45877447152602435,
+   "top1Move": 0.060435959707088927
   },
   {
    "ca": "DpBzjtgGLF7QA9Ug3eUVGbnqa6j3jvYBn1XuQuktvfhm",
    "sym": "DOGE-1",
    "verdict": "mixed",
-   "why": "price -49%, holders +16%, biggest holder's share up 2.5 points",
-   "priceMove": -0.4939518496770405,
-   "holderMove": 0.1580666231221424,
-   "top1Move": 2.527832384949975
+   "why": "price -48%, holders +16%, biggest holder's share up 2.4 points",
+   "priceMove": -0.4766294773928362,
+   "holderMove": 0.1579033311561071,
+   "top1Move": 2.379808096885956
   },
   {
    "ca": "MukLDtJ8Cx9DxLbeyLRSWPSposTMWuwHANbuaudpump",
    "sym": "OTC",
    "verdict": "mixed",
-   "why": "price +84%, holders +105%, biggest holder's share up 0.2 points",
-   "priceMove": 0.8404945904173107,
-   "holderMove": 1.0521787709497206,
-   "top1Move": 0.24801889933151422
+   "why": "price +81%, holders +105%, biggest holder's share up 0.2 points",
+   "priceMove": 0.8074188562596599,
+   "holderMove": 1.0460335195530726,
+   "top1Move": 0.24816022276138128
   },
   {
    "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
    "sym": "HeeHaw",
    "verdict": "crowd-leaving-whale-staying",
-   "why": "price -79%, holders -27%, biggest holder's share up 8.3 points -- people exiting while the biggest wallet's share grows",
-   "priceMove": -0.7921326397919376,
-   "holderMove": -0.27321341759844436,
-   "top1Move": 8.336354436861697
+   "why": "price -80%, holders -27%, biggest holder's share up 8.4 points -- people exiting while the biggest wallet's share grows",
+   "priceMove": -0.7973342002600781,
+   "holderMove": -0.2733754658888349,
+   "top1Move": 8.401591882364869
   },
   {
    "ca": "BKXtSJWJk8s6DGEv71a3HohqHMhzn1iXLAzxMm6ZXjmy",
