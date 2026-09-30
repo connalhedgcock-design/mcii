@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1790671667232,
+  "checkedAt": 1790751354950,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -7,14 +7,19 @@
       "sym": "CATE",
       "rivals": [
         {
+          "ca": "5ZMLweKYgJFZrzsCFivPoojQsyysC6YYckYA8BrxTEnw",
+          "name": "Catecoin",
+          "liquidityUsd": 148404360
+        },
+        {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764149
+          "liquidityUsd": 73764159
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477131
+          "liquidityUsd": 1477141
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
@@ -22,8 +27,8 @@
           "liquidityUsd": 1432737
         }
       ],
-      "rank": 2,
-      "of": 4
+      "rank": 3,
+      "of": 5
     },
     "DOGE-1": {
       "ticker": "DOGE-1",
@@ -33,7 +38,7 @@
         {
           "ca": "9BFw5KMWpBfzbEKh7qtp5U6hXRVZ6DqykZGV1BkFpump",
           "name": "DOGE-1",
-          "liquidityUsd": 11927
+          "liquidityUsd": 13315
         }
       ],
       "rank": 1,
@@ -47,11 +52,21 @@
         {
           "ca": "Cm8G3wxvH6YPxNRvx4f3PkHJdCnwvLhBjhoKTa2ypump",
           "name": "BONER",
-          "liquidityUsd": 13200
+          "liquidityUsd": 13161
+        },
+        {
+          "ca": "3MrwYcAvGNNtMcHwscSqFQJ3qhMpKwxZCbprYrz1RYWi",
+          "name": "boner",
+          "liquidityUsd": 10669
+        },
+        {
+          "ca": "9dSSgivJCWXizncGy9d8pBfDTTnCT4gdgZw2Q5jcbonk",
+          "name": "Bonercoin",
+          "liquidityUsd": 5163
         }
       ],
       "rank": null,
-      "of": 1
+      "of": 3
     },
     "MICRODUCK": {
       "ticker": "MICRODUCK",
@@ -59,13 +74,23 @@
       "sym": "microduck",
       "rivals": [
         {
+          "ca": "23TdbCBpGoH2n5gasDJWZzKpoTQQZU4SMcF2hNGXEySi",
+          "name": "Microduck",
+          "liquidityUsd": 8043
+        },
+        {
+          "ca": "GLQvgQzxgD3toBe65jEdAj5JEUXec9KzFb6xSeWqQ39C",
+          "name": "Microduck",
+          "liquidityUsd": 7773
+        },
+        {
           "ca": "CTuw8xEE15hKi2yB9n8CoLDq8ZhBLVbh8ydcuN11pump",
           "name": "Microduck",
-          "liquidityUsd": 7268
+          "liquidityUsd": 7658
         }
       ],
       "rank": null,
-      "of": 1
+      "of": 3
     },
     "OTC": {
       "ticker": "OTC",
@@ -75,10 +100,24 @@
         {
           "ca": "AUc7hszwXTyRXAkHjjrytyT7sB7r85sc3FxPW5tepump",
           "name": "OTC Sol",
-          "liquidityUsd": 342846
+          "liquidityUsd": 342968
         }
       ],
       "rank": 1,
+      "of": 2
+    },
+    "HEEHAW": {
+      "ticker": "HEEHAW",
+      "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
+      "sym": "HeeHaw",
+      "rivals": [
+        {
+          "ca": "87GNNK7tqJaaEehDWUCKkLufasp1EV1Rzw8KCPtv4EA3",
+          "name": "Justice for HeeHaw",
+          "liquidityUsd": 15237022
+        }
+      ],
+      "rank": 2,
       "of": 2
     },
     "GPRO": {
@@ -89,12 +128,12 @@
         {
           "ca": "GPRR2u6NS5yBQHWGauoJ9HXgjrTH8dDsrBfTV5zAYvDH",
           "name": "GoPro - Backpack Securities",
-          "liquidityUsd": 93040
+          "liquidityUsd": 93544
         },
         {
           "ca": "EMyRs7pxz98znYnbzYYqko7eENUa8M8fi3B9MDatL8Sj",
           "name": "GPRO",
-          "liquidityUsd": 12094
+          "liquidityUsd": 12322
         }
       ],
       "rank": 2,
@@ -108,7 +147,7 @@
         {
           "ca": "BQDMYwgnWr9UBcUCvLX67yXriTVe1bkPEiTQ1TzKpump",
           "name": "Breadheads ",
-          "liquidityUsd": 45083
+          "liquidityUsd": 45068
         }
       ],
       "rank": null,
@@ -123,10 +162,15 @@
           "ca": "2MfHVw862pMoD8ebaQj7Gb3NJYPnxt3L7xrDBp2gtyv8",
           "name": "baton",
           "liquidityUsd": 10837853
+        },
+        {
+          "ca": "HxCnwFKFSCNdLbDeX4AYfJiSyEwdKiKvtAdiTGMJJwfo",
+          "name": "baton",
+          "liquidityUsd": 66718
         }
       ],
       "rank": 2,
-      "of": 2
+      "of": 3
     }
   }
 }
