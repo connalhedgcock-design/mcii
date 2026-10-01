@@ -1,5 +1,5 @@
 {
-  "checkedAt": 1790751354950,
+  "checkedAt": 1790835280927,
   "tickers": {
     "CATE": {
       "ticker": "CATE",
@@ -7,19 +7,19 @@
       "sym": "CATE",
       "rivals": [
         {
-          "ca": "5ZMLweKYgJFZrzsCFivPoojQsyysC6YYckYA8BrxTEnw",
+          "ca": "DZ3aNz17BH5aC83JVUgf8e9b9uEv2k3j1zt4tEW93GmN",
           "name": "Catecoin",
-          "liquidityUsd": 148404360
+          "liquidityUsd": 301623287
         },
         {
           "ca": "89x86Bx9rLGgrchyHw3S3avmykVKUEVsy2o9rrA1wYkP",
           "name": "Catecoin (cate.meme)",
-          "liquidityUsd": 73764159
+          "liquidityUsd": 73764167
         },
         {
           "ca": "6y6j2SQbUtmAF8uMkk1Zf7ERgrq81zGAmZJjwkQV3RrQ",
           "name": "CATE APE",
-          "liquidityUsd": 1477141
+          "liquidityUsd": 1477149
         },
         {
           "ca": "7wMwuNXeuwCVwSwxdAA7Hud6Tig2CEogmxu8erTHLxRx",
@@ -38,11 +38,16 @@
         {
           "ca": "9BFw5KMWpBfzbEKh7qtp5U6hXRVZ6DqykZGV1BkFpump",
           "name": "DOGE-1",
-          "liquidityUsd": 13315
+          "liquidityUsd": 13085
+        },
+        {
+          "ca": "BRcVpfmQsYLoskhaS58AmRMPtdTEKkmquPuRgVJVA8oA",
+          "name": "DOGE-1",
+          "liquidityUsd": 10838
         }
       ],
       "rank": 1,
-      "of": 2
+      "of": 3
     },
     "BONER": {
       "ticker": "BONER",
@@ -50,23 +55,13 @@
       "sym": "BONER",
       "rivals": [
         {
-          "ca": "Cm8G3wxvH6YPxNRvx4f3PkHJdCnwvLhBjhoKTa2ypump",
-          "name": "BONER",
-          "liquidityUsd": 13161
-        },
-        {
           "ca": "3MrwYcAvGNNtMcHwscSqFQJ3qhMpKwxZCbprYrz1RYWi",
           "name": "boner",
-          "liquidityUsd": 10669
-        },
-        {
-          "ca": "9dSSgivJCWXizncGy9d8pBfDTTnCT4gdgZw2Q5jcbonk",
-          "name": "Bonercoin",
-          "liquidityUsd": 5163
+          "liquidityUsd": 10582
         }
       ],
       "rank": null,
-      "of": 3
+      "of": 1
     },
     "MICRODUCK": {
       "ticker": "MICRODUCK",
@@ -76,17 +71,17 @@
         {
           "ca": "23TdbCBpGoH2n5gasDJWZzKpoTQQZU4SMcF2hNGXEySi",
           "name": "Microduck",
-          "liquidityUsd": 8043
+          "liquidityUsd": 8327
         },
         {
           "ca": "GLQvgQzxgD3toBe65jEdAj5JEUXec9KzFb6xSeWqQ39C",
           "name": "Microduck",
-          "liquidityUsd": 7773
+          "liquidityUsd": 7987
         },
         {
           "ca": "CTuw8xEE15hKi2yB9n8CoLDq8ZhBLVbh8ydcuN11pump",
           "name": "Microduck",
-          "liquidityUsd": 7658
+          "liquidityUsd": 7455
         }
       ],
       "rank": null,
@@ -100,24 +95,10 @@
         {
           "ca": "AUc7hszwXTyRXAkHjjrytyT7sB7r85sc3FxPW5tepump",
           "name": "OTC Sol",
-          "liquidityUsd": 342968
+          "liquidityUsd": 340802
         }
       ],
       "rank": 1,
-      "of": 2
-    },
-    "HEEHAW": {
-      "ticker": "HEEHAW",
-      "ca": "EEpng77ZPn9FbgbT4xsRjwuxNCcMBYq3HTwEscyTpump",
-      "sym": "HeeHaw",
-      "rivals": [
-        {
-          "ca": "87GNNK7tqJaaEehDWUCKkLufasp1EV1Rzw8KCPtv4EA3",
-          "name": "Justice for HeeHaw",
-          "liquidityUsd": 15237022
-        }
-      ],
-      "rank": 2,
       "of": 2
     },
     "GPRO": {
@@ -128,16 +109,30 @@
         {
           "ca": "GPRR2u6NS5yBQHWGauoJ9HXgjrTH8dDsrBfTV5zAYvDH",
           "name": "GoPro - Backpack Securities",
-          "liquidityUsd": 93544
+          "liquidityUsd": 91824
         },
         {
           "ca": "EMyRs7pxz98znYnbzYYqko7eENUa8M8fi3B9MDatL8Sj",
           "name": "GPRO",
-          "liquidityUsd": 12322
+          "liquidityUsd": 11831
         }
       ],
       "rank": 2,
       "of": 3
+    },
+    "ZCAT": {
+      "ticker": "ZCAT",
+      "ca": "HcRLc9VDgjLeK154xDawfb1dmVJ98DoSqcwTHGqiDeJR",
+      "sym": "ZCAT",
+      "rivals": [
+        {
+          "ca": "3Qpp7zRjuHd5KRJT29QQZzTLvv42aNybEZcos4fk4i43",
+          "name": "Anonymous Cat",
+          "liquidityUsd": 3648040
+        }
+      ],
+      "rank": 2,
+      "of": 2
     },
     "CRUMBS": {
       "ticker": "CRUMBS",
@@ -147,30 +142,16 @@
         {
           "ca": "BQDMYwgnWr9UBcUCvLX67yXriTVe1bkPEiTQ1TzKpump",
           "name": "Breadheads ",
-          "liquidityUsd": 45068
+          "liquidityUsd": 44999
+        },
+        {
+          "ca": "BpzvZe2MREqJyN22UJetX5mfU1yMJ1hRb2NiCYYipump",
+          "name": "Crumbs",
+          "liquidityUsd": 9192
         }
       ],
       "rank": null,
-      "of": 1
-    },
-    "BATON": {
-      "ticker": "BATON",
-      "ca": "Hg5Ja55T5wESq4vyFoiVCMeHXtGyVA69X2UHq8hgpump",
-      "sym": "baton",
-      "rivals": [
-        {
-          "ca": "2MfHVw862pMoD8ebaQj7Gb3NJYPnxt3L7xrDBp2gtyv8",
-          "name": "baton",
-          "liquidityUsd": 10837853
-        },
-        {
-          "ca": "HxCnwFKFSCNdLbDeX4AYfJiSyEwdKiKvtAdiTGMJJwfo",
-          "name": "baton",
-          "liquidityUsd": 66718
-        }
-      ],
-      "rank": 2,
-      "of": 3
+      "of": 2
     }
   }
 }
