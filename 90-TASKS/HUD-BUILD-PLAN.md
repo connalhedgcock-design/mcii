@@ -4,7 +4,7 @@ t: build-plan
 v: 1
 upd: 2026-09-09
 machine: connal
-status: backend-built-and-live-tested — window-in-running-app NOT yet verified
+status: backend-built-and-live-tested, renderer content visually verified in a standalone harness 2026-09-16 (see 50-LOG/2026-09-16-visual-audit-and-hud-first-look.md) — the real frameless/always-on-top Electron window itself still NOT yet verified
 ---
 # The live trading HUD — plan + build status
 

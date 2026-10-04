@@ -175,6 +175,30 @@
     }),
     tickerCollisions: async () => ({}),
     openExternal: async () => {},
+    notableFor: async () => null,
+    tradeHud: async (ca) => ({
+      ca, chain: 'solana', symbol: 'CATE', name: 'Sample Coin', priceUsd: 0.004182, marketCap: 4180000, liquidityUsd: 212000,
+      priceSeries: Array.from({ length: 40 }, (_, i) => ({ ts: now - (40 - i) * 60000, v: 0.0038 + Math.sin(i / 4) * 0.0004 + i * 0.00001, vol: 8000 + i * 200 })),
+      liqSeries: [], minuteCandleCount: 40, minuteFeedError: null,
+      shape: {
+        indicators: [
+          { id: 'spike', label: 'opening spike', kind: 'fact', match: true, detail: 'opened, spiked +42.0%, matches a sharp opening move' },
+          { id: 'dip', label: 'fake dip', kind: 'fact', match: 'partial', detail: 'pulled back 18.0% off the peak, still forming' },
+          { id: 'nosell', label: 'no real sell side', kind: 'est', match: false, detail: 'down-candle volume is 31.0% of all volume over 40 minute candles' },
+        ],
+      },
+      topHolders: [],
+      forensics: { checked: [], balanceRead: { match: true, detail: '5 wallets, balances 14.28 / 1.02 / 0.51 / 0.90 / 2.38 SOL -- not uniform' },
+        fundingRead: { sameFunderClusters: [], dateClusters: [], detail: 'no shared funder across the top 5' } },
+      creatorHistory: { available: true, checkedCount: 3, flaggedCount: 0, detail: 'checked 3 other coins by this creator, none flagged' },
+      narrative: { items: [{ title: 'Sample Coin sees renewed volume', source: 'CoinDesk', link: '#', ts: now - 3600000 }], xPosts: { posts: [] } },
+      builtAt: now,
+    }),
+    pinToHud: async () => {},
+    unpinHud: async () => {},
+    // Auto-fires with a test address so hud/index.html shows real content when opened
+    // directly (the standalone HUD window has no other way to get a coin in this harness).
+    onHudCoin: (cb) => setTimeout(() => cb('CAxth6enq8'), 0),
     owner: async () => 'austin',
     setOwner: async () => {},
     allOwners: async () => ['austin', 'connal'],
